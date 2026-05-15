@@ -108,12 +108,32 @@ Plans:
 3. Dataset split is stratified 70/15/15.
 4. Augmentation adds matching Gaussian position noise to preserve relative distances.
 5. PyTorch model and training entrypoint run with the requested loss, optimizer, scheduler, and batch size.
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
-- [ ] 04-01: CS2CD loader, schema validation, and matrix conversion
-- [ ] 04-02: Splitting, augmentation, and dataset tests
-- [ ] 04-03: Transformer model, training script, and smoke test path
+**Wave 1**
+- [ ] 04-01: ML package infrastructure, config, feature schema docs, test fixtures, and test scaffold
+
+**Wave 2 (blocked on Wave 1 completion)**
+- [ ] 04-02: Dataset loader, matrix conversion, stratified splits, Gaussian augmentation, and dataset tests
+
+**Wave 3 (blocked on Wave 2 completion)**
+- [ ] 04-03: Transformer model architecture and forward pass test
+
+**Wave 4 (blocked on Wave 3 completion)**
+- [ ] 04-04: Training loop, optimizer/scheduler/loss, checkpointing, JSON logging, CLI, and training test
+
+Cross-cutting constraints:
+- ML code in `python/ml/` as sub-modules (dataset.py, model.py, train.py, config.py)
+- Configuration via `.env` and `python/ml/config.py` (D-35, D-36)
+- HuggingFace dataset on-demand with optional HF_TOKEN authentication (D-02, D-03)
+- 256x44 matrices with feature schema in `python/ml/FEATURE_SCHEMA.md` (D-06, D-08)
+- Stratified demo-level 70/15/15 splits with deterministic seed (D-09, D-10)
+- Per-feature Gaussian noise during training only, preserving relative distances (D-11 to D-14)
+- nn.Transformer encoder with custom embedding and output layers (D-15 to D-18)
+- MSE loss, AdamW optimizer, StepLR scheduler, batch size 128 (D-22, D-23)
+- Best-model checkpointing by validation loss (D-19, D-20)
+- JSON structured logging with timestamp, event, epoch, loss fields (D-21)
 
 ### Phase 5: Developer Readiness and Documentation
 **Goal**: The repository is directly usable by a developer following the README.
@@ -143,5 +163,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 1. Container Foundation | 3/3 | Complete | 2026-05-15 |
 | 2. Symfony API and Domain | 4/4 | Complete | 2026-05-15 |
 | 3. Python Analysis Pipeline | 0/5 | Ready to discuss | - |
-| 4. ML Dataset and Transformer Prep | 0/3 | Not started | - |
+| 4. ML Dataset and Transformer Prep | 0/4 | Ready to plan | - |
 | 5. Developer Readiness and Documentation | 0/3 | Not started | - |
