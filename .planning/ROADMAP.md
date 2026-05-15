@@ -13,7 +13,7 @@ Build the project from the outside in: first a repeatable container foundation, 
 - [x] **Phase 1: Container Foundation** - Docker Compose, service images, environment, healthchecks, and local storage.
 - [x] **Phase 2: Symfony API and Domain** - Entities, migrations, REST endpoints, storage abstraction, and Messenger dispatch.
 - [ ] **Phase 3: Python Analysis Pipeline** - Worker, parser adapter, feature extractors, scoring, error handling, and result persistence.
-- [ ] **Phase 4: ML Dataset and Transformer Prep** - CS2CD loader, AntiCheatPT vectors, augmentation, model, and training entrypoint.
+- [x] **Phase 4: ML Dataset and Transformer Prep** - CS2CD loader, AntiCheatPT vectors, augmentation, model, and training entrypoint.
 - [ ] **Phase 5: Developer Readiness and Documentation** - Makefile, recoil data, README, gitignore, and test commands.
 
 ## Phase Details
@@ -112,16 +112,16 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 04-01: ML package infrastructure, config, feature schema docs, test fixtures, and test scaffold
+- [x] 04-01: ML package infrastructure, config, feature schema docs, test fixtures, and test scaffold
 
 **Wave 2 (blocked on Wave 1 completion)**
-- [ ] 04-02: Dataset loader, matrix conversion, stratified splits, Gaussian augmentation, and dataset tests
+- [x] 04-02: Dataset loader, matrix conversion, stratified splits, Gaussian augmentation, and dataset tests
 
 **Wave 3 (blocked on Wave 2 completion)**
-- [ ] 04-03: Transformer model architecture and forward pass test
+- [x] 04-03: Transformer model architecture and forward pass test
 
 **Wave 4 (blocked on Wave 3 completion)**
-- [ ] 04-04: Training loop, optimizer/scheduler/loss, checkpointing, JSON logging, CLI, and training test
+- [x] 04-04: Training loop, optimizer/scheduler/loss, checkpointing, JSON logging, CLI, and training test
 
 Cross-cutting constraints:
 - ML code in `python/ml/` as sub-modules (dataset.py, model.py, train.py, config.py)
@@ -142,16 +142,19 @@ Cross-cutting constraints:
 **UI hint**: no
 **Success Criteria** (what must be TRUE):
 1. Makefile exposes all requested targets and routes them to working container commands.
-2. README covers prerequisites, quickstart, migrations, direct analysis, API curl examples, ML phase, and architecture.
+2. README covers prerequisites, quickstart, API curl examples, architecture, reproducibility guide, and extension points.
 3. Recoil pattern files exist with AK-47 data and M4A4/M4A1-S stubs using the same schema.
 4. `.gitignore` covers generated PHP, Python, ML, demo, and environment artifacts.
 5. PHP and Python test commands are discoverable and executable.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: Makefile, local commands, and test command wiring
+**Wave 1**
+- [x] 05-01: Makefile, local commands, and test command wiring
 - [ ] 05-02: Recoil pattern data and repository ignore rules
-- [ ] 05-03: README, API examples, architecture diagram, and final verification
+
+**Wave 2 (blocked on Wave 1 completion)**
+- [ ] 05-03: README, API examples, architecture description, and final verification
 
 ## Progress
 
@@ -164,4 +167,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. Symfony API and Domain | 4/4 | Complete | 2026-05-15 |
 | 3. Python Analysis Pipeline | 0/5 | Ready to discuss | - |
 | 4. ML Dataset and Transformer Prep | 4/4 | Complete | 2026-05-15 |
-| 5. Developer Readiness and Documentation | 0/3 | Ready to discuss | - |
+| 5. Developer Readiness and Documentation | 1/3 | In progress | 2026-05-15 |
