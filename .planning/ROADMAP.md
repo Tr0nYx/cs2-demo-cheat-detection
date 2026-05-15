@@ -1,170 +1,34 @@
 # Roadmap: CS2 Demo Cheat Detection
 
-## Overview
+## Current State
 
-Build the project from the outside in: first a repeatable container foundation, then the Symfony product boundary, then the Python analysis pipeline, then ML preparation, and finally documentation and developer polish. This order makes each phase verifiable without requiring the whole system to exist at once.
+**Milestone v1** (complete) provides the foundational infrastructure, REST API backend, ML preparation framework, and developer ergonomics. [Full details →](./milestones/v1-ROADMAP.md)
 
-## Phases
+The repository is ready for developers to use following the README. Docker Compose runs all services, the Symfony API accepts demo uploads, and the ML training infrastructure is prepared.
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions marked with INSERTED
+## Next Milestone: v2 (Python Analysis Pipeline)
 
-- [x] **Phase 1: Container Foundation** - Docker Compose, service images, environment, healthchecks, and local storage.
-- [x] **Phase 2: Symfony API and Domain** - Entities, migrations, REST endpoints, storage abstraction, and Messenger dispatch.
-- [ ] **Phase 3: Python Analysis Pipeline** - Worker, parser adapter, feature extractors, scoring, error handling, and result persistence.
-- [x] **Phase 4: ML Dataset and Transformer Prep** - CS2CD loader, AntiCheatPT vectors, augmentation, model, and training entrypoint.
-- [x] **Phase 5: Developer Readiness and Documentation** - Makefile, recoil data, README, gitignore, and test commands.
+Build the core detection engine that consumes queued demos, parses CS2 data, computes feature scores, and labels suspicion levels.
 
-## Phase Details
+### Planned Phases
 
-### Phase 1: Container Foundation
-**Goal**: Developer can build and start the full local service stack.
-**Depends on**: Nothing (first phase)
-**Requirements**: INFR-01, INFR-02, INFR-03, INFR-04, INFR-05
-**UI hint**: no
-**Success Criteria** (what must be TRUE):
-1. Developer can run Docker Compose and see PHP-FPM, Nginx, PostgreSQL, Redis, and Python services healthy or ready.
-2. Services use non-root runtime users where applicable.
-3. `.env.example` documents all environment variables needed by the stack.
-4. Demo storage is mounted as a Docker volume and demo files are ignored by git.
-**Plans**: 3 plans
+- [ ] **Phase 3: Python Analysis Pipeline** — Worker, parser, feature extractors, scoring, error handling
+- [ ] **Phase 6: Enhanced ML & Production** — Upgrade recoil patterns, web UI, deployment, observability
 
-Plans:
-**Wave 1**
-- [x] 01-01: Compose network, volumes, service wiring, healthchecks, and environment files
+### Backlog
 
-**Wave 2 (blocked on Wave 1 completion)**
-- [x] 01-02: PHP-FPM and Nginx Dockerfiles/configuration
-- [x] 01-03: Python image, dependency pinning, and storage permissions
+- Web UI for demo upload and result visualization
+- Production deployment guide (Kubernetes, cloud storage)
+- Observability stack (Prometheus, Grafana, Loki)
+- Advanced analytics and trend detection
+- API versioning and OpenAPI documentation
 
-Cross-cutting constraints:
-- Use the exact target top-level structure from `tasks/setup.md`.
-- Keep the default Compose setup dev-first with bind mounts and local defaults.
-- Run PHP and Python application processes as pragmatic non-root users.
-- Treat `.env.example` as the full Symfony/Python/Redis/PostgreSQL/storage/ML service contract.
+## Version History
 
-### Phase 2: Symfony API and Domain
-**Goal**: Symfony can accept demos, persist domain records, dispatch analysis jobs, ingest results, and expose the requested REST API.
-**Depends on**: Phase 1
-**Requirements**: BACK-01, BACK-02, BACK-03, BACK-04, BACK-05, BACK-06, BACK-07
-**UI hint**: yes
-**Success Criteria** (what must be TRUE):
-1. API user can upload a `.dem` file and receive a demo ID.
-2. API user can poll demo status and receive result data when analysis completes.
-3. API user can retrieve player history by Steam ID.
-4. Symfony writes analysis jobs without waiting for Python processing.
-5. Result ingestion creates `AnalysisResult` rows and updates demo status.
-**Plans**: 4 plans
+| Version | Status | Completed | Link |
+|---------|--------|-----------|------|
+| v1.0 | Complete | 2026-05-15 | [Roadmap →](./milestones/v1-ROADMAP.md) |
 
-Plans:
-**Wave 1**
-- [x] 02-01: Symfony skeleton, packages, configuration, and database connectivity
+---
 
-**Wave 2 (blocked on Wave 1 completion)**
-- [x] 02-02: Domain entities, enums, repositories, and migrations
-
-**Wave 3 (blocked on Wave 2 completion)**
-- [x] 02-03: Storage abstraction, demo upload, status/result, and player history controllers
-
-**Wave 4 (blocked on Wave 3 completion)**
-- [x] 02-04: Messenger messages, handlers, Redis payload contract, and result ingest flow
-
-Cross-cutting constraints:
-- Use pragmatic REST JSON with simple Symfony controllers, not API Platform.
-- Keep secrets and service URLs environment-driven through the Phase 1 `.env.example` contract.
-- Preserve the Symfony/Python split: Symfony queues compact jobs and persists results; Python parsing/scoring remains Phase 3.
-- Return stable structured error envelopes without leaking exception internals.
-- Treat suspicion labels as explainable research signals, not proof or enforcement.
-
-### Phase 3: Python Analysis Pipeline
-**Goal**: Python can consume queued demo jobs, parse CS2 data, compute feature scores, and persist explainable results.
-**Depends on**: Phase 2
-**Requirements**: WORK-01, WORK-02, WORK-03, WORK-04, WORK-05, FEAT-01, FEAT-02, FEAT-03, FEAT-04, FEAT-05, FEAT-06, FEAT-07, FEAT-08, FEAT-09
-**UI hint**: no
-**Success Criteria** (what must be TRUE):
-1. Worker BRPOPs jobs from `cs2.analysis`, handles SIGTERM, and logs JSON to stdout.
-2. Parser adapter returns validated tick and event data or a clear error.
-3. Each feature module returns a normalized score with raw supporting feature data.
-4. Weighted scorer produces `clean`, `suspicious`, or `likely_cheating` labels.
-5. Worker writes successful results and failed demo errors to PostgreSQL.
-**Plans**: 5 plans
-
-Plans:
-- [ ] 03-01: Worker lifecycle, Redis consumption, structured logging, and PostgreSQL writes
-- [ ] 03-02: Demo parser adapter and validation layer
-- [ ] 03-03: Aimbot, triggerbot, and wallhack feature extractors
-- [ ] 03-04: Recoil, bhop, and session consistency feature extractors
-- [ ] 03-05: Weighted scoring, result schema integration, and worker tests
-
-### Phase 4: ML Dataset and Transformer Prep
-**Goal**: Project can prepare CS2CD training data and run the requested AntiCheatPT-style model scaffold.
-**Depends on**: Phase 3
-**Requirements**: ML-01, ML-02, ML-03, ML-04, ML-05, ML-06
-**UI hint**: no
-**Success Criteria** (what must be TRUE):
-1. Dataset loader can load CS2CD from Hugging Face using the live repository identifier.
-2. Loader converts data into 256x44 matrices compatible with the requested model.
-3. Dataset split is stratified 70/15/15.
-4. Augmentation adds matching Gaussian position noise to preserve relative distances.
-5. PyTorch model and training entrypoint run with the requested loss, optimizer, scheduler, and batch size.
-**Plans**: 4 plans
-
-Plans:
-**Wave 1**
-- [x] 04-01: ML package infrastructure, config, feature schema docs, test fixtures, and test scaffold
-
-**Wave 2 (blocked on Wave 1 completion)**
-- [x] 04-02: Dataset loader, matrix conversion, stratified splits, Gaussian augmentation, and dataset tests
-
-**Wave 3 (blocked on Wave 2 completion)**
-- [x] 04-03: Transformer model architecture and forward pass test
-
-**Wave 4 (blocked on Wave 3 completion)**
-- [x] 04-04: Training loop, optimizer/scheduler/loss, checkpointing, JSON logging, CLI, and training test
-
-Cross-cutting constraints:
-- ML code in `python/ml/` as sub-modules (dataset.py, model.py, train.py, config.py)
-- Configuration via `.env` and `python/ml/config.py` (D-35, D-36)
-- HuggingFace dataset on-demand with optional HF_TOKEN authentication (D-02, D-03)
-- 256x44 matrices with feature schema in `python/ml/FEATURE_SCHEMA.md` (D-06, D-08)
-- Stratified demo-level 70/15/15 splits with deterministic seed (D-09, D-10)
-- Per-feature Gaussian noise during training only, preserving relative distances (D-11 to D-14)
-- nn.Transformer encoder with custom embedding and output layers (D-15 to D-18)
-- MSE loss, AdamW optimizer, StepLR scheduler, batch size 128 (D-22, D-23)
-- Best-model checkpointing by validation loss (D-19, D-20)
-- JSON structured logging with timestamp, event, epoch, loss fields (D-21)
-
-### Phase 5: Developer Readiness and Documentation
-**Goal**: The repository is directly usable by a developer following the README.
-**Depends on**: Phase 4
-**Requirements**: DEVX-01, DEVX-02, DEVX-03, DEVX-04, DEVX-05
-**UI hint**: no
-**Success Criteria** (what must be TRUE):
-1. Makefile exposes all requested targets and routes them to working container commands.
-2. README covers prerequisites, quickstart, API curl examples, architecture, reproducibility guide, and extension points.
-3. Recoil pattern files exist with AK-47 data and M4A4/M4A1-S stubs using the same schema.
-4. `.gitignore` covers generated PHP, Python, ML, demo, and environment artifacts.
-5. PHP and Python test commands are discoverable and executable.
-**Plans**: 3 plans
-
-Plans:
-**Wave 1**
-- [x] 05-01: Makefile, local commands, and test command wiring
-- [x] 05-02: Recoil pattern data and repository ignore rules
-
-**Wave 2 (blocked on Wave 1 completion)**
-- [x] 05-03: README, API examples, architecture description, and final verification
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Container Foundation | 3/3 | Complete | 2026-05-15 |
-| 2. Symfony API and Domain | 4/4 | Complete | 2026-05-15 |
-| 3. Python Analysis Pipeline | 0/5 | Ready to discuss | - |
-| 4. ML Dataset and Transformer Prep | 4/4 | Complete | 2026-05-15 |
-| 5. Developer Readiness and Documentation | 3/3 | Complete | 2026-05-15 |
+*Last updated: 2026-05-15 after v1 milestone completion*
