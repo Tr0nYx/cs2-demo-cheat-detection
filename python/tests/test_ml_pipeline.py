@@ -160,7 +160,31 @@ def test_model_forward_pass(fixture_data):
     - Output shape is (batch_size, 1)
     - Output values are in [0.0, 1.0]
     """
-    pytest.skip("Implementation in Wave 3 (model.py)")
+    from ml.model import create_model
+
+    model = create_model()
+    model.eval()  # Disable dropout during evaluation
+
+    # Get fixture data
+    X, y = fixture_data
+
+    # Forward pass with subset for test
+    with torch.no_grad():
+        output = model(X[:2])
+
+    # Verify shape
+    assert output.shape == (2, 1), f"Output shape must be (2, 1), got {output.shape}"
+
+    # Verify bounds
+    assert (output >= 0.0).all(), f"Output contains values < 0: {output.min()}"
+    assert (output <= 1.0).all(), f"Output contains values > 1: {output.max()}"
+
+    # Verify dtype
+    assert output.dtype == torch.float32, f"Output dtype must be float32, got {output.dtype}"
+
+    # Verify no NaN or inf
+    assert not torch.isnan(output).any(), "Output contains NaN"
+    assert torch.isfinite(output).all(), "Output contains inf"
 
 
 def test_training_step(fixture_data):
