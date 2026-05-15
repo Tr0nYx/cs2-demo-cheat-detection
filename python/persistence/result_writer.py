@@ -9,10 +9,13 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Any
+from typing import Any, Optional, TYPE_CHECKING
 
 import psycopg2
 import psycopg2.extras
+
+if TYPE_CHECKING:
+    from features.base import FeatureResult
 
 
 class ResultWriter:
@@ -85,7 +88,7 @@ class ResultWriter:
     def write_result(
         self,
         demo_id: str,
-        feature_results: dict[str, Any],
+        feature_results: dict[str, Optional[FeatureResult]],
         scoring_summary: Any,
     ) -> None:
         """
@@ -95,14 +98,15 @@ class ResultWriter:
         - demo_id (FK to Demo)
         - Normalized feature scores: aimbotScore, triggerBotScore, wallhackScore, recoilScore, bhopScore, sessionScore
         - overallSuspicion and suspicionLabel from the scoring_summary
-        - featureData JSON containing raw measurements
+        - featureData JSON containing raw measurements (per D-14, D-15, D-16)
 
         Also updates Demo status to 'done'.
 
         Args:
             demo_id: UUID of the analyzed demo
-            feature_results: Dict mapping feature names to their extraction results
-            scoring_summary: Object with overall_score (float 0.0-1.0) and label (str)
+            feature_results: Dict mapping feature extractor names to their FeatureResult objects
+                           (or None if extraction failed). e.g., {"AimbotExtractor": FeatureResult(...), ...}
+            scoring_summary: ScoringSummary object with overall_score (float 0.0-1.0) and label (str)
 
         Raises:
             psycopg2.Error: If database write fails (logged with context before re-raising)
@@ -112,22 +116,70 @@ class ResultWriter:
             cursor = self.db_conn.cursor()
 
             # Extract normalized feature scores (default to None if missing)
-            aimbot_score = feature_results.get("aimbot", {}).get("score") if feature_results.get("aimbot") else None
-            trigger_score = feature_results.get("triggerbot", {}).get("score") if feature_results.get("triggerbot") else None
-            wallhack_score = feature_results.get("wallhack", {}).get("score") if feature_results.get("wallhack") else None
-            recoil_score = feature_results.get("recoil", {}).get("score") if feature_results.get("recoil") else None
-            bhop_score = feature_results.get("bhop", {}).get("score") if feature_results.get("bhop") else None
-            session_score = feature_results.get("session", {}).get("score") if feature_results.get("session") else None
+            # Map extractor class names to feature score columns
+            aimbot_score = (
+                feature_results.get("AimbotExtractor").score
+                if feature_results.get("AimbotExtractor")
+                else None
+            )
+            trigger_score = (
+                feature_results.get("TriggerbotExtractor").score
+                if feature_results.get("TriggerbotExtractor")
+                else None
+            )
+            wallhack_score = (
+                feature_results.get("WallhackExtractor").score
+                if feature_results.get("WallhackExtractor")
+                else None
+            )
+            recoil_score = (
+                feature_results.get("RecoilExtractor").score
+                if feature_results.get("RecoilExtractor")
+                else None
+            )
+            bhop_score = (
+                feature_results.get("BhopExtractor").score
+                if feature_results.get("BhopExtractor")
+                else None
+            )
+            session_score = (
+                feature_results.get("SessionConsistencyExtractor").score
+                if feature_results.get("SessionConsistencyExtractor")
+                else None
+            )
 
-            # Prepare featureData JSON with raw measurements from all features
+            # Prepare featureData JSON with raw measurements from all features (D-14, D-15)
             feature_data = {}
             for feature_name, feature_result in feature_results.items():
-                if isinstance(feature_result, dict):
+                if feature_result is None:
+                    # Record failed feature extraction (D-17)
                     feature_data[feature_name] = {
-                        "score": feature_result.get("score"),
-                        "raw_measurements": feature_result.get("raw_measurements", {}),
-                        "metadata": feature_result.get("metadata", {}),
+                        "error": "feature_extraction_failed",
+                        "score": None,
                     }
+                else:
+                    # Record successful extraction with raw measurements
+                    feature_data[feature_name] = {
+                        "score": feature_result.score,
+                        "raw_measurements": feature_result.raw_measurements,
+                        "metadata": feature_result.metadata,
+                    }
+
+            # Convert featureData to JSON string
+            try:
+                feature_data_json = json.dumps(feature_data)
+            except (TypeError, ValueError) as e:
+                log_error = {
+                    "event": "feature_data_serialization_error",
+                    "demo_id": demo_id,
+                    "error": str(e),
+                }
+                print(
+                    json.dumps(log_error, separators=(",", ":")),
+                    file=sys.stdout,
+                    flush=True,
+                )
+                raise
 
             # Insert AnalysisResult record
             insert_query = """
@@ -136,8 +188,16 @@ class ResultWriter:
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
-            overall_score = getattr(scoring_summary, "overall_score", 0.5) if scoring_summary else 0.5
-            label = getattr(scoring_summary, "label", "suspicious") if scoring_summary else "suspicious"
+            overall_score = (
+                getattr(scoring_summary, "overall_score", 0.5)
+                if scoring_summary
+                else 0.5
+            )
+            label = (
+                getattr(scoring_summary, "label", "suspicious")
+                if scoring_summary
+                else "suspicious"
+            )
 
             cursor.execute(
                 insert_query,
@@ -151,7 +211,7 @@ class ResultWriter:
                     session_score,
                     overall_score,
                     label,
-                    json.dumps(feature_data),
+                    feature_data_json,
                 ),
             )
 
@@ -172,7 +232,11 @@ class ResultWriter:
                 "overall_suspicion": overall_score,
                 "label": label,
             }
-            print(json.dumps(log_payload, separators=(",", ":")), file=sys.stdout, flush=True)
+            print(
+                json.dumps(log_payload, separators=(",", ":")),
+                file=sys.stdout,
+                flush=True,
+            )
 
         except psycopg2.Error as e:
             self.db_conn.rollback()
@@ -181,7 +245,11 @@ class ResultWriter:
                 "demo_id": demo_id,
                 "error": str(e),
             }
-            print(json.dumps(log_error, separators=(",", ":")), file=sys.stdout, flush=True)
+            print(
+                json.dumps(log_error, separators=(",", ":")),
+                file=sys.stdout,
+                flush=True,
+            )
             raise
         finally:
             if cursor is not None:
