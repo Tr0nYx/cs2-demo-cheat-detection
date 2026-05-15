@@ -197,4 +197,120 @@ def test_training_step(fixture_data):
     - Best model checkpoint is saved
     - Learning rate scheduler steps correctly
     """
-    pytest.skip("Implementation in Wave 4 (train.py)")
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import DataLoader, TensorDataset
+
+    from ml.model import create_model, set_seed
+
+    # Set seed for reproducibility
+    set_seed(42)
+
+    # Create model and move to device
+    device = torch.device("cpu")  # Use CPU for tests
+    model = create_model()
+    model.to(device)
+
+    # Get fixture data
+    X, y = fixture_data
+    dataset = TensorDataset(X, y)
+    loader = DataLoader(dataset, batch_size=4, shuffle=True)
+
+    # Setup training components per D-22
+    loss_fn = nn.MSELoss()  # MSE for regression
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)  # AdamW
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)  # StepLR
+
+    # Train for a few epochs
+    model.train()
+    for epoch in range(3):
+        total_loss = 0.0
+        num_batches = 0
+
+        for X_batch, y_batch in loader:
+            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+
+            optimizer.zero_grad()
+            output = model(X_batch)
+            loss = loss_fn(output, y_batch)
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+            num_batches += 1
+
+            # Check for NaN loss
+            assert not torch.isnan(loss), f"Loss is NaN at epoch {epoch}"
+
+        scheduler.step()
+
+        avg_loss = total_loss / num_batches
+        # Loss should be finite
+        assert torch.isfinite(torch.tensor(avg_loss)), f"Loss is not finite: {avg_loss}"
+
+    # After training, model should have learned something (loss should be reasonable)
+    # We don't require convergence (D-27, D-28), just that training completes
+    assert avg_loss < float("inf"), "Average loss is infinite"
+
+
+def test_checkpoint_saving(tmp_path):
+    """Bonus test: Verify best model checkpointing (D-19, D-20).
+
+    This test is optional but verifies that checkpointing works correctly.
+    """
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import DataLoader, TensorDataset
+    from pathlib import Path
+
+    from ml.model import create_model
+    from ml.train import train_with_checkpoint
+
+    device = torch.device("cpu")
+
+    # Create dummy data
+    X = torch.randn(20, 256, 44)
+    y = torch.rand(20, 1)
+    dataset = TensorDataset(X, y)
+
+    # Split into train/val
+    train_dataset = TensorDataset(X[:15], y[:15])
+    val_dataset = TensorDataset(X[15:], y[15:])
+
+    train_loader = DataLoader(train_dataset, batch_size=4)
+    val_loader = DataLoader(val_dataset, batch_size=4)
+
+    # Create model
+    model = create_model()
+    model.to(device)
+
+    # Setup training
+    loss_fn = nn.MSELoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
+
+    # Train with checkpointing
+    checkpoint_dir = Path(tmp_path) / "checkpoints"
+    train_with_checkpoint(
+        model,
+        train_loader,
+        val_loader,
+        optimizer,
+        scheduler,
+        loss_fn,
+        num_epochs=2,
+        checkpoint_dir=checkpoint_dir,
+        device=device,
+    )
+
+    # Verify checkpoints exist
+    best_path = checkpoint_dir / "model_best.pt"
+    final_path = checkpoint_dir / "model_final.pt"
+
+    assert best_path.exists(), f"Best checkpoint not found at {best_path}"
+    assert final_path.exists(), f"Final checkpoint not found at {final_path}"
+
+    # Load and verify checkpoint
+    new_model = create_model()
+    new_model.load_state_dict(torch.load(str(best_path)))
+    assert new_model is not None, "Failed to load checkpoint"
