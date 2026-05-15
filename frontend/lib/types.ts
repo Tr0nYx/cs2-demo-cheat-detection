@@ -25,6 +25,8 @@ export interface Player {
 
 // Analysis results container
 export interface AnalysisResult {
+  overall_score?: number
+  overall_verdict?: 'clean' | 'suspicious' | 'likely_cheating'
   players: Player[]
 }
 
