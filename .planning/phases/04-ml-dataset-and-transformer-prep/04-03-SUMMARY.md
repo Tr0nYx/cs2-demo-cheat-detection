@@ -149,7 +149,14 @@ Purpose: Provide a proven transformer architecture (per AntiCheatPT paper) with 
 
 ## Deviations from Plan
 
-None — plan executed exactly as written. All D-15 through D-18 requirements implemented.
+### Auto-fixed Issues
+
+**1. [Rule 1 - Bug] Fixed import path for load_config in model.py**
+- **Found during:** Task 1 verification
+- **Issue:** `from python.ml.config import load_config` fails when running from `python/` directory where `ml` is the top-level package. ModuleNotFoundError: No module named 'python'.
+- **Fix:** Changed to `from ml.config import load_config` to match correct module path
+- **Files modified:** python/ml/model.py
+- **Commit:** 1abc256
 
 ## Known Stubs and Placeholders
 
@@ -193,9 +200,19 @@ Wave 4 (04-04): Training loop
 - Replace ML-06 test placeholder with actual test
 - Verify model converges on fixture data
 
+## Self-Check: PASSED
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| python/ml/model.py exists | FOUND | 247 lines (>= 100 required) |
+| e1cd4e0 commit exists | FOUND | feat(04-03): implement AntiCheatTransformer model |
+| 4ecd705 commit exists | FOUND | test(04-03): implement test_model_forward_pass (ML-05) |
+| 1abc256 commit exists | FOUND | fix(04-03): fix import path for load_config in model.py |
+| test_model_forward_pass passes | PASS | 1 passed in 1.04s |
+
 ---
 
 **Summary by:** Claude Haiku 4.5
 **Date:** 2026-05-15
-**Plan execution time:** 20 minutes
-**Commits:** 2 (e1cd4e0, 4ecd705)
+**Plan execution time:** 30 minutes
+**Commits:** 3 (e1cd4e0, 4ecd705, 1abc256)
