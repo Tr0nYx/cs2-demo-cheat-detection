@@ -7,31 +7,32 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Format a numeric score (0-1) as a percentage string
+ * Format a numeric score (0-100) as a percentage string
  */
 export function formatScore(score: number | undefined): string {
   if (score === undefined || score === null) return "N/A"
-  const percentage = Math.round(score * 100)
-  return `${percentage}%`
+  return `${Math.round(score)}/100`
 }
 
 /**
- * Get the color class for a verdict badge based on overall score
+ * Get the color class for a verdict badge based on overall score (0-100 scale)
+ * Green: 0-33, Orange: 34-66, Red: 67-100
  */
 export function verdictColor(score: number | undefined): string {
   if (score === undefined || score === null) return "bg-gray-100 text-gray-800"
-  if (score < 0.3) return "bg-green-100 text-green-800"
-  if (score < 0.7) return "bg-yellow-100 text-yellow-800"
+  if (score <= 33) return "bg-green-100 text-green-800"
+  if (score <= 66) return "bg-orange-100 text-orange-800"
   return "bg-red-100 text-red-800"
 }
 
 /**
- * Get the verdict label based on overall score
+ * Get the verdict label based on overall score (0-100 scale)
+ * Clean: 0-33, Suspicious: 34-66, Likely Cheating: 67-100
  */
 export function verdictLabel(score: number | undefined): string {
   if (score === undefined || score === null) return "Unknown"
-  if (score < 0.3) return "Clean"
-  if (score < 0.7) return "Suspicious"
+  if (score <= 33) return "Clean"
+  if (score <= 66) return "Suspicious"
   return "Likely Cheating"
 }
 
@@ -71,13 +72,13 @@ export function formatFileSize(bytes: number | undefined): string {
 }
 
 /**
- * Determine overall verdict for a player based on feature scores
+ * Determine overall verdict for a player based on feature scores (0-100 scale)
  */
 export function getOverallVerdict(
   player: Player
 ): "clean" | "suspicious" | "likely_cheating" {
   if (!player.overallScore) return "clean"
-  if (player.overallScore < 0.3) return "clean"
-  if (player.overallScore < 0.7) return "suspicious"
+  if (player.overallScore <= 33) return "clean"
+  if (player.overallScore <= 66) return "suspicious"
   return "likely_cheating"
 }
