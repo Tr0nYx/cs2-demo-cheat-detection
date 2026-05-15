@@ -20,6 +20,7 @@ final class DemoControllerTest extends WebTestCase
         self::ensureKernelShutdown();
         self::bootKernel();
         self::getContainer()->get(Connection::class)->executeStatement('TRUNCATE analysis_result, player, demo RESTART IDENTITY CASCADE');
+        $this->redis()->del($this->queueName());
         self::ensureKernelShutdown();
     }
 
@@ -34,11 +35,17 @@ final class DemoControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(202);
         $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame('uploaded', $payload['status']);
+        self::assertSame('queued', $payload['status']);
         self::assertArrayHasKey('demo_id', $payload);
         self::assertSame('/api/demos/'.$payload['demo_id'], $payload['status_url']);
         self::assertSame('match.dem', $payload['metadata']['original_filename']);
         self::assertStringEndsWith($payload['demo_id'].'.dem', $payload['metadata']['file_path']);
+
+        $queuedJob = $this->redis()->lRange($this->queueName(), 0, -1);
+        self::assertCount(1, $queuedJob);
+        $jobPayload = json_decode($queuedJob[0], true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame($payload['demo_id'], $jobPayload['demo_id']);
+        self::assertSame($payload['metadata']['file_path'], $jobPayload['file_path']);
     }
 
     public function testUploadRejectsNonDemoExtension(): void
@@ -101,5 +108,20 @@ final class DemoControllerTest extends WebTestCase
         self::assertCount(1, $payload['results']);
         self::assertSame('suspicious', $payload['results'][0]['label']);
         self::assertSame('76561198000000001', $payload['results'][0]['player']['steam_id']);
+    }
+
+    private function redis(): \Redis
+    {
+        $url = getenv('REDIS_URL') ?: 'redis://redis:6379';
+        $parts = parse_url($url);
+        $redis = new \Redis();
+        $redis->connect($parts['host'] ?? 'redis', (int) ($parts['port'] ?? 6379));
+
+        return $redis;
+    }
+
+    private function queueName(): string
+    {
+        return getenv('PYTHON_WORKER_QUEUE') ?: 'cs2.analysis';
     }
 }

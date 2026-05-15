@@ -10,13 +10,16 @@ use App\Infrastructure\Persistence\DemoRepository;
 use App\UI\Api\ApiProblem;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Uuid;
+use App\Application\Command\AnalyzeDemoMessage;
 
 final readonly class UploadDemoService
 {
     public function __construct(
         private DemoStorage $storage,
         private DemoRepository $demos,
+        private MessageBusInterface $messageBus,
         #[Autowire(param: 'max_demo_upload_size')]
         private int $maxUploadSize,
     ) {
@@ -42,6 +45,7 @@ final readonly class UploadDemoService
 
         $demoId = Uuid::v7();
         $storedFile = null;
+        $demo = null;
 
         try {
             $storedFile = $this->storage->store($demoId, $file);
@@ -53,6 +57,7 @@ final readonly class UploadDemoService
                 id: $demoId,
             );
             $this->demos->save($demo);
+            $this->messageBus->dispatch(new AnalyzeDemoMessage($demo->getIdString()));
 
             return $demo;
         } catch (ApiProblem $problem) {
@@ -66,6 +71,9 @@ final readonly class UploadDemoService
         } catch (\Throwable $exception) {
             if ($storedFile !== null) {
                 $this->storage->delete($storedFile->path);
+            }
+            if ($demo !== null) {
+                $this->demos->remove($demo);
             }
 
             throw ApiProblem::serverError('upload_failed', 'The demo could not be accepted.');
