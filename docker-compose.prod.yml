@@ -1,0 +1,262 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: cs2-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./symfony:/var/www/html:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - demo_storage:/storage/demos:ro
+    depends_on:
+      php:
+        condition: service_healthy
+    networks:
+      - cs2
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  php:
+    image: ${DOCKER_USERNAME}/cs2-php:latest
+    container_name: cs2-php
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      APP_ENV: "prod"
+      APP_DEBUG: "0"
+      APP_SECRET: "${APP_SECRET}"
+      APP_URL: "${APP_URL}"
+      CORS_ALLOW_ORIGIN: "${CORS_ALLOW_ORIGIN}"
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      MESSENGER_TRANSPORT_DSN: "${MESSENGER_TRANSPORT_DSN:-redis://redis:6379/messages}"
+      MESSENGER_FAILED_TRANSPORT_DSN: "${MESSENGER_FAILED_TRANSPORT_DSN:-redis://redis:6379/failed}"
+      DEMO_STORAGE_DISK: "${DEMO_STORAGE_DISK:-local}"
+      DEMO_STORAGE_PATH: "${DEMO_STORAGE_PATH:-/storage/demos}"
+      SYMFONY_ANALYSIS_QUEUE: "${SYMFONY_ANALYSIS_QUEUE:-cs2.analysis.dispatch}"
+      PYTHON_WORKER_QUEUE: "${PYTHON_WORKER_QUEUE:-cs2.analysis}"
+      RESULT_INGEST_QUEUE: "${RESULT_INGEST_QUEUE:-cs2.results}"
+      RESULT_INGEST_TOKEN: "${RESULT_INGEST_TOKEN}"
+    volumes:
+      - ./symfony:/var/www/html
+      - demo_storage:/storage/demos
+      - composer_cache:/tmp/composer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  python:
+    image: ${DOCKER_USERNAME}/cs2-python:latest
+    container_name: cs2-python
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      PYTHON_ENV: "production"
+      PYTHONUNBUFFERED: "1"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      DATABASE_URL: "${DATABASE_URL}"
+      DEMO_STORAGE_PATH: "${DEMO_STORAGE_PATH:-/storage/demos}"
+      PYTHON_WORKER_QUEUE: "${PYTHON_WORKER_QUEUE:-cs2.analysis}"
+      WORKER_IDLE_ON_START: "false"
+      WORKER_LOG_LEVEL: "INFO"
+      WORKER_POLL_TIMEOUT_SECONDS: "5"
+      WORKER_SHUTDOWN_GRACE_SECONDS: "15"
+      HF_HOME: "${HF_HOME:-/app/.cache/huggingface}"
+      HF_TOKEN: "${HF_TOKEN:-}"
+      CS2CD_DATASET_ID: "${CS2CD_DATASET_ID:-CS2CD/CS2CD.Counter-Strike_2_Cheat_Detection}"
+      CS2CD_DATA_DIR: "${CS2CD_DATA_DIR:-/data/cs2cd}"
+      ANTICHEATPT_MODEL_ID: "${ANTICHEATPT_MODEL_ID:-CS2CD/AntiCheatPT_256}"
+      ML_DATA_DIR: "${ML_DATA_DIR:-/data/ml}"
+      ML_CHECKPOINT_DIR: "${ML_CHECKPOINT_DIR:-/data/checkpoints}"
+      ML_BATCH_SIZE: "${ML_BATCH_SIZE:-128}"
+      ML_LEARNING_RATE: "${ML_LEARNING_RATE:-0.0001}"
+      ML_DEVICE: "${ML_DEVICE:-cpu}"
+    volumes:
+      - ./python:/app
+      - ./data:/data
+      - demo_storage:/storage/demos
+      - pip_cache:/home/app/.cache/pip
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: cs2-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-cs2_detection}"
+      POSTGRES_USER: "${POSTGRES_USER:-cs2_app}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - cs2
+
+  redis:
+    image: redis:7-alpine
+    container_name: cs2-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - cs2
+
+  next-app:
+    image: ${DOCKER_USERNAME}/cs2-frontend:latest
+    container_name: cs2-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://php/api}"
+      NODE_ENV: "production"
+      NEXT_PUBLIC_SENTRY_DSN: "${NEXT_PUBLIC_SENTRY_DSN:-}"
+      SENTRY_ORG: "${SENTRY_ORG:-}"
+      SENTRY_PROJECT: "${SENTRY_PROJECT:-}"
+      SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN:-}"
+    depends_on:
+      php:
+        condition: service_healthy
+    networks:
+      - cs2
+
+  # Observability Stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cs2-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+    networks:
+      - cs2
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cs2-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_PROVISIONING_PATH: /etc/grafana/provisioning
+    volumes:
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - cs2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  loki:
+    image: grafana/loki:latest
+    container_name: cs2-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./docker/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - cs2
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: cs2-node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($|/)'
+    networks:
+      - cs2
+
+networks:
+  cs2:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  composer_cache:
+  pip_cache:
+  demo_storage:
+  prometheus_data:
+  grafana_data:
+  loki_data:
