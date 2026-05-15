@@ -29,6 +29,8 @@ services:
       APP_ENV: "${APP_ENV:-dev}"
       APP_DEBUG: "${APP_DEBUG:-1}"
       APP_SECRET: "${APP_SECRET:-change-me-in-local-env}"
+      APP_URL: "${APP_URL:-http://localhost:8080}"
+      CORS_ALLOW_ORIGIN: "${CORS_ALLOW_ORIGIN:-^https?://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?$}"
       DATABASE_URL: "${DATABASE_URL}"
       REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
       MESSENGER_TRANSPORT_DSN: "${MESSENGER_TRANSPORT_DSN:-redis://redis:6379/messages}"
@@ -38,6 +40,7 @@ services:
       SYMFONY_ANALYSIS_QUEUE: "${SYMFONY_ANALYSIS_QUEUE:-cs2.analysis.dispatch}"
       PYTHON_WORKER_QUEUE: "${PYTHON_WORKER_QUEUE:-cs2.analysis}"
       RESULT_INGEST_QUEUE: "${RESULT_INGEST_QUEUE:-cs2.results}"
+      RESULT_INGEST_TOKEN: "${RESULT_INGEST_TOKEN:-change-me-in-local-env}"
     volumes:
       - ./symfony:/var/www/html
       - demo_storage:${DEMO_STORAGE_PATH:-/storage/demos}

@@ -1,0 +1,17 @@
+framework:
+    messenger:
+        failure_transport: failed
+
+        transports:
+            analysis_dispatch: '%env(MESSENGER_TRANSPORT_DSN)%/%env(SYMFONY_ANALYSIS_QUEUE)%'
+            failed: '%env(MESSENGER_FAILED_TRANSPORT_DSN)%'
+
+        routing:
+            # Plan 04 adds AnalyzeDemoMessage and routes it once the class exists.
+
+when@test:
+   framework:
+       messenger:
+           transports:
+               analysis_dispatch: 'sync://'
+               failed: 'in-memory://'

@@ -1,11 +1,9 @@
 <?php
 
-declare(strict_types=1);
+use App\Kernel;
 
-header('Content-Type: application/json');
+require_once dirname(__DIR__).'/vendor/autoload_runtime.php';
 
-echo json_encode([
-    'service' => 'CS2 Demo Cheat Detection',
-    'status' => 'container-foundation-ready',
-    'note' => 'Symfony will replace this bootstrap in Phase 2.',
-], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT);
+return static function (array $context) {
+    return new Kernel($context['APP_ENV'], (bool) $context['APP_DEBUG']);
+};

@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+# See also https://symfony.com/doc/current/service_container/import.html
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    demo_storage_disk: '%env(default:demo_storage_disk_default:DEMO_STORAGE_DISK)%'
+    demo_storage_path: '%env(default:demo_storage_path_default:DEMO_STORAGE_PATH)%'
+    max_demo_upload_size: '%env(int:default:max_demo_upload_size_default:MAX_DEMO_UPLOAD_SIZE)%'
+    python_worker_queue: '%env(default:python_worker_queue_default:PYTHON_WORKER_QUEUE)%'
+    result_ingest_token: '%env(default:result_ingest_token_default:RESULT_INGEST_TOKEN)%'
+    demo_storage_disk_default: 'local'
+    demo_storage_path_default: '/storage/demos'
+    max_demo_upload_size_default: 2147483648
+    python_worker_queue_default: 'cs2.analysis'
+    result_ingest_token_default: ''
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
