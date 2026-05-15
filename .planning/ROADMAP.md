@@ -10,7 +10,7 @@ Build the project from the outside in: first a repeatable container foundation, 
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions marked with INSERTED
 
-- [ ] **Phase 1: Container Foundation** - Docker Compose, service images, environment, healthchecks, and local storage.
+- [x] **Phase 1: Container Foundation** - Docker Compose, service images, environment, healthchecks, and local storage.
 - [ ] **Phase 2: Symfony API and Domain** - Entities, migrations, REST endpoints, storage abstraction, and Messenger dispatch.
 - [ ] **Phase 3: Python Analysis Pipeline** - Worker, parser adapter, feature extractors, scoring, error handling, and result persistence.
 - [ ] **Phase 4: ML Dataset and Transformer Prep** - CS2CD loader, AntiCheatPT vectors, augmentation, model, and training entrypoint.
@@ -32,11 +32,11 @@ Build the project from the outside in: first a repeatable container foundation, 
 
 Plans:
 **Wave 1**
-- [ ] 01-01: Compose network, volumes, service wiring, healthchecks, and environment files
+- [x] 01-01: Compose network, volumes, service wiring, healthchecks, and environment files
 
 **Wave 2 (blocked on Wave 1 completion)**
-- [ ] 01-02: PHP-FPM and Nginx Dockerfiles/configuration
-- [ ] 01-03: Python image, dependency pinning, and storage permissions
+- [x] 01-02: PHP-FPM and Nginx Dockerfiles/configuration
+- [x] 01-03: Python image, dependency pinning, and storage permissions
 
 Cross-cutting constraints:
 - Use the exact target top-level structure from `tasks/setup.md`.
@@ -126,8 +126,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Container Foundation | 0/3 | Ready to execute | - |
-| 2. Symfony API and Domain | 0/4 | Not started | - |
+| 1. Container Foundation | 3/3 | Complete | 2026-05-15 |
+| 2. Symfony API and Domain | 0/4 | Ready to discuss | - |
 | 3. Python Analysis Pipeline | 0/5 | Not started | - |
 | 4. ML Dataset and Transformer Prep | 0/3 | Not started | - |
 | 5. Developer Readiness and Documentation | 0/3 | Not started | - |

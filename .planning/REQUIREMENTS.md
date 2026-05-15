@@ -7,11 +7,11 @@
 
 ### Infrastructure
 
-- [ ] **INFR-01**: Developer can start PHP-FPM, Nginx, PostgreSQL, Redis, and Python services with Docker Compose.
-- [ ] **INFR-02**: PostgreSQL and Redis services expose healthchecks used by dependent services.
-- [ ] **INFR-03**: PHP and Python containers run as non-root users.
-- [ ] **INFR-04**: Developer can configure all secrets and service URLs through `.env` copied from `.env.example`.
-- [ ] **INFR-05**: Demo files are stored in a Docker volume and are ignored by git.
+- [x] **INFR-01**: Developer can start PHP-FPM, Nginx, PostgreSQL, Redis, and Python services with Docker Compose.
+- [x] **INFR-02**: PostgreSQL and Redis services expose healthchecks used by dependent services.
+- [x] **INFR-03**: PHP and Python containers run as non-root users.
+- [x] **INFR-04**: Developer can configure all secrets and service URLs through `.env` copied from `.env.example`.
+- [x] **INFR-05**: Demo files are stored in a Docker volume and are ignored by git.
 
 ### Symfony Backend
 
@@ -90,11 +90,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFR-01 | Phase 1 | Pending |
-| INFR-02 | Phase 1 | Pending |
-| INFR-03 | Phase 1 | Pending |
-| INFR-04 | Phase 1 | Pending |
-| INFR-05 | Phase 1 | Pending |
+| INFR-01 | Phase 1 | Complete |
+| INFR-02 | Phase 1 | Complete |
+| INFR-03 | Phase 1 | Complete |
+| INFR-04 | Phase 1 | Complete |
+| INFR-05 | Phase 1 | Complete |
 | BACK-01 | Phase 2 | Pending |
 | BACK-02 | Phase 2 | Pending |
 | BACK-03 | Phase 2 | Pending |

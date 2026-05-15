@@ -14,11 +14,10 @@ Users can upload or point to a CS2 demo and receive a reproducible, explainable,
 
 ### Validated
 
-(None yet - ship to validate)
+- [x] Docker Compose runs PHP-FPM, Nginx, PostgreSQL, Redis, and Python worker services without root application containers. Validated in Phase 1: Container Foundation.
 
 ### Active
 
-- [ ] Docker Compose runs PHP-FPM, Nginx, PostgreSQL, Redis, and Python worker services without root containers.
 - [ ] Symfony 7 backend exposes demo upload, demo status/result, and player history API endpoints.
 - [ ] Symfony Messenger dispatches demo analysis work asynchronously through Redis without waiting for long-running analysis.
 - [ ] Python worker consumes analysis jobs, parses CS2 demos, extracts detection features, and writes results or errors to PostgreSQL.
@@ -56,7 +55,7 @@ The backend and worker communicate through Redis queue payloads instead of HTTP 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Post-game demo analysis only | Preserves ethical boundary and avoids invasive client-side anti-cheat work | Pending |
-| Symfony plus Python split | Symfony is strong for API, queueing, DB, and UI; Python is strong for parsing, statistics, and ML | Pending |
+| Symfony plus Python split | Symfony is strong for API, queueing, DB, and UI; Python is strong for parsing, statistics, and ML | Validated in Phase 1 container split |
 | Redis BRPOP worker contract | Long-running demo analysis does not need synchronous HTTP and can fail independently | Pending |
 | Coarse GSD roadmap | The setup brief is broad and foundational; larger phases keep planning navigable | Pending |
 | Use live CS2CD DOI `10.57967/hf/5654` unless pinned otherwise | Hugging Face currently reports this DOI for the dataset page | Pending |
@@ -79,4 +78,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-15 after initialization*
+*Last updated: 2026-05-15 after Phase 1 execution*
