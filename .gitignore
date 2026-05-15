@@ -17,6 +17,11 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
 .venv/
 venv/
 
@@ -26,6 +31,7 @@ venv/
 *.pth
 /data/checkpoints/
 /data/models/
+/data/datasets/
 
 # Demo and generated data
 *.dem
