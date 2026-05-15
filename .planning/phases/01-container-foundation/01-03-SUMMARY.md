@@ -52,6 +52,7 @@ completed: 2026-05-15
 - Added `python/requirements.txt` with the requested parsing, statistics, ML, Redis, and PostgreSQL dependency baseline.
 - Added `docker/python/Dockerfile` based on `python:3.12-slim` with build tools, dependency install, storage paths, and non-root `app` user.
 - Added `python/worker.py` as a Phase 1 smoke entrypoint that reads env vars and emits structured JSON.
+- Set the Compose-facing worker default to idle on startup so `restart: unless-stopped` does not produce a restart loop.
 
 ## Task Commits
 
@@ -63,20 +64,30 @@ Each task was committed atomically:
 - `python/requirements.txt` - Dependency baseline for parser, ML, database, Redis, and logging work.
 - `docker/python/Dockerfile` - Python 3.12 image with non-root user and storage directory preparation.
 - `python/worker.py` - Structured JSON startup probe.
+- `.env.example` - Updated worker startup default for Compose-friendly idling.
 
 ## Decisions Made
 
 - Used `datasets>=2.19.0` rather than an unsupported package extra notation.
 - Kept the worker free of Redis BRPOP behavior because that belongs to Phase 3.
+- Set `WORKER_IDLE_ON_START=true` in `.env.example` so the dev Compose stack can stay up.
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Auto-fixed Issues
+
+**1. [Rule 3 - Blocking] Prevented Python service restart loop**
+- **Found during:** Phase verification after Python image build
+- **Issue:** `WORKER_IDLE_ON_START=false` combined with Compose `restart: unless-stopped` would restart the smoke worker repeatedly.
+- **Fix:** Set `.env.example` to `WORKER_IDLE_ON_START=true` for the local Compose stack.
+- **Files modified:** `.env.example`, `.planning/phases/01-container-foundation/01-03-SUMMARY.md`
+- **Verification:** `docker compose --env-file .env.example config` shows `WORKER_IDLE_ON_START: "true"`.
+- **Committed in:** this fix commit
 
 ---
 
-**Total deviations:** 0 auto-fixed.
-**Impact on plan:** No scope drift.
+**Total deviations:** 1 auto-fixed (1 blocking runtime issue).
+**Impact on plan:** Improves Phase 1 startup behavior without adding Phase 3 queue-processing scope.
 
 ## Issues Encountered
 
