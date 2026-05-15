@@ -87,7 +87,7 @@ def process_job(
         DemoParseError: If parsing fails (all-or-nothing, per D-18)
         Exception: If persistence fails (worker exit, per D-21)
     """
-    log("job_processing", demo_id=demo_id, file_path=file_path)
+    log("job_processing", demo_id=demo_id)
 
     # Phase 1: Parse demo (D-18: all-or-nothing)
     try:

@@ -71,7 +71,7 @@ class DemoParserAdapter:
         try:
             parser = DemoParser(file_path)
         except FileNotFoundError as e:
-            raise DemoParseError(f"Demo file not found: {file_path}") from e
+            raise DemoParseError("Demo file not found") from e
         except Exception as e:
             raise DemoParseError(f"Failed to initialize parser: {e}") from e
 
