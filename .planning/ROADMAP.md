@@ -31,9 +31,18 @@ Build the project from the outside in: first a repeatable container foundation, 
 **Plans**: 3 plans
 
 Plans:
+**Wave 1**
 - [ ] 01-01: Compose network, volumes, service wiring, healthchecks, and environment files
+
+**Wave 2 (blocked on Wave 1 completion)**
 - [ ] 01-02: PHP-FPM and Nginx Dockerfiles/configuration
 - [ ] 01-03: Python image, dependency pinning, and storage permissions
+
+Cross-cutting constraints:
+- Use the exact target top-level structure from `tasks/setup.md`.
+- Keep the default Compose setup dev-first with bind mounts and local defaults.
+- Run PHP and Python application processes as pragmatic non-root users.
+- Treat `.env.example` as the full Symfony/Python/Redis/PostgreSQL/storage/ML service contract.
 
 ### Phase 2: Symfony API and Domain
 **Goal**: Symfony can accept demos, persist domain records, dispatch analysis jobs, ingest results, and expose the requested REST API.
@@ -117,7 +126,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Container Foundation | 0/3 | Not started | - |
+| 1. Container Foundation | 0/3 | Ready to execute | - |
 | 2. Symfony API and Domain | 0/4 | Not started | - |
 | 3. Python Analysis Pipeline | 0/5 | Not started | - |
 | 4. ML Dataset and Transformer Prep | 0/3 | Not started | - |
