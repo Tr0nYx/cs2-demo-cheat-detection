@@ -20,9 +20,43 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Future: redirect to login if auth added
+    const message = error.response?.data?.message || error.message || 'An error occurred'
+    const status = error.response?.status
+
+    // Log to Sentry if available
+    if (typeof window !== 'undefined' && (window as any).Sentry) {
+      (window as any).Sentry.captureException(error, {
+        level: 'error',
+        tags: {
+          api: true,
+          status: String(status),
+        },
+        extra: {
+          url: error.config?.url,
+          method: error.config?.method,
+        },
+      })
     }
+
+    if (status === 401) {
+      // Future: redirect to login if auth added
+    } else if (status === 400) {
+      // Bad request - likely validation error
+      error.userMessage = 'Invalid request. ' + message
+    } else if (status === 404) {
+      // Not found
+      error.userMessage = 'Resource not found'
+    } else if (status === 413) {
+      // Payload too large
+      error.userMessage = 'File is too large. Maximum 100MB.'
+    } else if (status === 500) {
+      // Server error
+      error.userMessage = 'Server error. Please try again later.'
+    } else if (!status) {
+      // Network error
+      error.userMessage = 'Unable to reach server. Please check your connection.'
+    }
+
     return Promise.reject(error)
   }
 )
