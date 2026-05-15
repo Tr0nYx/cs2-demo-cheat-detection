@@ -9,12 +9,11 @@ See: .planning/PROJECT.md (updated 2026-05-15)
 
 ## Current Position
 
-Phase: 6 of 7 (Frontend Application Interface) - VERIFIED & COMPLETE
-Plans: 2 of 2 complete (Plan 01: Infrastructure, Plan 02: Features)
-Status: Phase 6 COMPLETE - Full verification passed, verdict color bug fixed, production-ready
-Last activity: 2026-05-15 - Phase 6 completed with UI, testing, and Docker integration
+Phase: 7 of 7 (Enhanced ML & Production) - CONTEXT LOCKED
+Status: Phase 7 discussion complete - Context captured, 15 gray areas resolved
+Last activity: 2026-05-15 - Phase 7 context discussion and CONTEXT.md lock
 
-Progress: [##############] 100% v2 Core Features
+Progress: [##############] v2 Core Complete → [##............] Phase 7 Context → Research
 
 ## Performance Metrics
 
@@ -63,7 +62,11 @@ None yet.
 ### Roadmap Evolution
 
 - Phase 6 completed: Frontend application interface with Next.js, React Query, Playwright testing
-- Phase 7 next: Enhanced ML & Production (recoil pattern upgrades, Kubernetes deployment, observability stack)
+- Phase 7 context locked: Enhanced ML & Production
+  - Recoil: Hybrid ML + fallback models, all weapon types, movement sensitivity, quantile-based bounds
+  - Deployment: Docker Compose on self-hosted VPS (Kubernetes deferred to v3)
+  - Observability: Prometheus + Grafana + Loki stack, 30-day retention
+  - Model serving: Graceful shutdown updates, retry backoff, versioned results
 
 ## Deferred Items
 
@@ -80,7 +83,7 @@ Completed: Phase 6 Plan 02 execution + verification + bug fix + archival
 Current status: v2 Core Features Complete (Phase 3: Analysis Pipeline + Phase 6: Frontend UI)
 Next work: Phase 7 (Enhanced ML & Production) or v3 roadmapping
 
-**PROJECT EXECUTION STATUS: v2 CORE FEATURES COMPLETE**
+**PROJECT EXECUTION STATUS: v2 CORE + PHASE 7 CONTEXT READY**
 - Phase 3: Python Analysis Pipeline ✓ (analysis engine complete)
 - Phase 6: Frontend Application Interface ✓ (web UI complete, production-ready)
-- Phase 7: Enhanced ML & Production (not yet started)
+- Phase 7: Enhanced ML & Production ✓ context locked (Ready for research → planning → execution)
