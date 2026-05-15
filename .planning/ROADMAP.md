@@ -10,9 +10,12 @@ The repository is ready for developers to use following the README. Docker Compo
 
 Build the core detection engine that consumes queued demos, parses CS2 data, computes feature scores, and labels suspicion levels.
 
+### Completed Phases
+
+- [x] **Phase 3: Python Analysis Pipeline** — Worker, parser, feature extractors, scoring, error handling (Complete 2026-05-15)
+
 ### Planned Phases
 
-- [ ] **Phase 3: Python Analysis Pipeline** — Worker, parser, feature extractors, scoring, error handling
 - [ ] **Phase 6: Enhanced ML & Production** — Upgrade recoil patterns, web UI, deployment, observability
 
 ### Backlog
