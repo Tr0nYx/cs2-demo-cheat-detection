@@ -57,4 +57,5 @@ export const deleteDemo = (id: string): Promise<void> =>
 export const downloadDemoUrl = (id: string): string =>
   `${API_BASE_URL}/demos/${id}/download`
 
+export { api }
 export default api
