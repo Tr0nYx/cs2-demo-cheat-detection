@@ -1,0 +1,29 @@
+{
+  "weapon_name": "AK-47",
+  "dataset_version": "10.57967/hf/5654",
+  "pattern_version": "ml-quantile-v1",
+  "num_sprays": 175000,
+  "quantiles": {
+    "q25": {
+      "yaw_offset": -0.53848575952714,
+      "pitch_offset": -2.691404498867145
+    },
+    "q50": {
+      "yaw_offset": 0.0014876227017841422,
+      "pitch_offset": -0.9605274046475911
+    },
+    "q75": {
+      "yaw_offset": 0.5353896848211368,
+      "pitch_offset": 0.7695380566946728
+    }
+  },
+  "bounds": {
+    "yaw_min": -3.7579459271013294,
+    "yaw_max": 3.3978634540163037,
+    "pitch_min": -12.993680614634432,
+    "pitch_max": 10.372679806483372
+  },
+  "percentile_90": 4.583342883439158,
+  "timestamp": "2026-05-15T15:55:23.619995+00:00",
+  "created_at": "2026-05-15T15:55:23.619995+00:00"
+}

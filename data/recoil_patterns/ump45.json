@@ -1,0 +1,29 @@
+{
+  "weapon_name": "UMP45",
+  "dataset_version": "10.57967/hf/5654",
+  "pattern_version": "ml-quantile-v1",
+  "num_sprays": 90000,
+  "quantiles": {
+    "q25": {
+      "yaw_offset": -0.6806317228171106,
+      "pitch_offset": -1.2424998458008538
+    },
+    "q50": {
+      "yaw_offset": -0.009124993667826554,
+      "pitch_offset": -0.41185677864254255
+    },
+    "q75": {
+      "yaw_offset": 0.6709731750902955,
+      "pitch_offset": 0.404951260062286
+    }
+  },
+  "bounds": {
+    "yaw_min": -4.140458881155976,
+    "yaw_max": 4.345492478442173,
+    "pitch_min": -5.82399668464423,
+    "pitch_max": 5.056161499959867
+  },
+  "percentile_90": 2.4910614491720557,
+  "timestamp": "2026-05-15T15:55:24.534824+00:00",
+  "created_at": "2026-05-15T15:55:24.534824+00:00"
+}

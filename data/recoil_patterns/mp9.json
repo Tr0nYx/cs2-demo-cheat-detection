@@ -1,0 +1,29 @@
+{
+  "weapon_name": "MP9",
+  "dataset_version": "10.57967/hf/5654",
+  "pattern_version": "ml-quantile-v1",
+  "num_sprays": 100000,
+  "quantiles": {
+    "q25": {
+      "yaw_offset": -0.758616283025399,
+      "pitch_offset": -1.0707527936913985
+    },
+    "q50": {
+      "yaw_offset": 0.047684077961197634,
+      "pitch_offset": -0.3813944615113266
+    },
+    "q75": {
+      "yaw_offset": 0.8537224493710026,
+      "pitch_offset": 0.31560788984209803
+    }
+  },
+  "bounds": {
+    "yaw_min": -5.1912754237964895,
+    "yaw_max": 5.479569432856367,
+    "pitch_min": -4.935504208445705,
+    "pitch_max": 4.315587045699311
+  },
+  "percentile_90": 2.467436036890568,
+  "timestamp": "2026-05-15T15:55:24.366704+00:00",
+  "created_at": "2026-05-15T15:55:24.366704+00:00"
+}
