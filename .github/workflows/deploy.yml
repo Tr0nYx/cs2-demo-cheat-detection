@@ -115,6 +115,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Pre-deployment validation
+      run: |
+        pip install pyyaml
+        python3 -c "import yaml; yaml.safe_load(open('docker-compose.prod.yml')); print('docker-compose.prod.yml is valid')"
+
     - name: Deploy to VPS via SSH
       uses: appleboy/ssh-action@v0.1.10
       with:
@@ -128,9 +133,11 @@ jobs:
           export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
           docker-compose -f docker-compose.prod.yml pull
           docker-compose -f docker-compose.prod.yml up -d
+          echo "Waiting for services to stabilize..."
+          sleep 30
           docker system prune -f
 
-    - name: Verify deployment
+    - name: Verify deployment health
       uses: appleboy/ssh-action@v0.1.10
       with:
         host: ${{ secrets.VPS_HOST }}
@@ -138,5 +145,16 @@ jobs:
         key: ${{ secrets.VPS_SSH_KEY }}
         port: ${{ secrets.VPS_PORT }}
         script: |
+          echo "Service status:"
           docker-compose -f docker-compose.prod.yml ps
-          curl -f http://localhost/api/health || exit 1
+
+          echo "Testing API health endpoint..."
+          curl -f http://localhost/api/health || (echo "API health check failed"; exit 1)
+
+          echo "Checking Prometheus targets..."
+          curl -s http://localhost:9090/api/v1/targets | grep -q 'activeTargets' && echo "Prometheus OK" || echo "Warning: Prometheus check incomplete"
+
+          echo "Checking for critical errors in logs..."
+          ! docker logs cs2-python 2>/dev/null | grep -i "critical\|fatal" | head -5
+
+          echo "Deployment verification complete"

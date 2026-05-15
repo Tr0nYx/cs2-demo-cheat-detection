@@ -90,6 +90,7 @@ class ResultWriter:
         demo_id: str,
         feature_results: dict[str, Optional[FeatureResult]],
         scoring_summary: Any,
+        model_version: Optional[str] = None,
     ) -> None:
         """
         Record a successful analysis result.
@@ -99,6 +100,7 @@ class ResultWriter:
         - Normalized feature scores: aimbotScore, triggerBotScore, wallhackScore, recoilScore, bhopScore, sessionScore
         - overallSuspicion and suspicionLabel from the scoring_summary
         - featureData JSON containing raw measurements (per D-14, D-15, D-16)
+        - model_version: semantic version or git SHA of the model used for analysis
 
         Also updates Demo status to 'done'.
 
@@ -107,6 +109,7 @@ class ResultWriter:
             feature_results: Dict mapping feature extractor names to their FeatureResult objects
                            (or None if extraction failed). e.g., {"AimbotExtractor": FeatureResult(...), ...}
             scoring_summary: ScoringSummary object with overall_score (float 0.0-1.0) and label (str)
+            model_version: Optional semantic version or git SHA of the model
 
         Raises:
             psycopg2.Error: If database write fails (logged with context before re-raising)
@@ -184,8 +187,8 @@ class ResultWriter:
             # Insert AnalysisResult record
             insert_query = """
                 INSERT INTO analysis_result
-                (demo_id, aimbot_score, trigger_bot_score, wallhack_score, recoil_score, bhop_score, session_score, overall_suspicion, suspicion_label, feature_data)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (demo_id, aimbot_score, trigger_bot_score, wallhack_score, recoil_score, bhop_score, session_score, overall_suspicion, suspicion_label, feature_data, model_version)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             overall_score = (
@@ -212,6 +215,7 @@ class ResultWriter:
                     overall_score,
                     label,
                     feature_data_json,
+                    model_version,
                 ),
             )
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import signal
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -24,12 +25,28 @@ from persistence.result_writer import ResultWriter
 from scoring.weighted_scorer import WeightedScorer
 
 shutdown_requested = False
+in_flight_count = 0
+in_flight_lock = __import__("threading").Lock()
+
+
+def _get_model_version() -> str:
+    try:
+        commit_sha = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL
+        ).decode().strip()
+        if commit_sha:
+            return f"v1.0.1-anticheatpt-{commit_sha}"
+    except Exception:
+        pass
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return f"v1.0.1-anticheatpt-{timestamp}"
 
 
 def _handle_shutdown(signum: int, _frame: object) -> None:
     global shutdown_requested
     shutdown_requested = True
-    log("shutdown_requested", signal=signum)
+    log("shutdown_requested", signal=signum, in_flight_count=in_flight_count)
 
 
 def log(event: str, **fields: object) -> None:
@@ -65,6 +82,7 @@ def process_job(
     extractors: list,
     scorer: WeightedScorer,
     result_writer: ResultWriter,
+    model_version: str,
 ) -> None:
     """
     Process a single demo job: parse, extract features, score, persist results.
@@ -74,6 +92,7 @@ def process_job(
     2. Extract all 6 features (with per-feature resilience)
     3. Compute weighted score
     4. Persist results to PostgreSQL
+    5. Record model version for traceability
 
     Args:
         demo_id: UUID of the demo to analyze
@@ -82,12 +101,17 @@ def process_job(
         extractors: List of feature extractor instances
         scorer: WeightedScorer instance
         result_writer: ResultWriter instance
+        model_version: Semantic version or git SHA of the model
 
     Raises:
         DemoParseError: If parsing fails (all-or-nothing, per D-18)
         Exception: If persistence fails (worker exit, per D-21)
     """
-    log("job_processing", demo_id=demo_id)
+    global in_flight_count
+    with in_flight_lock:
+        in_flight_count += 1
+
+    log("job_processing", demo_id=demo_id, model_version=model_version)
 
     # Phase 1: Parse demo (D-18: all-or-nothing)
     try:
@@ -141,28 +165,50 @@ def process_job(
         result_writer.write_error(demo_id, "All feature extractors failed")
         return
 
-    # Phase 3: Score (D-27 through D-31)
-    try:
-        scoring_summary = scorer.score(valid_results)
-        log(
-            "scoring_complete",
-            demo_id=demo_id,
-            overall_score=scoring_summary.overall_score,
-            label=scoring_summary.label,
-        )
-    except Exception as e:
-        log("scoring_error", demo_id=demo_id, error=str(e), level="error")
-        result_writer.write_error(demo_id, f"Scoring failed: {e}")
-        return
+    # Phase 3: Score (D-27 through D-31) with retry backoff
+    max_retries = 3
+    backoff_times = [1, 2, 4]
+    scoring_summary = None
+
+    for attempt in range(max_retries):
+        try:
+            scoring_summary = scorer.score(valid_results)
+            log(
+                "scoring_complete",
+                demo_id=demo_id,
+                overall_score=scoring_summary.overall_score,
+                label=scoring_summary.label,
+                attempt=attempt + 1,
+            )
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait_time = backoff_times[attempt]
+                log(
+                    "scoring_retry",
+                    demo_id=demo_id,
+                    attempt=attempt + 1,
+                    wait_seconds=wait_time,
+                    error=str(e),
+                )
+                time.sleep(wait_time)
+            else:
+                log("scoring_error", demo_id=demo_id, error=str(e), level="error")
+                result_writer.write_error(demo_id, f"Scoring failed after {max_retries} retries: {e}")
+                return
 
     # Phase 4: Persist results (D-14 through D-17)
     try:
-        result_writer.write_result(demo_id, feature_results, scoring_summary)
-        log("result_persisted", demo_id=demo_id)
+        result_writer.write_result(demo_id, feature_results, scoring_summary, model_version)
+        log("result_persisted", demo_id=demo_id, model_version=model_version)
     except Exception as e:
         log("persistence_error", demo_id=demo_id, error=str(e), level="error")
         # D-21: Worker exits on persistence errors
         raise
+    finally:
+        global in_flight_count
+        with in_flight_lock:
+            in_flight_count -= 1
 
 
 def main() -> int:
@@ -203,6 +249,10 @@ def main() -> int:
         log("startup_error", reason="connection_failed", error=str(e))
         return 2
 
+    # Get model version for traceability
+    model_version = _get_model_version()
+    log("model_version_captured", model_version=model_version)
+
     # Initialize pipeline components
     parser_adapter = DemoParserAdapter()
     extractors = [
@@ -214,7 +264,7 @@ def main() -> int:
         SessionConsistencyExtractor(),
     ]
     scorer = WeightedScorer()
-    log("pipeline_initialized", extractors_count=len(extractors))
+    log("pipeline_initialized", extractors_count=len(extractors), model_version=model_version)
 
     # Main job processing loop
     try:
@@ -246,6 +296,7 @@ def main() -> int:
                         extractors,
                         scorer,
                         result_writer,
+                        model_version,
                     )
 
                 except Exception as e:
@@ -272,7 +323,28 @@ def main() -> int:
                 return 1
 
     finally:
-        log("worker_exit", reason="shutdown_requested")
+        # Graceful shutdown: wait for in-flight analyses to complete
+        grace_period = shutdown_grace_sec
+        elapsed = 0
+        while in_flight_count > 0 and elapsed < grace_period:
+            log(
+                "graceful_shutdown",
+                in_flight_count=in_flight_count,
+                grace_remaining=grace_period - elapsed,
+            )
+            time.sleep(1)
+            elapsed += 1
+
+        if in_flight_count > 0:
+            log(
+                "shutdown_timeout",
+                in_flight_count=in_flight_count,
+                level="warning",
+            )
+        else:
+            log("all_in_flight_analyses_completed")
+
+        log("worker_exit", reason="shutdown_requested", in_flight_count=in_flight_count)
         if db_conn:
             db_conn.close()
         if r:

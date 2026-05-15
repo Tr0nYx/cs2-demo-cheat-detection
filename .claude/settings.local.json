@@ -3,7 +3,16 @@
     "allow": [
       "WebSearch",
       "Skill(gsd-discuss-phase)",
-      "Skill(gsd-discuss-phase:*)"
+      "Skill(gsd-discuss-phase:*)",
+      "Skill(gsd-add-phase)",
+      "Skill(gsd-add-phase:*)",
+      "PowerShell(Get-ChildItem \"i:\\\\github\\\\cs2-demo-cheat-detection\" -Directory | Where-Object { $_.Name -match \"frontend|web|client|app|next\" -or $_.Name -match \"ui\" } | Select-Object Name)",
+      "Skill(gsd-research-phase)",
+      "Skill(gsd-research-phase:*)",
+      "Bash(npm test *)",
+      "Bash(npm run *)",
+      "Skill(gsd-audit-milestone)",
+      "Skill(gsd-audit-milestone:*)"
     ]
   }
 }
