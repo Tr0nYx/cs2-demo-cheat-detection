@@ -6,11 +6,22 @@ import signal
 import sys
 import time
 from datetime import datetime, timezone
+from typing import Dict, Optional
 
 import psycopg2
 import redis
 
+from features.aimbot import AimbotExtractor
+from features.base import FeatureExtractionError
+from features.bhop import BhopExtractor
+from features.recoil import RecoilExtractor
+from features.session import SessionConsistencyExtractor
+from features.triggerbot import TriggerbotExtractor
+from features.wallhack import WallhackExtractor
+from parser.adapter import DemoParserAdapter
+from parser.types import DemoParseError
 from persistence.result_writer import ResultWriter
+from scoring.weighted_scorer import WeightedScorer
 
 shutdown_requested = False
 
@@ -47,28 +58,111 @@ def env_int(name: str, default: int) -> int:
         return default
 
 
-def process_job(demo_id: str, file_path: str) -> None:
+def process_job(
+    demo_id: str,
+    file_path: str,
+    parser_adapter: DemoParserAdapter,
+    extractors: list,
+    scorer: WeightedScorer,
+    result_writer: ResultWriter,
+) -> None:
     """
-    Process a single demo job.
+    Process a single demo job: parse, extract features, score, persist results.
 
-    Placeholder for now - validates inputs and logs job processing.
-    Future tasks (03-02 through 03-05) will implement actual parsing and feature extraction.
+    Implements the full pipeline per D-27 through D-31:
+    1. Parse demo file
+    2. Extract all 6 features (with per-feature resilience)
+    3. Compute weighted score
+    4. Persist results to PostgreSQL
 
     Args:
         demo_id: UUID of the demo to analyze
         file_path: Path to the demo file
+        parser_adapter: DemoParserAdapter instance
+        extractors: List of feature extractor instances
+        scorer: WeightedScorer instance
+        result_writer: ResultWriter instance
 
     Raises:
-        ValueError: If file_path is empty or file does not exist
+        DemoParseError: If parsing fails (all-or-nothing, per D-18)
+        Exception: If persistence fails (worker exit, per D-21)
     """
-    if not file_path:
-        raise ValueError("file_path required")
-
-    # Per D-05: Check if file exists before processing
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"Demo file not found: {file_path}")
-
     log("job_processing", demo_id=demo_id, file_path=file_path)
+
+    # Phase 1: Parse demo (D-18: all-or-nothing)
+    try:
+        parsed_demo = parser_adapter.parse_demo(file_path)
+        log("demo_parsed", demo_id=demo_id, tick_count=len(parsed_demo.ticks_df))
+    except DemoParseError as e:
+        log("parser_error", demo_id=demo_id, error=str(e), level="error")
+        result_writer.write_error(demo_id, f"Parse error: {e}")
+        return
+
+    # Phase 2: Extract features (D-19: per-feature resilience)
+    feature_results = {}
+    for extractor in extractors:
+        feature_name = extractor.__class__.__name__
+        try:
+            result = extractor.extract(parsed_demo)
+            feature_results[feature_name] = result
+            log(
+                "feature_extracted",
+                demo_id=demo_id,
+                feature=feature_name,
+                score=result.score,
+            )
+        except FeatureExtractionError as e:
+            log(
+                "feature_error",
+                demo_id=demo_id,
+                feature=feature_name,
+                error=str(e),
+                level="warning",
+            )
+            feature_results[feature_name] = None
+        except Exception as e:
+            log(
+                "feature_error",
+                demo_id=demo_id,
+                feature=feature_name,
+                error=str(e),
+                level="warning",
+            )
+            feature_results[feature_name] = None
+
+    # Collect valid results (exclude None)
+    valid_results = {
+        k: v for k, v in feature_results.items() if v is not None
+    }
+
+    # D-20: If all features failed, mark as error
+    if not valid_results:
+        log("all_features_failed", demo_id=demo_id, level="error")
+        result_writer.write_error(demo_id, "All feature extractors failed")
+        return
+
+    # Phase 3: Score (D-27 through D-31)
+    try:
+        scoring_summary = scorer.score(valid_results)
+        log(
+            "scoring_complete",
+            demo_id=demo_id,
+            overall_score=scoring_summary.overall_score,
+            label=scoring_summary.label,
+        )
+    except Exception as e:
+        log("scoring_error", demo_id=demo_id, error=str(e), level="error")
+        result_writer.write_error(demo_id, f"Scoring failed: {e}")
+        return
+
+    # Phase 4: Persist results (D-14 through D-17)
+    try:
+        result_writer.write_result(demo_id, feature_results, scoring_summary)
+        log("result_persisted", demo_id=demo_id)
+    except Exception as e:
+        log("persistence_error", demo_id=demo_id, error=str(e), level="error")
+        # D-21: Worker exits on persistence errors
+        raise
 
 
 def main() -> int:
@@ -109,6 +203,19 @@ def main() -> int:
         log("startup_error", reason="connection_failed", error=str(e))
         return 2
 
+    # Initialize pipeline components
+    parser_adapter = DemoParserAdapter()
+    extractors = [
+        AimbotExtractor(),
+        TriggerbotExtractor(),
+        WallhackExtractor(),
+        RecoilExtractor(),
+        BhopExtractor(),
+        SessionConsistencyExtractor(),
+    ]
+    scorer = WeightedScorer()
+    log("pipeline_initialized", extractors_count=len(extractors))
+
     # Main job processing loop
     try:
         while not shutdown_requested:
@@ -130,18 +237,28 @@ def main() -> int:
                 # Log job receipt
                 log("job_received", demo_id=demo_id)
 
-                # Process the job
+                # Process the job using full pipeline
                 try:
-                    process_job(demo_id, file_path)
-                    log("result_persisted", demo_id=demo_id)
-
-                except (FileNotFoundError, ValueError) as e:
-                    log("parser_error", demo_id=demo_id, error=str(e))
-                    result_writer.write_error(demo_id, str(e))
+                    process_job(
+                        demo_id,
+                        file_path,
+                        parser_adapter,
+                        extractors,
+                        scorer,
+                        result_writer,
+                    )
 
                 except Exception as e:
-                    log("feature_error", demo_id=demo_id, error=str(e))
-                    result_writer.write_error(demo_id, str(e))
+                    log("job_error", demo_id=demo_id, error=str(e), level="error")
+                    # Attempt to write error; if it fails, exit
+                    try:
+                        result_writer.write_error(demo_id, str(e))
+                    except Exception as write_error:
+                        log(
+                            "worker_error",
+                            error=f"Failed to write error for {demo_id}: {write_error}",
+                        )
+                        return 1
 
             except redis.ConnectionError as e:
                 log("worker_error", error=f"Redis connection lost: {str(e)}")
