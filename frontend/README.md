@@ -260,15 +260,37 @@ docker run -p 3000:3000 \
 
 This project is designed for Docker deployment. Vercel support may be added in v2.
 
-## Next Steps
+## Features Implemented
 
-### Phase 2: Feature Implementation
+### Phase 02: Feature Implementation (Complete)
 
-1. Upload form component with validation
-2. Results page with polling logic
-3. History page with filtering
-4. Error boundaries and loading states
-5. Unit and E2E test coverage
+- ✅ Upload form component with drag-drop and validation
+- ✅ Results page with polling logic (2s interval, 5min timeout)
+- ✅ History page with filtering and demo management
+- ✅ Error boundaries and loading states
+- ✅ Unit and E2E test coverage
+
+### Pages and Components
+
+**Pages:**
+- `/` — Upload page (server component)
+- `/results/[id]` — Results page with polling (client component)
+- `/history` — History page with demo list (client component)
+- Error pages (`error.tsx`, `not-found.tsx`) for graceful error handling
+
+**Components:**
+- `UploadForm` — File input with validation and drag-drop
+- `ResultsCard` — Results display with verdict and features
+- `VerdictBadge` — Color-coded verdict indicator
+- `FeatureTable` — Feature breakdown table
+- `HistoryTable` — Demo list with actions
+- `ErrorBoundary` — React error boundary wrapper
+- `Providers` — React Query provider setup
+
+**Custom Hooks:**
+- `useUploadDemo()` — File upload mutation
+- `usePolling()` — Demo status polling with timeout
+- `useDemoFetch()` — Wrapper around usePolling
 
 ### v2 Features (Post-MVP)
 
@@ -278,6 +300,7 @@ This project is designed for Docker deployment. Vercel support may be added in v
 - Trend analytics dashboard
 - Performance monitoring (Lighthouse)
 - Mobile-specific E2E tests
+- Session replay (LogRocket)
 
 ## Contributing
 
