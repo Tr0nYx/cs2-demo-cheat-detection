@@ -136,6 +136,27 @@ services:
     networks:
       - cs2
 
+  next-app:
+    build:
+      context: ./
+      dockerfile: frontend/Dockerfile
+    container_name: cs2-frontend
+    restart: unless-stopped
+    ports:
+      - "${NEXT_PORT:-3000}:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://php:80/api}"
+      NODE_ENV: "${NODE_ENV:-development}"
+      NEXT_PUBLIC_SENTRY_DSN: "${NEXT_PUBLIC_SENTRY_DSN:-}"
+      SENTRY_ORG: "${SENTRY_ORG:-}"
+      SENTRY_PROJECT: "${SENTRY_PROJECT:-}"
+      SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN:-}"
+    depends_on:
+      php:
+        condition: service_started
+    networks:
+      - cs2
+
 networks:
   cs2:
     driver: bridge
