@@ -1,0 +1,145 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: cs2-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    volumes:
+      - ./symfony:/var/www/html:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - demo_storage:${DEMO_STORAGE_PATH:-/storage/demos}:ro
+    depends_on:
+      php:
+        condition: service_started
+    networks:
+      - cs2
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        APP_UID: "${APP_UID:-1000}"
+        APP_GID: "${APP_GID:-1000}"
+    container_name: cs2-php
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      APP_ENV: "${APP_ENV:-dev}"
+      APP_DEBUG: "${APP_DEBUG:-1}"
+      APP_SECRET: "${APP_SECRET:-change-me-in-local-env}"
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      MESSENGER_TRANSPORT_DSN: "${MESSENGER_TRANSPORT_DSN:-redis://redis:6379/messages}"
+      MESSENGER_FAILED_TRANSPORT_DSN: "${MESSENGER_FAILED_TRANSPORT_DSN:-redis://redis:6379/failed}"
+      DEMO_STORAGE_DISK: "${DEMO_STORAGE_DISK:-local}"
+      DEMO_STORAGE_PATH: "${DEMO_STORAGE_PATH:-/storage/demos}"
+      SYMFONY_ANALYSIS_QUEUE: "${SYMFONY_ANALYSIS_QUEUE:-cs2.analysis.dispatch}"
+      PYTHON_WORKER_QUEUE: "${PYTHON_WORKER_QUEUE:-cs2.analysis}"
+      RESULT_INGEST_QUEUE: "${RESULT_INGEST_QUEUE:-cs2.results}"
+    volumes:
+      - ./symfony:/var/www/html
+      - demo_storage:${DEMO_STORAGE_PATH:-/storage/demos}
+      - composer_cache:/tmp/composer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2
+
+  python:
+    build:
+      context: .
+      dockerfile: docker/python/Dockerfile
+      args:
+        APP_UID: "${APP_UID:-1000}"
+        APP_GID: "${APP_GID:-1000}"
+    container_name: cs2-python
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      PYTHON_ENV: "${PYTHON_ENV:-development}"
+      PYTHONUNBUFFERED: "${PYTHONUNBUFFERED:-1}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      DATABASE_URL: "${DATABASE_URL}"
+      DEMO_STORAGE_PATH: "${DEMO_STORAGE_PATH:-/storage/demos}"
+      PYTHON_WORKER_QUEUE: "${PYTHON_WORKER_QUEUE:-cs2.analysis}"
+      WORKER_IDLE_ON_START: "${WORKER_IDLE_ON_START:-false}"
+      WORKER_LOG_LEVEL: "${WORKER_LOG_LEVEL:-INFO}"
+      WORKER_POLL_TIMEOUT_SECONDS: "${WORKER_POLL_TIMEOUT_SECONDS:-5}"
+      WORKER_SHUTDOWN_GRACE_SECONDS: "${WORKER_SHUTDOWN_GRACE_SECONDS:-15}"
+      HF_HOME: "${HF_HOME:-/app/.cache/huggingface}"
+      HF_TOKEN: "${HF_TOKEN:-}"
+      CS2CD_DATASET_ID: "${CS2CD_DATASET_ID:-CS2CD/CS2CD.Counter-Strike_2_Cheat_Detection}"
+      CS2CD_DATA_DIR: "${CS2CD_DATA_DIR:-/data/cs2cd}"
+      ANTICHEATPT_MODEL_ID: "${ANTICHEATPT_MODEL_ID:-CS2CD/AntiCheatPT_256}"
+      ML_DATA_DIR: "${ML_DATA_DIR:-/data/ml}"
+      ML_CHECKPOINT_DIR: "${ML_CHECKPOINT_DIR:-/data/checkpoints}"
+      ML_BATCH_SIZE: "${ML_BATCH_SIZE:-128}"
+      ML_LEARNING_RATE: "${ML_LEARNING_RATE:-0.0001}"
+      ML_DEVICE: "${ML_DEVICE:-cpu}"
+    volumes:
+      - ./python:/app
+      - ./data:/data
+      - demo_storage:${DEMO_STORAGE_PATH:-/storage/demos}
+      - pip_cache:/home/app/.cache/pip
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: cs2-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-cs2_detection}"
+      POSTGRES_USER: "${POSTGRES_USER:-cs2_app}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-cs2_app_password}"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - cs2
+
+  redis:
+    image: redis:7-alpine
+    container_name: cs2-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - cs2
+
+networks:
+  cs2:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  composer_cache:
+  pip_cache:
+  demo_storage:
