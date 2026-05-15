@@ -107,6 +107,12 @@ format:
 	@echo "Fixing Python code style (black)..."
 	docker compose exec -T python black python/ || true
 
+# Default variables for advanced targets
+EPOCHS ?= 50
+BATCH_SIZE ?= 128
+LEARNING_RATE ?= 0.0001
+OUTPUT_DIR ?= data/models
+
 .PHONY: analyze-demo
 analyze-demo:
 	@if [ -z "$(FILE)" ]; then \
@@ -114,11 +120,16 @@ analyze-demo:
 		echo "Usage: make analyze-demo FILE=path/to/demo.dem"; \
 		exit 1; \
 	fi
-	@echo "analyze-demo: Not yet implemented. Phase 5-03 will wire the analysis entrypoint."
-	@echo "FILE=$(FILE)"
+	@echo "Analyzing demo: $(FILE)"
+	@echo "Note: Full analyze-demo entrypoint requires Python worker integration from Phase 3."
+	@echo "For now, this is a documented placeholder."
+	@echo "Run the full analysis pipeline via: make up && curl -X POST -F file=@$(FILE) http://localhost:8080/api/demos"
 
 .PHONY: train
 train:
-	@echo "train: Requires Phase 4 training entrypoint."
-	@echo "EPOCHS=$(EPOCHS)"
-	@echo "OUTPUT_DIR=$(OUTPUT_DIR)"
+	@echo "Training AntiCheatPT model..."
+	docker compose exec -T python python python/ml/train.py \
+		--epochs $(EPOCHS) \
+		--batch-size $(BATCH_SIZE) \
+		--learning-rate $(LEARNING_RATE) \
+		--output-dir $(OUTPUT_DIR)
