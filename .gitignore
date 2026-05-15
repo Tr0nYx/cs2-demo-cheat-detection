@@ -1,0 +1,37 @@
+/tasks/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# PHP / Symfony artifacts
+/symfony/var/
+/symfony/vendor/
+/symfony/.phpunit.cache/
+/symfony/public/bundles/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# ML artifacts
+*.pt
+*.ckpt
+*.pth
+/data/checkpoints/
+/data/models/
+
+# Demo and generated data
+*.dem
+/data/demo-storage/*
+!/data/demo-storage/.gitkeep
+
+# Local tooling
+.DS_Store
+Thumbs.db
