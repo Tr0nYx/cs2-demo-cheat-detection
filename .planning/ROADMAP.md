@@ -14,7 +14,7 @@ Build the project from the outside in: first a repeatable container foundation, 
 - [x] **Phase 2: Symfony API and Domain** - Entities, migrations, REST endpoints, storage abstraction, and Messenger dispatch.
 - [ ] **Phase 3: Python Analysis Pipeline** - Worker, parser adapter, feature extractors, scoring, error handling, and result persistence.
 - [x] **Phase 4: ML Dataset and Transformer Prep** - CS2CD loader, AntiCheatPT vectors, augmentation, model, and training entrypoint.
-- [ ] **Phase 5: Developer Readiness and Documentation** - Makefile, recoil data, README, gitignore, and test commands.
+- [x] **Phase 5: Developer Readiness and Documentation** - Makefile, recoil data, README, gitignore, and test commands.
 
 ## Phase Details
 
@@ -151,10 +151,10 @@ Cross-cutting constraints:
 Plans:
 **Wave 1**
 - [x] 05-01: Makefile, local commands, and test command wiring
-- [ ] 05-02: Recoil pattern data and repository ignore rules
+- [x] 05-02: Recoil pattern data and repository ignore rules
 
 **Wave 2 (blocked on Wave 1 completion)**
-- [ ] 05-03: README, API examples, architecture description, and final verification
+- [x] 05-03: README, API examples, architecture description, and final verification
 
 ## Progress
 
@@ -167,4 +167,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. Symfony API and Domain | 4/4 | Complete | 2026-05-15 |
 | 3. Python Analysis Pipeline | 0/5 | Ready to discuss | - |
 | 4. ML Dataset and Transformer Prep | 4/4 | Complete | 2026-05-15 |
-| 5. Developer Readiness and Documentation | 1/3 | In progress | 2026-05-15 |
+| 5. Developer Readiness and Documentation | 3/3 | Complete | 2026-05-15 |
