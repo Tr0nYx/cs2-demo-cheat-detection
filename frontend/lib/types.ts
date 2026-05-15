@@ -21,6 +21,7 @@ export interface Player {
   overallScore: number
   overallVerdict: 'clean' | 'suspicious' | 'likely_cheating'
   features: Feature[]
+  modelVersion?: string
 }
 
 // Analysis results container
@@ -28,6 +29,7 @@ export interface AnalysisResult {
   overall_score?: number
   overall_verdict?: 'clean' | 'suspicious' | 'likely_cheating'
   players: Player[]
+  modelVersion?: string
 }
 
 // Demo entity with status and results
