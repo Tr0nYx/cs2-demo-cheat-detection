@@ -15,13 +15,13 @@
 
 ### Symfony Backend
 
-- [ ] **BACK-01**: API user can upload a `.dem` file through `POST /api/demos`.
-- [ ] **BACK-02**: API user can fetch demo status and results through `GET /api/demos/{id}`.
-- [ ] **BACK-03**: API user can fetch analysis history for a Steam ID through `GET /api/players/{steamId}/history`.
-- [ ] **BACK-04**: Backend persists Demo, Player, and AnalysisResult entities with the fields defined in `tasks/setup.md`.
-- [ ] **BACK-05**: Backend validates uploaded demo files before accepting them.
-- [ ] **BACK-06**: Backend dispatches demo analysis asynchronously without waiting for Python analysis to complete.
-- [ ] **BACK-07**: Backend ingests player-level analysis results and marks demos as done or error.
+- [x] **BACK-01**: API user can upload a `.dem` file through `POST /api/demos`.
+- [x] **BACK-02**: API user can fetch demo status and results through `GET /api/demos/{id}`.
+- [x] **BACK-03**: API user can fetch analysis history for a Steam ID through `GET /api/players/{steamId}/history`.
+- [x] **BACK-04**: Backend persists Demo, Player, and AnalysisResult entities with the fields defined in `tasks/setup.md`.
+- [x] **BACK-05**: Backend validates uploaded demo files before accepting them.
+- [x] **BACK-06**: Backend dispatches demo analysis asynchronously without waiting for Python analysis to complete.
+- [x] **BACK-07**: Backend ingests player-level analysis results and marks demos as done or error.
 
 ### Queue and Worker
 
@@ -95,13 +95,13 @@
 | INFR-03 | Phase 1 | Complete |
 | INFR-04 | Phase 1 | Complete |
 | INFR-05 | Phase 1 | Complete |
-| BACK-01 | Phase 2 | Pending |
-| BACK-02 | Phase 2 | Pending |
-| BACK-03 | Phase 2 | Pending |
-| BACK-04 | Phase 2 | Pending |
-| BACK-05 | Phase 2 | Pending |
-| BACK-06 | Phase 2 | Pending |
-| BACK-07 | Phase 2 | Pending |
+| BACK-01 | Phase 2 | Complete |
+| BACK-02 | Phase 2 | Complete |
+| BACK-03 | Phase 2 | Complete |
+| BACK-04 | Phase 2 | Complete |
+| BACK-05 | Phase 2 | Complete |
+| BACK-06 | Phase 2 | Complete |
+| BACK-07 | Phase 2 | Complete |
 | WORK-01 | Phase 3 | Pending |
 | WORK-02 | Phase 3 | Pending |
 | WORK-03 | Phase 3 | Pending |
@@ -135,4 +135,4 @@
 
 ---
 *Requirements defined: 2026-05-15*
-*Last updated: 2026-05-15 after initial definition*
+*Last updated: 2026-05-15 after Phase 2 execution*

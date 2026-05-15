@@ -19,7 +19,7 @@ key-files:
 - Added Redis job publisher that writes compact JSON to the Python queue with `demo_id` and `file_path`.
 - Updated upload flow so successful uploads dispatch analysis and return `queued` after Redis publish succeeds.
 - Added result ingest payload validation, handler, and token-protected internal HTTP endpoint.
-- Result ingest creates/fetches players by Steam ID, writes one result per Demo + Player, and marks demos `done`.
+- Result ingest creates/fetches players by Steam ID, writes one result per Demo + Player, and marks demos `done`; error ingest marks demos `error`.
 - Added tests for Redis queue payloads, result handler behavior, ingest token protection, and result display through `GET /api/demos/{id}`.
 
 ## Verification
@@ -28,7 +28,7 @@ key-files:
 |-------|--------|
 | `php bin/console lint:container` | Passed |
 | `php bin/console debug:router` | Passed, internal ingest route present |
-| `php bin/phpunit tests/Domain tests/Application tests/UI/Api` | Passed, 12 tests / 48 assertions |
+| `php bin/phpunit tests/Domain tests/Application tests/UI/Api` | Passed, 13 tests / 51 assertions |
 
 ## Deviations
 

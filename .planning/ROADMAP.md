@@ -11,7 +11,7 @@ Build the project from the outside in: first a repeatable container foundation, 
 - Decimal phases (2.1, 2.2): Urgent insertions marked with INSERTED
 
 - [x] **Phase 1: Container Foundation** - Docker Compose, service images, environment, healthchecks, and local storage.
-- [ ] **Phase 2: Symfony API and Domain** - Entities, migrations, REST endpoints, storage abstraction, and Messenger dispatch.
+- [x] **Phase 2: Symfony API and Domain** - Entities, migrations, REST endpoints, storage abstraction, and Messenger dispatch.
 - [ ] **Phase 3: Python Analysis Pipeline** - Worker, parser adapter, feature extractors, scoring, error handling, and result persistence.
 - [ ] **Phase 4: ML Dataset and Transformer Prep** - CS2CD loader, AntiCheatPT vectors, augmentation, model, and training entrypoint.
 - [ ] **Phase 5: Developer Readiness and Documentation** - Makefile, recoil data, README, gitignore, and test commands.
@@ -59,16 +59,16 @@ Cross-cutting constraints:
 
 Plans:
 **Wave 1**
-- [ ] 02-01: Symfony skeleton, packages, configuration, and database connectivity
+- [x] 02-01: Symfony skeleton, packages, configuration, and database connectivity
 
 **Wave 2 (blocked on Wave 1 completion)**
-- [ ] 02-02: Domain entities, enums, repositories, and migrations
+- [x] 02-02: Domain entities, enums, repositories, and migrations
 
 **Wave 3 (blocked on Wave 2 completion)**
-- [ ] 02-03: Storage abstraction, demo upload, status/result, and player history controllers
+- [x] 02-03: Storage abstraction, demo upload, status/result, and player history controllers
 
 **Wave 4 (blocked on Wave 3 completion)**
-- [ ] 02-04: Messenger messages, handlers, Redis payload contract, and result ingest flow
+- [x] 02-04: Messenger messages, handlers, Redis payload contract, and result ingest flow
 
 Cross-cutting constraints:
 - Use pragmatic REST JSON with simple Symfony controllers, not API Platform.
@@ -141,7 +141,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Container Foundation | 3/3 | Complete | 2026-05-15 |
-| 2. Symfony API and Domain | 0/4 | Ready to execute | - |
-| 3. Python Analysis Pipeline | 0/5 | Not started | - |
+| 2. Symfony API and Domain | 4/4 | Complete | 2026-05-15 |
+| 3. Python Analysis Pipeline | 0/5 | Ready to discuss | - |
 | 4. ML Dataset and Transformer Prep | 0/3 | Not started | - |
 | 5. Developer Readiness and Documentation | 0/3 | Not started | - |
