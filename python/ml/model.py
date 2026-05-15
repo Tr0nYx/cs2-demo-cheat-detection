@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from python.ml.config import load_config
+from ml.config import load_config
 
 
 class AntiCheatTransformer(nn.Module):
