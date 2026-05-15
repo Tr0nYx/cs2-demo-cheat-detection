@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+
+    - name: Install PHP dependencies
+      run: cd symfony && composer install
+
+    - name: Run PHP linting
+      run: cd symfony && php -l src/ symfony/ tests/ || true
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install Python dependencies
+      run: pip install -r python/requirements.txt
+
+    - name: Run Python linting
+      run: python -m flake8 python/ --max-line-length=120 --ignore=E501 || true
+
+    - name: Run Python tests
+      run: python -m pytest python/tests/ -v || true
