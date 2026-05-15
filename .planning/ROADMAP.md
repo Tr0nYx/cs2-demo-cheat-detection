@@ -58,10 +58,24 @@ Cross-cutting constraints:
 **Plans**: 4 plans
 
 Plans:
+**Wave 1**
 - [ ] 02-01: Symfony skeleton, packages, configuration, and database connectivity
+
+**Wave 2 (blocked on Wave 1 completion)**
 - [ ] 02-02: Domain entities, enums, repositories, and migrations
+
+**Wave 3 (blocked on Wave 2 completion)**
 - [ ] 02-03: Storage abstraction, demo upload, status/result, and player history controllers
+
+**Wave 4 (blocked on Wave 3 completion)**
 - [ ] 02-04: Messenger messages, handlers, Redis payload contract, and result ingest flow
+
+Cross-cutting constraints:
+- Use pragmatic REST JSON with simple Symfony controllers, not API Platform.
+- Keep secrets and service URLs environment-driven through the Phase 1 `.env.example` contract.
+- Preserve the Symfony/Python split: Symfony queues compact jobs and persists results; Python parsing/scoring remains Phase 3.
+- Return stable structured error envelopes without leaking exception internals.
+- Treat suspicion labels as explainable research signals, not proof or enforcement.
 
 ### Phase 3: Python Analysis Pipeline
 **Goal**: Python can consume queued demo jobs, parse CS2 data, compute feature scores, and persist explainable results.
@@ -127,7 +141,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Container Foundation | 3/3 | Complete | 2026-05-15 |
-| 2. Symfony API and Domain | 0/4 | Ready to discuss | - |
+| 2. Symfony API and Domain | 0/4 | Ready to execute | - |
 | 3. Python Analysis Pipeline | 0/5 | Not started | - |
 | 4. ML Dataset and Transformer Prep | 0/3 | Not started | - |
 | 5. Developer Readiness and Documentation | 0/3 | Not started | - |
