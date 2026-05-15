@@ -118,3 +118,23 @@ class TestWorker:
 
         # Verify rollback was called
         mock_db_conn.rollback.assert_called()
+
+    def test_sigterm_graceful_shutdown(self, capsys):
+        """Test that worker handles SIGTERM and gracefully shuts down.
+
+        Tests D-26: SIGTERM signal handling and graceful shutdown.
+        """
+        import signal
+        from worker import _handle_shutdown, log
+
+        # Call the shutdown handler (simulating SIGTERM receipt)
+        _handle_shutdown(signal.SIGTERM, None)
+
+        # Verify that a shutdown_requested event was logged
+        captured = capsys.readouterr()
+        output = captured.out.strip()
+
+        # Parse the logged event
+        parsed = json.loads(output)
+        assert parsed["event"] == "shutdown_requested"
+        assert parsed["signal"] == signal.SIGTERM
