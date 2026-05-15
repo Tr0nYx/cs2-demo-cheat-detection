@@ -1,0 +1,9 @@
+demoparser2>=0.37.0
+pandas>=2.2.0
+numpy>=1.26.0
+scikit-learn>=1.4.0
+torch>=2.3.0
+psycopg2-binary>=2.9.9
+redis>=5.0.0
+datasets>=2.19.0
+python-json-logger>=2.0.7
