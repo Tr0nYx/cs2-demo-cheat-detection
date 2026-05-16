@@ -206,7 +206,6 @@ def process_job(
         # D-21: Worker exits on persistence errors
         raise
     finally:
-        global in_flight_count
         with in_flight_lock:
             in_flight_count -= 1
 
