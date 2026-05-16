@@ -31,8 +31,9 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 
 ### Planned Phases
 
-- [ ] **Phase 11: TRACE Advanced Visualizations** — Leaderboards, trend analysis, component percentiles, player profiles
-- [ ] **Phase 12: TRACE Ranking & Filtering** — Global and per-map leaderboards, trend-based player discovery
+- [ ] **Phase 11: TRACE Advanced Visualizations** — Component percentiles, historical trends, calibration context, interactive charts
+- [ ] **Phase 12: TRACE Leaderboards** — Global and per-map rankings, player comparison
+- [ ] **Phase 13+: Advanced Analytics** — Sensitivity analysis, player profiling, trend forecasting
 
 ### Backlog
 

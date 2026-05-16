@@ -9,11 +9,11 @@ See: .planning/PROJECT.md (updated 2026-05-15)
 
 ## Current Position
 
-Phase: 10 (TRACE API & Frontend) - COMPLETE ✓
-Status: Phase 10 Wave 1 EXECUTED (968 LOC, 16 tests) + Wave 2 EXECUTED (1100+ LOC, 73 tests)
-- Wave 1: API layer (GET /api/demos/{id}/trace endpoint with TraceDto serialization)
-- Wave 2: Frontend (TraceCard component on demo detail page with React Query integration)
-Last activity: 2026-05-16 - Both waves complete; 89 tests passing, 87% coverage; ready for shipping
+Phase: 11 (TRACE Advanced Visualizations) - PLANNING ✓
+Status: Phase 11 planning complete (2 waves, ~405 min estimated execution)
+- Wave 1: Backend API (5 tasks, ~180 min) — History endpoint + percentile calculation
+- Wave 2: Frontend (7 tasks, ~225 min) — Charts, sparkline, percentile badges, calibration context
+Last activity: 2026-05-16 - Phase 11 context and plans created; ready for execution
 
 Progress: [##############] v2 Core Complete → [##############] Phase 7 Complete → SHIPPED ✅
 
