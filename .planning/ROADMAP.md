@@ -15,17 +15,18 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 - [x] **Phase 3: Python Analysis Pipeline** — Worker, parser, feature extractors, scoring, error handling (Complete 2026-05-15)
 - [x] **Phase 6: Frontend Application Interface** — Web UI for demo upload, analysis results visualization, history dashboard (Complete 2026-05-15)
 - [x] **Phase 7: Enhanced ML & Production** — Upgrade recoil patterns, deployment, observability (Complete 2026-05-15)
+- [x] **Phase 8: Demo Download per Sharecode** — Multi-platform sharecode import (Steam, Faceit, ESEA), async queue worker, real-time progress UI (Complete 2026-05-16)
+
+### Phase 8 Plans (All Complete)
+
+- [x] 08-01-PLAN.md — Database schema, SharecodeImport entity, validation (Wave 1) ✓
+- [x] 08-02-PLAN.md — POST /api/demos/import-sharecode endpoint, rate limiting (Wave 1) ✓
+- [x] 08-03-PLAN.md — Python worker, multi-platform fetchers, retry logic (Wave 2) ✓
+- [x] 08-04-PLAN.md — React UI, progress tracking, import history (Wave 3) ✓
 
 ### Planned Phases
 
-- [ ] **Phase 8: Demo Download per Sharecode** — Automated CS2 demo import via Sharecode links
-
-**Phase 8 Plans:** 4 plans in 3 waves
-
-- [ ] 08-01-PLAN.md — Database schema, entities, dependencies (Wave 1)
-- [ ] 08-02-PLAN.md — API endpoint, validation, rate limiting (Wave 1)
-- [ ] 08-03-PLAN.md — Python worker, platform fetchers, download logic (Wave 2)
-- [ ] 08-04-PLAN.md — Frontend UI, progress tracking, history (Wave 3)
+*To be planned after Phase 8 deployment*
 
 ### Backlog
 

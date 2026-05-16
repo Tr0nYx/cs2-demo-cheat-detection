@@ -9,9 +9,9 @@ See: .planning/PROJECT.md (updated 2026-05-15)
 
 ## Current Position
 
-Phase: 7 of 7 (Enhanced ML & Production) - EXECUTED ✓
-Status: Phase 7 execution complete, audit passed (2 blockers fixed), shipped as v2.0.0
-Last activity: 2026-05-15 - Phase 7 shipped to production (plan → execute → verify → fix → ship)
+Phase: 8 of 8 (Demo Download per Sharecode) - EXECUTED ✓
+Status: Phase 8 execution complete, verification passed, ready for deployment
+Last activity: 2026-05-16 - Phase 8 shipped: sharecode import, multi-platform API, async worker, progress UI
 
 Progress: [##############] v2 Core Complete → [##############] Phase 7 Complete → SHIPPED ✅
 
@@ -68,6 +68,7 @@ None yet.
   - Deployment: Docker Compose on self-hosted VPS (Kubernetes deferred to v3)
   - Observability: Prometheus + Grafana + Loki stack, 30-day retention
   - Model serving: Graceful shutdown updates, retry backoff, versioned results
+- Phase 8 added: Demo download per Sharecode — Automated CS2 demo import via Sharecode links
 
 ## Deferred Items
 
