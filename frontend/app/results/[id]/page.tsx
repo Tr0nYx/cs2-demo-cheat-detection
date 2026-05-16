@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation'
 import { useDemoFetch } from '@/lib/hooks/useDemoFetch'
 import { ResultsCard } from '@/components/ResultsCard'
+import { TraceCard } from '@/components/DemoDetail/TraceCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -126,6 +127,11 @@ export default function ResultsPage() {
           </div>
 
           <ResultsCard demo={demo} />
+
+          {/* TRACE Rating Card - shown below analysis results if available */}
+          <div className="w-full mt-6">
+            <TraceCard demoId={demoId} />
+          </div>
         </main>
       </div>
     )
