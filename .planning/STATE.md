@@ -9,9 +9,11 @@ See: .planning/PROJECT.md (updated 2026-05-15)
 
 ## Current Position
 
-Phase: 9 of ? (TRACE Rating System) - COMPLETE ✓
-Status: Phase 9 Wave 1 EXECUTED (3 tasks, 95 tests, 1797 LOC) + Wave 2 EXECUTED (5 tasks, 3248 LOC, 40+ tests)
-Last activity: 2026-05-16 - Both waves complete; production-ready persistence layer deployed
+Phase: 10 (TRACE API & Frontend) - PLANNING ✓
+Status: Phase 10 planning complete (2 waves, ~310 min estimated execution)
+- Wave 1: API layer (5 tasks, ~135 min) — GET /api/demos/{id}/trace endpoint
+- Wave 2: Frontend (5 tasks, ~175 min) — TraceCard component on demo detail page
+Last activity: 2026-05-16 - Phase 10 context and plans created; ready for execution
 
 Progress: [##############] v2 Core Complete → [##############] Phase 7 Complete → SHIPPED ✅
 

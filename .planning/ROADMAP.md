@@ -30,7 +30,7 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 
 ### Planned Phases
 
-- [ ] **Phase 10: TRACE API & Frontend** — Expose `/api/demos/{id}/trace` endpoint, render TRACE Card with visualizations
+- [ ] **Phase 10: TRACE API & Frontend** — Expose `/api/demos/{id}/trace` endpoint (Wave 1), render TRACE Card with component breakdown (Wave 2)
 
 ### Backlog
 
