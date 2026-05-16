@@ -25,7 +25,7 @@ final class TraceControllerTest extends WebTestCase
     {
         self::ensureKernelShutdown();
         self::bootKernel();
-        self::getContainer()->get(Connection::class)->executeStatement('TRUNCATE trace_rating, analysis_result, player, demo RESTART IDENTITY CASCADE');
+        self::getContainer()->get(Connection::class)->executeStatement('TRUNCATE demo, player, analysis_result, trace_rating RESTART IDENTITY CASCADE');
         self::ensureKernelShutdown();
     }
 
