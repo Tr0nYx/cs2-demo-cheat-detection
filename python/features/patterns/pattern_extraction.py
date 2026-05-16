@@ -15,7 +15,7 @@ import pandas as pd
 
 from ..base import FeatureExtractionError
 from .quantile_bounds import compute_quantile_bounds
-from python.ml.dataset import load_cs2cd_dataset
+from ml.dataset import load_cs2cd_dataset
 
 logger = logging.getLogger(__name__)
 
