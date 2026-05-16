@@ -24,9 +24,13 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 - [x] 08-03-PLAN.md — Python worker, multi-platform fetchers, retry logic (Wave 2) ✓
 - [x] 08-04-PLAN.md — React UI, progress tracking, import history (Wave 3) ✓
 
+### Completed Phases (Current Milestone)
+
+- [x] **Phase 9: TRACE Rating System** — Player impact scoring, component calculation, trust multiplier, persistence layer (Complete 2026-05-16)
+
 ### Planned Phases
 
-*To be planned after Phase 8 deployment*
+- [ ] **Phase 10: TRACE API & Frontend** — Expose `/api/demos/{id}/trace` endpoint, render TRACE Card with visualizations
 
 ### Backlog
 
