@@ -43,3 +43,30 @@ export interface Demo {
   file_path?: string
   file_size?: number
 }
+
+// TRACE component scores [0.3, 2.0] range
+export interface TraceComponentDto {
+  ekill: number // E-Kill rating component
+  aim: number // Aim rating component
+  kast: number // Keep Alive (KA/ST) rating component
+  util: number // Utility usage rating component
+  clutch: number // Clutch situation rating component
+}
+
+// TRACE rating result
+export interface TraceDto {
+  traceBase: number // Base TRACE score (float)
+  traceAdjusted: number // Adjusted TRACE score (float)
+  traceNormalized: number // Normalized TRACE score (float, typically [0.0, 1.0])
+  trustMultiplier: number // Trust multiplier [0.73, 1.00]
+  components: TraceComponentDto // Component breakdown
+  calibrationVersion: string // e.g., "default-v1"
+  calculatedAt: string // ISO 8601 timestamp when calculated
+  createdAt: string // ISO 8601 timestamp when created
+}
+
+// TRACE error response
+export interface TraceError {
+  message: string
+  code?: string
+}
