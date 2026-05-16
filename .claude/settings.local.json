@@ -12,7 +12,20 @@
       "Bash(npm test *)",
       "Bash(npm run *)",
       "Skill(gsd-audit-milestone)",
-      "Skill(gsd-audit-milestone:*)"
+      "Skill(gsd-audit-milestone:*)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'docs\\(08\\): phase 8 context — demo download per sharecode *)",
+      "WebFetch(domain:docs.faceit.com)",
+      "Bash(curl -s http://localhost:8080/api/demos)",
+      "Bash(curl -s -I http://localhost:8080/api/health)",
+      "Bash(docker-compose ps *)",
+      "Bash(curl -s http://localhost:8080/api/demos/019e2e98-dc83-7cea-a426-ae521bb280f9)",
+      "Bash(docker exec *)",
+      "Bash(grep -E \"\\\\.php$\")",
+      "Bash(php bin/console doctrine:migrations:generate --name \"AddModelVersionToAnalysisResult\" --no-interaction)",
+      "Bash(git commit *)",
+      "Bash(docker-compose stop *)",
+      "Bash(docker-compose up *)"
     ]
   }
 }

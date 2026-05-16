@@ -40,13 +40,12 @@ class ResultWriter:
         Record a parser or extraction error for a demo.
 
         Updates the Demo record with:
-        - errorStatus = true
-        - errorMessage = error_message
+        - error_message = error_message
         - status = 'error'
 
         Args:
             demo_id: UUID of the demo that failed
-            error_message: Error description (will be stored in errorMessage field)
+            error_message: Error description (will be stored in error_message field)
 
         Raises:
             psycopg2.Error: If database write fails (logged with context before re-raising)
@@ -58,7 +57,7 @@ class ResultWriter:
             # Use parameterized query to prevent SQL injection
             update_query = """
                 UPDATE demo
-                SET error_status = true, error_message = %s, status = %s
+                SET error_message = %s, status = %s
                 WHERE id = %s
             """
             cursor.execute(update_query, (error_message, 'error', demo_id))
