@@ -4,7 +4,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from parser.types import ParsedDemo
+# Lazy import to avoid ModuleNotFoundError on tests that don't need ParsedDemo
+def _get_parsed_demo():
+    from parser.types import ParsedDemo
+    return ParsedDemo
 
 
 @pytest.fixture
@@ -95,6 +98,7 @@ def sample_events_df():
 @pytest.fixture
 def sample_parsed_demo(sample_ticks_df, sample_events_df):
     """Create a complete ParsedDemo object with tick and event data."""
+    ParsedDemo = _get_parsed_demo()
     return ParsedDemo(
         ticks_df=sample_ticks_df,
         events_df=sample_events_df,
@@ -146,6 +150,7 @@ def minimal_events_df():
 @pytest.fixture
 def minimal_parsed_demo(minimal_ticks_df, minimal_events_df):
     """Create a minimal ParsedDemo object."""
+    ParsedDemo = _get_parsed_demo()
     return ParsedDemo(
         ticks_df=minimal_ticks_df,
         events_df=minimal_events_df,

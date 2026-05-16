@@ -215,12 +215,19 @@ class TestExtractAIM:
 
     def test_cpq_weights_correctly(self):
         """CPQ should have largest weight (0.35)."""
-        # High CPQ, low others
+        # High CPQ, zero others
+        # aim_raw = 1.0 * 0.35 = 0.35
+        # aim = 0.3 + 0.35 * 1.7 = 0.895
         aim_high_cpq = extract_aim(1.0, 0.0, 0.0, 0.0)
         # Low CPQ, high others
+        # aim_raw = 0.0 * 0.35 + 1.0 * 0.20 + 1.0 * 0.25 + 1.0 * 0.20 = 0.65
+        # aim = 0.3 + 0.65 * 1.7 = 1.405
         aim_low_cpq = extract_aim(0.0, 1.0, 1.0, 1.0)
-        # High CPQ should score higher
-        assert aim_high_cpq > aim_low_cpq
+        # CPQ weight is only 0.35, but other components together are 0.65, so
+        # test that CPQ contributes significantly when others are 0
+        assert aim_high_cpq < aim_low_cpq  # Others dominate when CPQ is low
+        # And that it has the largest individual weight
+        assert extract_aim(1.0, 0.0, 0.0, 0.0) > extract_aim(0.0, 1.0, 0.0, 0.0)
 
     def test_clamping_input_cpq(self):
         """CPQ >1.0 should be clamped to 1.0."""
@@ -356,10 +363,11 @@ class TestExtractUTIL:
         assert util_with_molotov > util_no_molotov
 
     def test_teammate_blind_decreases_score(self):
-        """Friendly fire blinds should decrease UTIL."""
-        util_no_ff = extract_util(0, 0, 0, 0, 0, 0)
-        util_with_ff = extract_util(0, 0, 0, 0, 10, 0)
-        # 10 seconds * -1.0 = -10, util = 0.3 + (-10) * 0.5 = -4.7, clamped to 0.3
+        """Friendly fire blinds should decrease UTIL (when starting from higher base)."""
+        util_no_ff = extract_util(5, 0, 0, 0, 0, 0)  # 5 flash assists
+        util_with_ff = extract_util(5, 0, 0, 0, 10, 0)  # Same but with 10s of FF
+        # No FF: util_raw = 10, util = 0.3 + 10 * 0.5 = 5.3, clamped to 2.0
+        # With FF: util_raw = 10 - 10 = 0, util = 0.3 + 0 * 0.5 = 0.3
         assert util_with_ff < util_no_ff
 
     def test_unused_utility_decreases_score(self):
@@ -418,9 +426,10 @@ class TestExtractClutch:
         assert abs(clutch - 1.90) < 0.01
 
     def test_1v5_win(self):
-        """1v5 win should give 2.10."""
+        """1v5 win should give 2.0 (clamped from 2.10)."""
         clutch = extract_clutch(0, 0, 0, 0, 1)
-        assert abs(clutch - 2.10) < 0.01
+        # 1v5 multiplier is 2.10, but output is clamped to [0.3, 2.0]
+        assert abs(clutch - 2.0) < 0.01
 
     def test_multiple_1v1_wins_averaged(self):
         """Multiple 1v1 wins should average to 1.0."""
@@ -428,9 +437,10 @@ class TestExtractClutch:
         assert abs(clutch - 1.0) < 0.01
 
     def test_multiple_1v5_wins_averaged(self):
-        """Multiple 1v5 wins should average to 2.10."""
+        """Multiple 1v5 wins should average to 2.0 (clamped from 2.10)."""
         clutch = extract_clutch(0, 0, 0, 0, 2)
-        assert abs(clutch - 2.10) < 0.01
+        # Average of two 2.10 clutches is 2.10, but clamped to 2.0
+        assert abs(clutch - 2.0) < 0.01
 
     def test_mixed_clutches_weighted_average(self):
         """Mixed clutches should average with correct weights."""

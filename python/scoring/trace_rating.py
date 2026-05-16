@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from typing import Dict, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 # Weapon values for economy-adjusted kill calculations per TRACE.md
@@ -286,5 +286,5 @@ class TraceCalculator:
             trust_multiplier=trust_multiplier,
             components=clamped_components,
             raw_components=raw_components,
-            calculated_at=datetime.utcnow().isoformat() + "Z",
+            calculated_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         )

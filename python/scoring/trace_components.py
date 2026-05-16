@@ -42,7 +42,7 @@ def extract_ekill(
         kills_data: List of kill event dicts from parsed demo. Each dict should contain:
                    'attacker_weapon', 'victim_steamid', 'assisters', 'assister_damages',
                    'kill_tick', 'attacker_death_tick' (optional).
-        victim_weapons: Dict mapping victim steamid to their equipped weapon for the kill.
+        victim_weapons: Dict mapping victim steamid to their equipped weapon name (string) for the kill.
 
     Returns:
         eKILL score in range [0.3, 2.0]. Neutral 0.73 if zero kills.
@@ -54,13 +54,15 @@ def extract_ekill(
     kill_count = 0
 
     for kill_idx, kill in enumerate(kills_data):
-        # Get weapon values
+        # Get weapon names
         attacker_weapon = kill.get("attacker_weapon", "")
         victim_steamid = kill.get("victim_steamid", "")
 
-        # Get attacker and victim weapon values
+        # Get attacker and victim weapon names from kill data
         attacker_value = WEAPON_VALUES.get(attacker_weapon, 500)
-        victim_value = victim_weapons.get(victim_steamid, 500)
+        # victim_weapons maps steamid to weapon name, need to look up value
+        victim_weapon_name = victim_weapons.get(victim_steamid, "ak47")
+        victim_value = WEAPON_VALUES.get(victim_weapon_name, 500)
 
         # Knife attacker: use 1 to avoid division by zero
         if attacker_weapon in ("knife", "knife_t"):
