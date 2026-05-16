@@ -1,6 +1,15 @@
+'use client'
+
+import React, { useState } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UploadForm } from '@/components/UploadForm'
+import { SharecodeTab } from '@/components/DemoImport/SharecodeTab'
+import { ProgressList } from '@/components/DemoImport/ProgressList'
+import { ImportHistory } from '@/components/DemoImport/ImportHistory'
 
 export default function UploadPage() {
+  const [importedSharecodes, setImportedSharecodes] = useState<string[]>([])
+
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-white dark:bg-gray-950">
       <main className="flex flex-1 w-full flex-col items-center justify-center py-8 px-4 gap-8">
@@ -13,7 +22,33 @@ export default function UploadPage() {
           </p>
         </div>
 
-        <UploadForm />
+        <div className="w-full max-w-4xl">
+          {/* Tab interface */}
+          <Tabs defaultValue="upload" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="upload">Upload File</TabsTrigger>
+              <TabsTrigger value="sharecode">Import by Sharecode</TabsTrigger>
+            </TabsList>
+
+            {/* Upload File tab (existing) */}
+            <TabsContent value="upload" className="space-y-6">
+              <UploadForm />
+            </TabsContent>
+
+            {/* Import by Sharecode tab (new) */}
+            <TabsContent value="sharecode" className="space-y-6">
+              <SharecodeTab />
+
+              {/* Progress tracking */}
+              <ProgressList sharecodes={importedSharecodes} />
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Import history (always visible) */}
+        <div className="w-full max-w-4xl mt-8">
+          <ImportHistory />
+        </div>
 
         <footer className="text-sm text-gray-500 dark:text-gray-400 mt-8">
           <p>Research tool for post-game cheat detection analysis</p>
