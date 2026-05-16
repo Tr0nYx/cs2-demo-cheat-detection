@@ -18,6 +18,12 @@ namespace App\Application\Trace;
  * - trustMultiplier: Dampening factor [0.73, 1.00] derived from suspicion score
  *
  * All scores are immutable after creation and ready for JSON serialization.
+ *
+ * JSON Serialization Notes:
+ * - Property names use camelCase (traceBase, not trace_base)
+ * - Timestamps are RFC 3339 ISO 8601 format strings
+ * - All values are numeric (not quoted)
+ * - Suitable for HTTP 200 response bodies
  */
 readonly class TraceDto
 {
