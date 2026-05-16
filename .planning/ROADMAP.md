@@ -14,10 +14,18 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 
 - [x] **Phase 3: Python Analysis Pipeline** — Worker, parser, feature extractors, scoring, error handling (Complete 2026-05-15)
 - [x] **Phase 6: Frontend Application Interface** — Web UI for demo upload, analysis results visualization, history dashboard (Complete 2026-05-15)
+- [x] **Phase 7: Enhanced ML & Production** — Upgrade recoil patterns, deployment, observability (Complete 2026-05-15)
 
 ### Planned Phases
 
-- [ ] **Phase 7: Enhanced ML & Production** — Upgrade recoil patterns, deployment, observability
+- [ ] **Phase 8: Demo Download per Sharecode** — Automated CS2 demo import via Sharecode links
+
+**Phase 8 Plans:** 4 plans in 3 waves
+
+- [ ] 08-01-PLAN.md — Database schema, entities, dependencies (Wave 1)
+- [ ] 08-02-PLAN.md — API endpoint, validation, rate limiting (Wave 1)
+- [ ] 08-03-PLAN.md — Python worker, platform fetchers, download logic (Wave 2)
+- [ ] 08-04-PLAN.md — Frontend UI, progress tracking, history (Wave 3)
 
 ### Backlog
 
@@ -35,4 +43,4 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 
 ---
 
-*Last updated: 2026-05-15 after v1 milestone completion*
+*Last updated: 2026-05-16 after Phase 8 planning*
