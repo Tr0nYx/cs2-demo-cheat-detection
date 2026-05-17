@@ -121,7 +121,7 @@ TraceCard (enhanced from Phase 10)
 
 After Phase 11 completes:
 - **Phase 12:** TRACE Leaderboards (global rankings, per-map, per-component)
-- **Phase 13+:** Advanced analytics (sensitivity analysis, player profiling)
+- **Phase 14+:** Advanced analytics (sensitivity analysis, player profiling)
 
 ## Questions & Clarifications
 

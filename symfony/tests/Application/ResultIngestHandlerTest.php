@@ -17,7 +17,7 @@ final class ResultIngestHandlerTest extends KernelTestCase
     public function testHandlerWritesResultsAndMarksDemoDone(): void
     {
         self::bootKernel();
-        self::getContainer()->get(Connection::class)->executeStatement('TRUNCATE analysis_result, player, demo RESTART IDENTITY CASCADE');
+        self::getContainer()->get(Connection::class)->executeStatement('TRUNCATE demo_suspicious_kill, demo_grenade, demo_round, demo_heatmap, analysis_result, player, demo RESTART IDENTITY CASCADE');
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $demo = new Demo('/storage/demos/ingest.dem');
         $demo->markQueued();
@@ -56,7 +56,7 @@ final class ResultIngestHandlerTest extends KernelTestCase
     {
         self::ensureKernelShutdown();
         self::bootKernel();
-        self::getContainer()->get(Connection::class)->executeStatement('TRUNCATE analysis_result, player, demo RESTART IDENTITY CASCADE');
+        self::getContainer()->get(Connection::class)->executeStatement('TRUNCATE demo_suspicious_kill, demo_grenade, demo_round, demo_heatmap, analysis_result, player, demo RESTART IDENTITY CASCADE');
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $demo = new Demo('/storage/demos/error.dem');
         $demo->markQueued();

@@ -459,9 +459,9 @@ TraceCard (receives demoId, playerId)
 - Component colors (red/yellow/green) match suspicion taxonomy
 
 **Future phases:**
-- Phase 13: Sensitivity analysis ("What if trust was 0.8?") — can reuse TraceChart with updated data
-- Phase 14: Predictive trends — extend TraceSparkline with forecast line
-- Phase 15: Player profiling — component distribution heatmaps
+- Phase 14: Sensitivity analysis ("What if trust was 0.8?") — can reuse TraceChart with updated data
+- Phase 15: Predictive trends — extend TraceSparkline with forecast line
+- Phase 16: Player profiling — component distribution heatmaps
 
 ## Performance Characteristics
 
@@ -497,7 +497,7 @@ TraceCard (receives demoId, playerId)
 - Create component-specific leaderboards using percentiles
 - Reuse TraceChart for competitive comparisons
 
-**Phase 13+ (Advanced):**
+**Phase 14+ (Advanced):**
 - Extend with predictive trends
 - Add sensitivity analysis
 - Component strength/weakness profiling

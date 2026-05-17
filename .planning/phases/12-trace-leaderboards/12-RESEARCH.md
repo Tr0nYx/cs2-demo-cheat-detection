@@ -50,10 +50,10 @@ Phase 12 builds a multi-dimensional ranking system for TRACE scores enabling pla
 
 ### Deferred Ideas (Out of Scope)
 
-- Role/weapon-type leaderboards (Phase 13+)
-- "Most improved" leaderboard (Phase 13+)
-- Sensitivity analysis / what-if scenarios (Phase 13+)
-- Tournament/league leaderboards (Phase 13+)
+- Role/weapon-type leaderboards (Phase 14+)
+- "Most improved" leaderboard (Phase 14+)
+- Sensitivity analysis / what-if scenarios (Phase 14+)
+- Tournament/league leaderboards (Phase 14+)
 
 ## Phase Requirements
 
@@ -879,7 +879,7 @@ final readonly class GetPlayerComparisonHandler implements QueryHandlerInterface
 2. **Leaderboard sortability (Claude's discretion):**
    - Should leaderboards be sortable by different metrics (best TRACE, most improved, most recent)?
    - Or fixed to 95th percentile sort only?
-   - Recommendation: Fix to 95th percentile sort in Wave 1; add sortability in Phase 13 if user feedback demands it.
+   - Recommendation: Fix to 95th percentile sort in Wave 1; add sortability in Phase 14 if user feedback demands it.
 
 3. **Materialized views vs. cached DTOs:**
    - Store precomputed leaderboard in database table (`materialized_leaderboard`) or rely on React Query cache + HTTP Cache-Control?

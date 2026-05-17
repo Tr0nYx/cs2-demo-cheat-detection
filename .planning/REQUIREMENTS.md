@@ -76,6 +76,15 @@
 
 - **UI-01**: User can inspect uploads, analysis status, and result explanations through a web UI.
 
+### Demo Viewer and Heatmaps
+
+- **VIEWER-PYTHON-FOUNDATION**: Python can transform CS2 world coordinates to radar pixels, render static heatmaps, export tick chunks to Redis, and find similar grenade throws.
+- **VIEWER-API-FOUNDATION**: Symfony exposes compact round and event summaries for analyzed demos without storing raw tick data in PostgreSQL.
+- **VIEWER-HEATMAP-END_TO_END**: User can request cached or generated heatmap PNGs for kills, deaths, damage, damage taken, and grenades.
+- **VIEWER-TICK-STREAMING**: User can stream sampled tick data for playback through validated chunked API requests.
+- **VIEWER-CANVAS-UI**: User can inspect an analyzed demo in an interactive 2D Canvas radar viewer with timeline, player filters, and heatmap mode.
+- **VIEWER-SUSPICION-GRENADE-REVIEW**: User can review flagged kills and grenade trajectories as explainable post-game research signals.
+
 ## Out of Scope
 
 | Feature | Reason |
@@ -127,6 +136,12 @@
 | DEVX-03 | Phase 5 | Pending |
 | DEVX-04 | Phase 5 | Pending |
 | DEVX-05 | Phase 5 | Pending |
+| VIEWER-PYTHON-FOUNDATION | Phase 13 | Complete |
+| VIEWER-API-FOUNDATION | Phase 13 | Complete |
+| VIEWER-HEATMAP-END_TO_END | Phase 13 | Complete |
+| VIEWER-TICK-STREAMING | Phase 13 | Complete |
+| VIEWER-CANVAS-UI | Phase 13 | Complete |
+| VIEWER-SUSPICION-GRENADE-REVIEW | Phase 13 | Complete |
 
 **Coverage:**
 - v1 requirements: 37 total
@@ -135,4 +150,4 @@
 
 ---
 *Requirements defined: 2026-05-15*
-*Last updated: 2026-05-15 after Phase 2 execution*
+*Last updated: 2026-05-17 after Phase 13 completion*

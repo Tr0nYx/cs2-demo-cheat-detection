@@ -6,7 +6,7 @@ tags: [cqrs, team-leaderboard, aggregation, event-driven, real-time-freshness, i
 dependency_graph:
   requires: [Wave 1 Global Leaderboard (12-01), Wave 2 Per-Map & Time-Windowed Leaderboards (12-02), Wave 3 Player Comparison (12-03)]
   provides: [Team leaderboard endpoint, team aggregation logic, incremental update system, event listener architecture]
-  affects: [Phase 13+ competitive features, future team-based matchmaking]
+  affects: [Phase 14+ competitive features, future team-based matchmaking]
 tech_stack:
   added: [GetTeamLeaderboardQuery, GetTeamLeaderboardHandler, TeamRepository (team queries), LeaderboardUpdateService, LeaderboardUpdateListener, AnalysisResultCreated (domain event), Team.players (Collection), Player.teams (Collection)]
   patterns: [CQRS query/handler, Doctrine many-to-many associations, domain events with event listener, incremental cache invalidation strategy]

@@ -89,7 +89,7 @@ Phase 12 delivers global and per-map player rankings based on TRACE scores, plus
 
 ## Deferred Ideas
 
-None — discussion stayed within phase scope. The following are potential Phase 13+ enhancements:
+None — discussion stayed within phase scope. The following are potential Phase 14+ enhancements:
 - Leaderboard filtering by role/weapon type (separate leaderboards for riflers, awpers, supports, etc.)
 - "Most improved" leaderboard (steepest positive trend)
 - Sensitivity analysis (what-if TRACE scenarios)

@@ -300,7 +300,7 @@ Frontend (Wave 2)
 ### Enables
 - Phase 11: Advanced TRACE visualizations
 - Phase 12: TRACE leaderboards and rankings
-- Phase 13+: Player profiling and trend analysis
+- Phase 14+: Player profiling and trend analysis
 
 ## Summary
 

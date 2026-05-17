@@ -6,6 +6,7 @@ import { useDemoDetail } from '@/lib/hooks/useDemoDetail'
 import { ResultsCard } from '@/components/ResultsCard'
 import { SensitivityTuner } from '@/components/Analytics/SensitivityTuner'
 import { TraceCard } from '@/components/DemoDetail/TraceCard'
+import { DemoViewer } from '@/components/DemoViewer/DemoViewer'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -124,7 +125,7 @@ export default function ResultsPage() {
         <main className="flex flex-col items-center justify-center py-8 px-4 max-w-7xl w-full">
           <div className="w-full mb-4">
             <Link href="/history" className="text-blue-600 dark:text-blue-400 hover:underline text-sm">
-              {'\u2190'} Back to History
+              ← Back to History
             </Link>
           </div>
 
@@ -136,6 +137,14 @@ export default function ResultsPage() {
               demoId={demoId}
               featureVectors={demoDetail?.featureVectors ?? null}
               baselineSuspicion={demoDetail?.baselineSuspicion ?? null}
+            />
+          </div>
+
+          <div className="w-full mt-6">
+            <DemoViewer
+              demoId={demoId}
+              mapName={demoDetail?.metadata?.map ?? (demo as any).metadata?.map ?? (demo as any).map ?? 'de_dust2'}
+              analyzed={demo.status === 'done'}
             />
           </div>
         </main>
