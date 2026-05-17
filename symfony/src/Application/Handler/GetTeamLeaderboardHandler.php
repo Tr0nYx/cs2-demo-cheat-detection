@@ -50,9 +50,9 @@ final readonly class GetTeamLeaderboardHandler implements MessageHandlerInterfac
 
         // Build leaderboard entries with ranking
         $entries = [];
-        foreach ($teams as $index => $team) {
-            $rank = $query->offset + $index + 1;
+        $rank = $query->offset + 1;  // Start rank counter separately from array index
 
+        foreach ($teams as $team) {
             // Get aggregated TRACE score for this team
             $aggregatedScore = $this->teamRepo->getTeamAggregatedScore((string) $team->getId());
             if (null === $aggregatedScore) {
@@ -79,6 +79,8 @@ final readonly class GetTeamLeaderboardHandler implements MessageHandlerInterfac
                 demoCount: $demoCount,
                 createdAt: $team->getUpdatedAt()->format('c'),
             );
+
+            $rank++;  // Increment rank after adding entry
         }
 
         // Fetch total count for pagination
