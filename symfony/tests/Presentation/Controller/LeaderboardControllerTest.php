@@ -324,6 +324,141 @@ final class LeaderboardControllerTest extends WebTestCase
         self::assertSame($payload1, $payload2);
     }
 
+    // Map Leaderboard Tests
+
+    /**
+     * Test 15: Map leaderboard returns HTTP 200.
+     */
+    public function testGetMapLeaderboardReturns200(): void
+    {
+        $this->createQualifiedPlayersWithMap('de_mirage', 5);
+
+        $client = self::createClient();
+        $client->request('GET', '/api/leaderboards/maps/de_mirage');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+    }
+
+    /**
+     * Test 16: Map leaderboard returns correct schema.
+     */
+    public function testMapLeaderboardReturnsCorrectSchema(): void
+    {
+        $this->createQualifiedPlayersWithMap('de_mirage', 5);
+
+        $client = self::createClient();
+        $client->request('GET', '/api/leaderboards/maps/de_mirage');
+
+        self::assertResponseStatusCodeSame(200);
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertArrayHasKey('entries', $payload);
+        self::assertArrayHasKey('pagination', $payload);
+        self::assertIsArray($payload['entries']);
+    }
+
+    /**
+     * Test 17: Map leaderboard pagination works.
+     */
+    public function testMapLeaderboardPaginationWorks(): void
+    {
+        $this->createQualifiedPlayersWithMap('de_mirage', 10);
+
+        $client = self::createClient();
+        $client->request('GET', '/api/leaderboards/maps/de_mirage?limit=5&offset=0');
+
+        self::assertResponseStatusCodeSame(200);
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertCount(5, $payload['entries']);
+        self::assertSame(5, $payload['pagination']['limit']);
+        self::assertSame(0, $payload['pagination']['offset']);
+    }
+
+    /**
+     * Test 18: Map ID validation - empty mapId returns 400.
+     */
+    public function testMapIdValidation(): void
+    {
+        $client = self::createClient();
+        $client->request('GET', '/api/leaderboards/maps/');
+
+        // Empty mapId should 404 (route not matched) or 400
+        self::assertTrue(
+            $client->getResponse()->getStatusCode() === 400 ||
+            $client->getResponse()->getStatusCode() === 404
+        );
+    }
+
+    // Time Window Leaderboard Tests
+
+    /**
+     * Test 19: Time-window leaderboard returns HTTP 200.
+     */
+    public function testGetTimeWindowLeaderboardReturns200(): void
+    {
+        $this->createQualifiedPlayersInWindow(5, 7);
+
+        $client = self::createClient();
+        $client->request('GET', '/api/leaderboards/windows/30d');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+    }
+
+    /**
+     * Test 20: Time-window leaderboard returns correct schema.
+     */
+    public function testTimeWindowLeaderboardReturnsCorrectSchema(): void
+    {
+        $this->createQualifiedPlayersInWindow(5, 7);
+
+        $client = self::createClient();
+        $client->request('GET', '/api/leaderboards/windows/30d');
+
+        self::assertResponseStatusCodeSame(200);
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertArrayHasKey('entries', $payload);
+        self::assertArrayHasKey('pagination', $payload);
+    }
+
+    /**
+     * Test 21: Time-window validation - invalid window returns 400.
+     */
+    public function testTimeWindowValidation(): void
+    {
+        $client = self::createClient();
+
+        // Invalid window
+        $client->request('GET', '/api/leaderboards/windows/15d');
+        self::assertResponseStatusCodeSame(400);
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('invalid_time_window', $payload['error']['code']);
+
+        // Valid window
+        $client->request('GET', '/api/leaderboards/windows/30d');
+        self::assertResponseStatusCodeSame(200);
+    }
+
+    /**
+     * Test 22: Time-window pagination works.
+     */
+    public function testTimeWindowPaginationWorks(): void
+    {
+        $this->createQualifiedPlayersInWindow(10, 7);
+
+        $client = self::createClient();
+        $client->request('GET', '/api/leaderboards/windows/90d?limit=10&offset=0');
+
+        self::assertResponseStatusCodeSame(200);
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertLessThanOrEqual(10, count($payload['entries']));
+        self::assertSame(10, $payload['pagination']['limit']);
+    }
+
     // Helper methods
 
     private function createQualifiedPlayers(int $count): void
@@ -391,6 +526,138 @@ final class LeaderboardControllerTest extends WebTestCase
 
         $em->persist($result);
         $em->persist($trace);
+        $em->flush();
+        $em->clear();
+    }
+
+    private function createQualifiedPlayersWithMap(string $map, int $count): void
+    {
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+
+        for ($p = 1; $p <= $count; $p++) {
+            $steamId = "7656119800000000{$p}";
+            $traceScore = $count - $p;
+
+            for ($d = 1; $d <= 5; $d++) {
+                $player = new Player($steamId, "Player {$steamId}");
+                $em->persist($player);
+
+                $demo = new Demo('/storage/demos/test.dem', originalFilename: 'test.dem');
+                $demo->setMap($map);
+                $em->persist($demo);
+
+                $result = new AnalysisResult(
+                    $demo,
+                    $player,
+                    24,
+                    0.1,
+                    0.2,
+                    0.3,
+                    0.4,
+                    0.5,
+                    0.6,
+                    0.51,
+                    SuspicionLabel::Suspicious,
+                );
+                $demo->markDone(new \DateTimeImmutable('2026-05-15T12:00:00+00:00'));
+
+                $trace = new TraceRating(
+                    analysisResult: $result,
+                    playerId: $steamId,
+                    demoId: $demo->getIdString(),
+                    calibrationVersion: 'default-v1',
+                    traceBase: $traceScore - ($d * 0.01),
+                    traceAdjusted: $traceScore - ($d * 0.01),
+                    traceNormalized: 1.0,
+                    trustMultiplier: 0.95,
+                    roundCount: 24,
+                    ekill: 1.0,
+                    aim: 1.0,
+                    kast: 1.0,
+                    util: 1.0,
+                    clutch: 1.0,
+                    ekillRaw: 0.8,
+                    aimCpq: 0.75,
+                    aimCsq: 0.82,
+                    aimTtd: 0.88,
+                    aimScs: 0.85,
+                    kastPercentage: 0.75,
+                    clutchAttempts: 5,
+                    clutchWins: 3,
+                    calculatedAt: new \DateTimeImmutable('2026-05-15T12:00:00+00:00'),
+                );
+
+                $em->persist($result);
+                $em->persist($trace);
+            }
+        }
+
+        $em->flush();
+        $em->clear();
+    }
+
+    private function createQualifiedPlayersInWindow(int $count, int $daysAgo): void
+    {
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $calculatedAt = new \DateTimeImmutable("-{$daysAgo} days");
+
+        for ($p = 1; $p <= $count; $p++) {
+            $steamId = "7656119800000000{$p}";
+            $traceScore = $count - $p;
+
+            for ($d = 1; $d <= 5; $d++) {
+                $player = new Player($steamId, "Player {$steamId}");
+                $em->persist($player);
+
+                $demo = new Demo('/storage/demos/test.dem', originalFilename: 'test.dem');
+                $em->persist($demo);
+
+                $result = new AnalysisResult(
+                    $demo,
+                    $player,
+                    24,
+                    0.1,
+                    0.2,
+                    0.3,
+                    0.4,
+                    0.5,
+                    0.6,
+                    0.51,
+                    SuspicionLabel::Suspicious,
+                );
+                $demo->markDone(new \DateTimeImmutable('2026-05-15T12:00:00+00:00'));
+
+                $trace = new TraceRating(
+                    analysisResult: $result,
+                    playerId: $steamId,
+                    demoId: $demo->getIdString(),
+                    calibrationVersion: 'default-v1',
+                    traceBase: $traceScore - ($d * 0.01),
+                    traceAdjusted: $traceScore - ($d * 0.01),
+                    traceNormalized: 1.0,
+                    trustMultiplier: 0.95,
+                    roundCount: 24,
+                    ekill: 1.0,
+                    aim: 1.0,
+                    kast: 1.0,
+                    util: 1.0,
+                    clutch: 1.0,
+                    ekillRaw: 0.8,
+                    aimCpq: 0.75,
+                    aimCsq: 0.82,
+                    aimTtd: 0.88,
+                    aimScs: 0.85,
+                    kastPercentage: 0.75,
+                    clutchAttempts: 5,
+                    clutchWins: 3,
+                    calculatedAt: $calculatedAt,
+                );
+
+                $em->persist($result);
+                $em->persist($trace);
+            }
+        }
+
         $em->flush();
         $em->clear();
     }
