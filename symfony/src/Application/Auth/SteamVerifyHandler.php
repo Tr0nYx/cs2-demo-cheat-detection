@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Application\Auth;
 
 use App\Infrastructure\Steam\SteamOpenIdValidator;
+use App\Repository\UserRepository;
+use App\Repository\UserRefreshTokenRepository;
+use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -14,6 +17,8 @@ class SteamVerifyHandler
 {
     public function __construct(
         private SteamOpenIdValidator $openIdValidator,
+        private UserRepository $userRepository,
+        private UserRefreshTokenRepository $refreshTokenRepository,
         private string $jwtSecret,
         private LoggerInterface $logger,
     ) {}
@@ -38,11 +43,30 @@ class SteamVerifyHandler
             // Fetch user profile from Steam
             $profile = $this->openIdValidator->getUserProfile($steamId);
 
+            // Create or update user in database
+            $user = $this->userRepository->createOrUpdate(
+                $steamId,
+                $profile['username'],
+                $profile['avatar_url'],
+                $profile['email'] ?? null
+            );
+
+            // Update last login timestamp
+            $user->updateLastLogin();
+
+            $this->logger->info('User persisted', [
+                'userId' => $user->getId(),
+                'steamId' => $steamId,
+            ]);
+
             // Generate JWT tokens
             $now = time();
+            $refreshTokenExpiresAt = $now + (30 * 24 * 60 * 60); // 30 days
+
             $accessTokenPayload = [
                 'iss' => 'cs2-demo-cheat-detection',
                 'sub' => $steamId,
+                'user_id' => $user->getId()->toRfc4122(),
                 'steam_id' => $steamId,
                 'iat' => $now,
                 'exp' => $now + (24 * 60 * 60), // 1 day
@@ -51,19 +75,31 @@ class SteamVerifyHandler
             $refreshTokenPayload = [
                 'iss' => 'cs2-demo-cheat-detection',
                 'sub' => $steamId,
+                'user_id' => $user->getId()->toRfc4122(),
                 'type' => 'refresh',
                 'iat' => $now,
-                'exp' => $now + (30 * 24 * 60 * 60), // 30 days
+                'exp' => $refreshTokenExpiresAt,
             ];
 
             $accessToken = $this->encodeJwt($accessTokenPayload);
             $refreshToken = $this->encodeJwt($refreshTokenPayload);
+            $refreshTokenHash = hash('sha256', $refreshToken);
+
+            // Store refresh token hash in database
+            $this->refreshTokenRepository->createToken(
+                $user,
+                $refreshTokenHash,
+                DateTimeImmutable::createFromFormat('U', (string) $refreshTokenExpiresAt)
+            );
 
             return [
+                'id' => $user->getId()->toRfc4122(),
                 'steam_id' => $steamId,
                 'username' => $profile['username'],
                 'avatar_url' => $profile['avatar_url'],
-                'email' => null, // Will be added in Wave 3 when User entity is created
+                'email' => $user->getEmail(),
+                'created_at' => $user->getCreatedAt()->format('c'),
+                'last_login_at' => $user->getLastLoginAt()?->format('c'),
                 'access_token' => $accessToken,
                 'refresh_token' => $refreshToken,
                 'expires_at' => $accessTokenPayload['exp'],

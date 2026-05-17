@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Application\Auth\SteamVerifyHandler;
 use App\Application\Auth\SteamVerifyRequest;
+use App\Repository\UserRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,6 +18,7 @@ class AuthController extends AbstractController
 {
     public function __construct(
         private SteamVerifyHandler $steamVerifyHandler,
+        private UserRepository $userRepository,
         private string $jwtSecret,
         private LoggerInterface $logger,
     ) {}
@@ -120,6 +122,66 @@ class AuthController extends AbstractController
             ]);
         } catch (\Exception $e) {
             $this->logger->warning('Token refresh failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->json(
+                ['error' => $e->getMessage()],
+                JsonResponse::HTTP_UNAUTHORIZED
+            );
+        }
+    }
+
+    /**
+     * GET /api/auth/me
+     *
+     * Return the authenticated user's profile information
+     */
+    #[Route('/me', name: 'auth_me', methods: ['GET'])]
+    public function me(Request $request): JsonResponse
+    {
+        try {
+            // Extract JWT from Authorization header
+            $authHeader = $request->headers->get('Authorization');
+
+            if (!$authHeader || !str_starts_with($authHeader, 'Bearer ')) {
+                return $this->json(
+                    ['error' => 'Missing or invalid Authorization header'],
+                    JsonResponse::HTTP_UNAUTHORIZED
+                );
+            }
+
+            $token = substr($authHeader, 7); // Remove "Bearer " prefix
+            $payload = $this->decodeJwt($token);
+
+            // Get user by steam_id
+            if (empty($payload['steam_id'])) {
+                return $this->json(
+                    ['error' => 'Invalid token: missing steam_id'],
+                    JsonResponse::HTTP_UNAUTHORIZED
+                );
+            }
+
+            $user = $this->userRepository->findBySteamId($payload['steam_id']);
+
+            if (!$user) {
+                return $this->json(
+                    ['error' => 'User not found'],
+                    JsonResponse::HTTP_UNAUTHORIZED
+                );
+            }
+
+            return $this->json([
+                'id' => $user->getId()->toRfc4122(),
+                'steam_id' => $user->getSteamId(),
+                'username' => $user->getUsername(),
+                'avatar_url' => $user->getAvatarUrl(),
+                'email' => $user->getEmail(),
+                'created_at' => $user->getCreatedAt()->format('c'),
+                'last_login_at' => $user->getLastLoginAt()?->format('c'),
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->warning('Auth me error', [
                 'error' => $e->getMessage(),
             ]);
 
