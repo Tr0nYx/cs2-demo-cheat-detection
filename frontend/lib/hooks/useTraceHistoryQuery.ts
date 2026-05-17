@@ -9,17 +9,21 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'
  * React Query hook for fetching TRACE history with percentile rankings.
  * Retrieves the last N TRACE records for a player with component percentiles.
  *
- * @param playerId - Player ID to fetch TRACE history for
+ * @param playerId - Player ID to fetch TRACE history for (optional - skips fetch if not provided)
  * @param limit - Number of records to retrieve (1-100, default 10)
  * @returns React Query result with TraceHistoryCollectionDto
  */
 export function useTraceHistoryQuery(
-  playerId: string,
+  playerId: string | undefined,
   limit: number = 10
 ): UseQueryResult<TraceHistoryCollectionDto, Error> {
   return useQuery({
-    queryKey: ['traceHistory', playerId, limit],
+    queryKey: playerId ? ['traceHistory', playerId, limit] : ['traceHistory', null],
     queryFn: async (): Promise<TraceHistoryCollectionDto> => {
+      if (!playerId) {
+        throw new Error('Player ID is required');
+      }
+
       const response = await fetch(
         `${API_BASE_URL}/players/${playerId}/trace-history?limit=${limit}&sortBy=date`
       )

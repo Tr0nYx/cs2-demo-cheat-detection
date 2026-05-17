@@ -41,7 +41,7 @@ export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode
     data: historyData,
     isLoading: historyLoading,
     error: historyError,
-  } = useTraceHistoryQuery(playerId || '', 10)
+  } = useTraceHistoryQuery(playerId, 10)
 
   // No TRACE data available (404) - hide card completely
   if (!isLoading && trace === null) {
