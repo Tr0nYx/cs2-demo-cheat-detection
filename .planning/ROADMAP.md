@@ -28,10 +28,10 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 
 - [x] **Phase 9: TRACE Rating System** — Player impact scoring, component calculation, trust multiplier, persistence layer (Complete 2026-05-16)
 - [x] **Phase 10: TRACE API & Frontend** — Expose `/api/demos/{id}/trace` endpoint (Wave 1), render TRACE Card with component breakdown (Wave 2) (Complete 2026-05-16)
+- [x] **Phase 11: TRACE Advanced Visualizations** — Component percentiles, historical trends, calibration context, interactive charts (Complete 2026-05-17)
 
 ### Planned Phases
 
-- [ ] **Phase 11: TRACE Advanced Visualizations** — Component percentiles, historical trends, calibration context, interactive charts
 - [ ] **Phase 12: TRACE Leaderboards** — Global and per-map rankings, player comparison
 - [ ] **Phase 13+: Advanced Analytics** — Sensitivity analysis, player profiling, trend forecasting
 
@@ -51,4 +51,4 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 
 ---
 
-*Last updated: 2026-05-16 after Phase 8 planning*
+*Last updated: 2026-05-17 after Phase 11 completion*
