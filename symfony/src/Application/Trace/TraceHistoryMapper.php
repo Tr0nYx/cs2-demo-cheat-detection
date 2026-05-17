@@ -46,11 +46,11 @@ final readonly class TraceHistoryMapper
         // Calculate component percentiles
         $componentPercentiles = $percentileCalculator->calculateComponentPercentiles($traceRating);
         $percentileDto = new TraceComponentPercentilesDto(
-            ekill: $componentPercentiles['ekill'] ?? null,
-            aim: $componentPercentiles['aim'] ?? null,
-            kast: $componentPercentiles['kast'] ?? null,
-            util: $componentPercentiles['util'] ?? null,
-            clutch: $componentPercentiles['clutch'] ?? null,
+            ekill: $componentPercentiles !== null ? $componentPercentiles['ekill'] : null,
+            aim: $componentPercentiles !== null ? $componentPercentiles['aim'] : null,
+            kast: $componentPercentiles !== null ? $componentPercentiles['kast'] : null,
+            util: $componentPercentiles !== null ? $componentPercentiles['util'] : null,
+            clutch: $componentPercentiles !== null ? $componentPercentiles['clutch'] : null,
         );
 
         // Calculate overall percentiles
