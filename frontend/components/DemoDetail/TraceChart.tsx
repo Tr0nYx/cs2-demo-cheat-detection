@@ -26,6 +26,29 @@ interface ChartDataItem {
   fullName: string
 }
 
+interface ChartPayload {
+  value: number
+  payload: ChartDataItem
+}
+
+/**
+ * Type guard to validate chart payload structure
+ */
+function isValidChartPayload(item: unknown): item is ChartDataItem {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    'name' in item &&
+    'value' in item &&
+    'percentile' in item &&
+    'fullName' in item &&
+    typeof (item as Record<string, unknown>).name === 'string' &&
+    typeof (item as Record<string, unknown>).value === 'number' &&
+    (typeof (item as Record<string, unknown>).percentile === 'number' || (item as Record<string, unknown>).percentile === null) &&
+    typeof (item as Record<string, unknown>).fullName === 'string'
+  )
+}
+
 /**
  * Custom tooltip component showing value, percentile, and mean
  */
@@ -35,35 +58,40 @@ function CustomTooltip({
   calibrationMean,
 }: {
   active?: boolean
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload?: Array<{ value: number; payload: any }>
+  payload?: Array<{ value: number; payload: ChartDataItem }>
   calibrationMean: number
 }) {
-  if (active && payload && payload[0]) {
-    const item = payload[0].payload as ChartDataItem
-    const delta = item.value - calibrationMean
-    const deltaStr = delta > 0 ? `+${delta.toFixed(2)}` : delta.toFixed(2)
-
-    return (
-      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 shadow-lg z-50">
-        <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
-          {item.name}
-        </p>
-        <p className="text-sm text-gray-700 dark:text-gray-300">
-          Score: <span className="font-mono font-semibold">{item.value.toFixed(2)}</span>
-        </p>
-        {item.percentile !== null && (
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            Percentile: <span className="font-mono font-semibold">{Math.round(item.percentile)}%ile</span>
-          </p>
-        )}
-        <p className="text-sm text-gray-700 dark:text-gray-300">
-          vs. Mean: <span className="font-mono font-semibold">{deltaStr}</span>
-        </p>
-      </div>
-    )
+  if (!active || !payload || !Array.isArray(payload) || payload.length === 0) {
+    return null
   }
-  return null
+
+  const first = payload[0]
+  if (!first || typeof first.payload !== 'object' || !isValidChartPayload(first.payload)) {
+    return null
+  }
+
+  const item = first.payload
+  const delta = item.value - calibrationMean
+  const deltaStr = delta > 0 ? `+${delta.toFixed(2)}` : delta.toFixed(2)
+
+  return (
+    <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 shadow-lg z-50">
+      <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+        {item.name}
+      </p>
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        Score: <span className="font-mono font-semibold">{item.value.toFixed(2)}</span>
+      </p>
+      {item.percentile !== null && (
+        <p className="text-sm text-gray-700 dark:text-gray-300">
+          Percentile: <span className="font-mono font-semibold">{Math.round(item.percentile)}%ile</span>
+        </p>
+      )}
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        vs. Mean: <span className="font-mono font-semibold">{deltaStr}</span>
+      </p>
+    </div>
+  )
 }
 
 /**
