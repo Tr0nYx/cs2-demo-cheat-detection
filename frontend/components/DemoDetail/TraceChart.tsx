@@ -1,0 +1,241 @@
+'use client'
+
+import React, { useMemo } from 'react'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts'
+import { TraceComponentDto, TraceComponentPercentilesDto } from '@/lib/types'
+
+interface TraceChartProps {
+  components: TraceComponentDto
+  percentiles: TraceComponentPercentilesDto
+  calibrationMean?: number // Optional: reference line for baseline
+}
+
+/**
+ * Interactive bar chart showing TRACE component scores with color coding.
+ *
+ * Features:
+ * - Horizontal bar chart with component names on Y-axis
+ * - Component values (0.3-2.0) on X-axis
+ * - Reference line at 1.0 (baseline)
+ * - Color coding by suspicion level (red/yellow/green)
+ * - Hover tooltips showing value, percentile, mean
+ * - Mobile responsive
+ * - Full accessibility support (ARIA, keyboard nav)
+ */
+export function TraceChart({
+  components,
+  percentiles,
+  calibrationMean = 1.0,
+}: TraceChartProps) {
+  // Prepare data for chart
+  const data = useMemo(
+    () => [
+      {
+        name: 'E-Kill',
+        value: components.ekill,
+        percentile: percentiles.ekill,
+        fullName: 'e-kill',
+      },
+      {
+        name: 'AIM',
+        value: components.aim,
+        percentile: percentiles.aim,
+        fullName: 'aim',
+      },
+      {
+        name: 'KAST',
+        value: components.kast,
+        percentile: percentiles.kast,
+        fullName: 'kast',
+      },
+      {
+        name: 'Utility',
+        value: components.util,
+        percentile: percentiles.util,
+        fullName: 'util',
+      },
+      {
+        name: 'Clutch',
+        value: components.clutch,
+        percentile: percentiles.clutch,
+        fullName: 'clutch',
+      },
+    ],
+    [components, percentiles]
+  )
+
+  /**
+   * Get color based on suspicion level
+   * Red: 0.3-0.6 (high suspicion)
+   * Yellow: 0.6-1.4 (neutral)
+   * Green: 1.4-2.0 (low suspicion)
+   */
+  const getBarColor = (value: number): string => {
+    if (value < 0.6) {
+      return '#dc2626' // red-600
+    } else if (value < 1.4) {
+      return '#f59e0b' // amber-500
+    } else {
+      return '#16a34a' // green-600
+    }
+  }
+
+  /**
+   * Custom tooltip component showing value, percentile, and mean
+   */
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean
+    payload?: Array<{ value: number; payload: (typeof data)[0] }>
+  }) => {
+    if (active && payload && payload[0]) {
+      const { payload: item } = payload[0]
+      const delta = item.value - calibrationMean
+      const deltaStr = delta > 0 ? `+${delta.toFixed(2)}` : delta.toFixed(2)
+
+      return (
+        <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 shadow-lg z-50">
+          <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+            {item.name}
+          </p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            Score: <span className="font-mono font-semibold">{item.value.toFixed(2)}</span>
+          </p>
+          {item.percentile !== null && (
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              Percentile: <span className="font-mono font-semibold">{Math.round(item.percentile)}%ile</span>
+            </p>
+          )}
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            vs. Mean: <span className="font-mono font-semibold">{deltaStr}</span>
+          </p>
+        </div>
+      )
+    }
+    return null
+  }
+
+  return (
+    <div className="w-full space-y-4">
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
+          aria-label="TRACE component scores bar chart"
+          role="img"
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <XAxis
+            type="number"
+            domain={[0.3, 2.0]}
+            label={{
+              value: 'Component Score',
+              position: 'insideBottomRight',
+              offset: -5,
+            }}
+          />
+          <YAxis
+            type="category"
+            dataKey="name"
+            width={60}
+            tick={{ fontSize: 12 }}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <ReferenceLine
+            x={1.0}
+            stroke="#9ca3af"
+            strokeDasharray="5 5"
+            label={{
+              value: 'Baseline (1.0)',
+              position: 'top',
+              fill: '#6b7280',
+              fontSize: 12,
+            }}
+          />
+          <Bar
+            dataKey="value"
+            fill="#8884d8"
+            shape={
+              <BarShape
+                getColor={getBarColor}
+              />
+            }
+            radius={[0, 8, 8, 0]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+
+      {/* Legend explaining color coding */}
+      <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
+        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          Suspicion Levels
+        </p>
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-red-600 rounded" />
+            <span className="text-gray-600 dark:text-gray-400">High (0.3-0.6)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-amber-500 rounded" />
+            <span className="text-gray-600 dark:text-gray-400">Neutral (0.6-1.4)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-600 rounded" />
+            <span className="text-gray-600 dark:text-gray-400">Low (1.4-2.0)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Custom bar shape that applies color based on value
+ */
+function BarShape({
+  getColor,
+  ...props
+}: {
+  getColor: (value: number) => string
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  fill?: string
+  payload?: { value: number }
+} & React.SVGProps<SVGRectElement>) {
+  const { x = 0, y = 0, width = 0, height = 0, payload } = props
+
+  if (!payload) return null
+
+  const color = getColor(payload.value)
+
+  return (
+    <rect
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      fill={color}
+      rx={4}
+      ry={4}
+      className="hover:opacity-80 transition-opacity"
+      role="img"
+      aria-label={`${payload.value.toFixed(2)}`}
+      tabIndex={0}
+    />
+  )
+}
