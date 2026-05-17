@@ -9,11 +9,13 @@ See: .planning/PROJECT.md (updated 2026-05-15)
 
 ## Current Position
 
-Phase: 12 (TRACE Leaderboards) - CONTEXT GATHERED ✓
-Status: Phase 12 context gathered; ready for planning
-- Key decisions: 95th percentile ranking metric, 5-demo minimum, real-time incremental updates, separate API endpoints per type
-- Scope: Global + per-map + time-windowed + team leaderboards; player comparison view with components, trends, map affinity, history
-Last activity: 2026-05-17 - Phase 12 context discussion complete (all four gray areas: scope, ranking logic, comparison view, API/caching)
+Phase: 12 (TRACE Leaderboards) - COMPLETE ✓
+Status: Phase 12 execution complete; all 4 waves (31 commits, 77 tests) verified and shipped
+- Delivered: Global + per-map + time-windowed + team leaderboards; 4-metric player comparison view
+- Architecture: Event-driven incremental updates, CQRS handlers, React Query hooks
+- Code review: 4 critical issues fixed + 5 warning issues resolved
+- Verification: 24/24 must-haves confirmed
+Last activity: 2026-05-17 - Phase 12 execution complete, code review fixes applied, verification passed
 
 Progress: [##############] v2 Core Complete → [##############] Phase 11 Complete → SHIPPED ✅
 
