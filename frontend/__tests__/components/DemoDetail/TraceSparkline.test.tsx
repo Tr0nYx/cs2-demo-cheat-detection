@@ -21,8 +21,7 @@ jest.mock('recharts', () => ({
         {children}
       </div>
     ),
-  }
-})
+}))
 
 const createHistoryEntry = (
   value: number,

@@ -26,8 +26,7 @@ jest.mock('recharts', () => ({
       </div>
     ),
     ReferenceLine: (props: any) => <div data-testid="reference-line" {...props} />,
-  }
-})
+}))
 
 const mockComponents: TraceComponentDto = {
   ekill: 0.5,

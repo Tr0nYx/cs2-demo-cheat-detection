@@ -120,21 +120,6 @@ export function TraceChart({
     [components, percentiles]
   )
 
-  /**
-   * Get color based on suspicion level
-   * Red: 0.3-0.6 (high suspicion)
-   * Yellow: 0.6-1.4 (neutral)
-   * Green: 1.4-2.0 (low suspicion)
-   */
-  const getBarColor = (value: number): string => {
-    if (value < 0.6) {
-      return '#dc2626' // red-600
-    } else if (value < 1.4) {
-      return '#f59e0b' // amber-500
-    } else {
-      return '#16a34a' // green-600
-    }
-  }
 
   return (
     <div className="w-full space-y-4">

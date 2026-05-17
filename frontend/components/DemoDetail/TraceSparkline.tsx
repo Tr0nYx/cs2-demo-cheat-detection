@@ -107,37 +107,6 @@ export function TraceSparkline({
     }
   }
 
-  /**
-   * Custom tooltip component
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function CustomTooltip({ active, payload }: { active?: boolean; payload?: any }) {
-    if (active && payload && payload[0]) {
-      const item = payload[0].payload
-
-      return (
-        <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700 shadow-lg z-50">
-          <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-            Demo {item.demo}: {item.date}
-          </p>
-          <p className="text-xs text-gray-700 dark:text-gray-300">
-            TRACE: <span className="font-mono">{item.value.toFixed(3)}</span>
-          </p>
-          {item.delta !== 0 && (
-            <p className="text-xs text-gray-700 dark:text-gray-300">
-              Change:{' '}
-              <span className="font-mono">
-                {item.delta > 0 ? '+' : ''}
-                {item.delta.toFixed(3)}
-              </span>
-            </p>
-          )}
-        </div>
-      )
-    }
-    return null
-  }
-
   // Handle empty history
   if (data.length === 0) {
     return (
@@ -175,7 +144,10 @@ export function TraceSparkline({
             stroke="#9ca3af"
             width={40}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip
+            formatter={(value) => [value.toFixed(3), 'TRACE']}
+            labelFormatter={(label) => `Demo ${label}`}
+          />
           <Line
             type="monotone"
             dataKey="value"
