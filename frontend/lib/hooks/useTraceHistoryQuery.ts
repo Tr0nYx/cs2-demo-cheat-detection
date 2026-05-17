@@ -25,10 +25,19 @@ export function useTraceHistoryQuery(
       )
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(
-          errorData.message || `Failed to fetch TRACE history: ${response.statusText}`
-        )
+        let errorMessage = `Failed to fetch TRACE history: ${response.statusText}`;
+
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // JSON parse failed, use statusText fallback
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       return response.json() as Promise<TraceHistoryCollectionDto>
