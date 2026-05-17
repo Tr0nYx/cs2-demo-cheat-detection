@@ -661,4 +661,106 @@ final class LeaderboardControllerTest extends WebTestCase
         $em->flush();
         $em->clear();
     }
+
+    /**
+     * Test 19: Team leaderboard endpoint returns HTTP 200.
+     */
+    public function testGetTeamLeaderboardReturns200(): void
+    {
+        $this->createQualifiedTeamsWithMembers(3);
+
+        $client = self::createClient();
+        $client->request('GET', '/api/leaderboards/teams');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+    }
+
+    /**
+     * Test 20: Team leaderboard returns teams ranked by aggregated score.
+     */
+    public function testTeamLeaderboardReturnsTeams(): void
+    {
+        $this->createQualifiedTeamsWithMembers(3);
+
+        $client = self::createClient();
+        $client->request('GET', '/api/leaderboards/teams');
+
+        self::assertResponseStatusCodeSame(200);
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertCount(3, $payload['entries']);
+
+        // Verify team names present
+        foreach ($payload['entries'] as $entry) {
+            self::assertStringContainsString('Team', $entry['playerName']);
+            self::assertIsNumeric($entry['traceAdjusted']);
+            self::assertGreater(0, $entry['demoCount']);
+        }
+    }
+
+    /**
+     * Test 21: Team leaderboard pagination works.
+     */
+    public function testTeamLeaderboardPaginationWorks(): void
+    {
+        $this->createQualifiedTeamsWithMembers(10);
+
+        $client = self::createClient();
+        $client->request('GET', '/api/leaderboards/teams?limit=5&offset=0');
+
+        self::assertResponseStatusCodeSame(200);
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertCount(5, $payload['entries']);
+        self::assertSame(5, $payload['pagination']['limit']);
+        self::assertSame(0, $payload['pagination']['offset']);
+    }
+
+    /**
+     * Test 22: Team leaderboard has Cache-Control header.
+     */
+    public function testTeamLeaderboardHasCacheControlHeader(): void
+    {
+        $this->createQualifiedTeamsWithMembers(3);
+
+        $client = self::createClient();
+        $client->request('GET', '/api/leaderboards/teams');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertResponseHeaderSame('Cache-Control', 'public, max-age=300');
+    }
+
+    /**
+     * Helper: Create N teams with qualified members.
+     */
+    private function createQualifiedTeamsWithMembers(int $teamCount): void
+    {
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+
+        for ($t = 1; $t <= $teamCount; $t++) {
+            $team = new \App\Domain\Team\Team(
+                name: "Team{$t}",
+                displayName: "Team {$t}",
+            );
+
+            // Add 2 members per team, each with 5 demos (qualified)
+            for ($m = 1; $m <= 2; $m++) {
+                $steamId = "765611980000{$t}{$m}";
+                $player = new Player($steamId, "Player {$t}-{$m}");
+                $team->addPlayer($player);
+                $em->persist($player);
+
+                $traceScore = (5 - $t) + (2 - $m) * 0.5;
+                for ($d = 1; $d <= 5; $d++) {
+                    $this->createTraceWithScore($steamId, $traceScore - ($d * 0.01));
+                }
+            }
+
+            $em->persist($team);
+        }
+
+        $em->flush();
+        $em->clear();
+    }
 }
