@@ -45,6 +45,9 @@ class Demo
     #[ORM\Column(name: 'error_message', type: Types::TEXT, nullable: true)]
     private ?string $errorMessage = null;
 
+    #[ORM\Column(name: 'map', length: 64, nullable: true)]
+    private ?string $map = null;
+
     /** @var Collection<int, AnalysisResult> */
     #[ORM\OneToMany(mappedBy: 'demo', targetEntity: AnalysisResult::class, cascade: ['persist'], orphanRemoval: true)]
     private Collection $analysisResults;
@@ -115,6 +118,16 @@ class Demo
     public function getErrorMessage(): ?string
     {
         return $this->errorMessage;
+    }
+
+    public function getMap(): ?string
+    {
+        return $this->map;
+    }
+
+    public function setMap(?string $map): void
+    {
+        $this->map = $map;
     }
 
     /** @return Collection<int, AnalysisResult> */

@@ -157,4 +157,114 @@ class TraceRatingRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /**
+     * Find qualified players (5+ demos) for a specific map, sorted by trace_adjusted descending.
+     *
+     * Filters TRACE ratings by map (Demo.map field) and applies global qualification filter
+     * (players must have 5+ total demos across all maps). Returns results sorted by trace_adjusted DESC.
+     *
+     * BLOCKER-003 VERIFICATION: Map field is stored in Demo.map entity column (populated during demo analysis).
+     * Per D-06: Qualification is GLOBAL (5+ total demos), not per-map.
+     *
+     * @param string $mapId Map identifier (e.g., 'de_mirage')
+     * @param int $limit Maximum number of results (default 100)
+     * @param int $offset Skip first N results for pagination
+     * @return array<TraceRating> Array of TraceRating entities filtered to specific map
+     */
+    public function findQualifiedByMapAndSorted(
+        string $mapId,
+        int $limit = 100,
+        int $offset = 0
+    ): array {
+        return $this->createQueryBuilder('tr')
+            ->select('tr')
+            ->innerJoin('tr.analysisResult', 'ar')
+            ->innerJoin('ar.demo', 'd')
+            ->where('d.map = :mapId')
+            ->andWhere('(SELECT COUNT(tr2.id) FROM TraceRating tr2 WHERE tr2.playerId = tr.playerId) >= 5')
+            ->setParameter('mapId', $mapId)
+            ->orderBy('tr.traceAdjusted', 'DESC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Count qualified players for a specific map.
+     *
+     * Returns distinct count of players who have at least 5 total demos (global qualification)
+     * and have played the specified map.
+     *
+     * @param string $mapId Map identifier (e.g., 'de_mirage')
+     * @return int Number of qualified players on this map
+     */
+    public function countQualifiedByMap(string $mapId): int
+    {
+        return (int) $this->createQueryBuilder('tr')
+            ->select('COUNT(DISTINCT tr.playerId)')
+            ->innerJoin('tr.analysisResult', 'ar')
+            ->innerJoin('ar.demo', 'd')
+            ->where('d.map = :mapId')
+            ->andWhere('(SELECT COUNT(tr2.id) FROM TraceRating tr2 WHERE tr2.playerId = tr.playerId) >= 5')
+            ->setParameter('mapId', $mapId)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Find qualified players within a time window, sorted by trace_adjusted descending.
+     *
+     * Filters TRACE ratings by calculated_at timestamp (demos analyzed within N days ago).
+     * Applies global qualification filter: players must have 5+ demos within the time window.
+     * All timestamps are in UTC (configured in TraceRating entity).
+     *
+     * Per D-04: Time-windows filter by TraceRating.calculated_at timestamp.
+     * Per D-06: Qualification is GLOBAL and TIME-WINDOWED (5+ demos in the specified window).
+     *
+     * @param int $daysBack Number of days to look back (e.g., 30 or 90)
+     * @param int $limit Maximum number of results (default 100)
+     * @param int $offset Skip first N results for pagination
+     * @return array<TraceRating> Array of TraceRating entities within time window
+     */
+    public function findQualifiedByTimeWindowAndSorted(
+        int $daysBack,
+        int $limit = 100,
+        int $offset = 0
+    ): array {
+        $cutoffDate = new \DateTimeImmutable('-' . $daysBack . ' days');
+
+        return $this->createQueryBuilder('tr')
+            ->select('tr')
+            ->where('tr.calculatedAt >= :cutoff')
+            ->andWhere('(SELECT COUNT(tr2.id) FROM TraceRating tr2 WHERE tr2.playerId = tr.playerId AND tr2.calculatedAt >= :cutoff) >= 5')
+            ->setParameter('cutoff', $cutoffDate, \Doctrine\DBAL\Types\Types::DATETIME_IMMUTABLE)
+            ->orderBy('tr.traceAdjusted', 'DESC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Count qualified players within a time window.
+     *
+     * Returns distinct count of players who have at least 5 demos within the specified time window.
+     *
+     * @param int $daysBack Number of days to look back (e.g., 30 or 90)
+     * @return int Number of qualified players within time window
+     */
+    public function countQualifiedByTimeWindow(int $daysBack): int
+    {
+        $cutoffDate = new \DateTimeImmutable('-' . $daysBack . ' days');
+
+        return (int) $this->createQueryBuilder('tr')
+            ->select('COUNT(DISTINCT tr.playerId)')
+            ->where('tr.calculatedAt >= :cutoff')
+            ->andWhere('(SELECT COUNT(tr2.id) FROM TraceRating tr2 WHERE tr2.playerId = tr.playerId AND tr2.calculatedAt >= :cutoff) >= 5')
+            ->setParameter('cutoff', $cutoffDate, \Doctrine\DBAL\Types\Types::DATETIME_IMMUTABLE)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }
