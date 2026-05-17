@@ -9,13 +9,13 @@ See: .planning/PROJECT.md (updated 2026-05-15)
 
 ## Current Position
 
-Phase: 11 (TRACE Advanced Visualizations) - PLANNING ✓
-Status: Phase 11 planning complete (2 waves, ~405 min estimated execution)
-- Wave 1: Backend API (5 tasks, ~180 min) — History endpoint + percentile calculation
-- Wave 2: Frontend (7 tasks, ~225 min) — Charts, sparkline, percentile badges, calibration context
-Last activity: 2026-05-16 - Phase 11 context and plans created; ready for execution
+Phase: 12 (TRACE Leaderboards) - CONTEXT GATHERED ✓
+Status: Phase 12 context gathered; ready for planning
+- Key decisions: 95th percentile ranking metric, 5-demo minimum, real-time incremental updates, separate API endpoints per type
+- Scope: Global + per-map + time-windowed + team leaderboards; player comparison view with components, trends, map affinity, history
+Last activity: 2026-05-17 - Phase 12 context discussion complete (all four gray areas: scope, ranking logic, comparison view, API/caching)
 
-Progress: [##############] v2 Core Complete → [##############] Phase 7 Complete → SHIPPED ✅
+Progress: [##############] v2 Core Complete → [##############] Phase 11 Complete → SHIPPED ✅
 
 ## Performance Metrics
 
