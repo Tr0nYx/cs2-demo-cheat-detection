@@ -134,12 +134,13 @@ final class LeaderboardController extends AbstractController
     public function getMapLeaderboard(Request $request, string $mapId): Response
     {
         try {
-            // Validate mapId is not empty
-            if (empty($mapId)) {
+            // Validate mapId: must be non-empty, alphanumeric/underscore, max 64 chars
+            if (empty($mapId) || !preg_match('/^[a-z0-9_]+$/i', $mapId) || strlen($mapId) > 64) {
                 return $this->errors->problem(
                     ApiProblem::badRequest(
                         'invalid_map_id',
-                        'Map ID cannot be empty.',
+                        'Map ID must be alphanumeric with underscores (max 64 chars).',
+                        ['provided' => $mapId]
                     )
                 );
             }
