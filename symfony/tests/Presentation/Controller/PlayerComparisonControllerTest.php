@@ -267,8 +267,7 @@ final class PlayerComparisonControllerTest extends WebTestCase
      */
     private function createPlayer(string $steamId, string $displayName): void
     {
-        $player = new Player($steamId);
-        $player->setDisplayName($displayName);
+        $player = new Player($steamId, $displayName);
         $this->em->persist($player);
         $this->em->flush();
     }
@@ -278,7 +277,7 @@ final class PlayerComparisonControllerTest extends WebTestCase
      */
     private function createTraceRating(string $playerId): void
     {
-        $demo = new Demo();
+        $demo = new Demo('/tmp/test_demo_' . uniqid() . '.dem');
         $this->em->persist($demo);
 
         $player = $this->em->getRepository(Player::class)->find($playerId);

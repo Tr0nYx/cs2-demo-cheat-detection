@@ -6,13 +6,18 @@ namespace App\Tests\Application\Handler;
 
 use App\Application\Handler\GetPlayerComparisonHandler;
 use App\Application\Query\GetPlayerComparisonQuery;
+use App\Application\Service\PercentileCalculator;
 use App\Domain\Analysis\AnalysisResult;
 use App\Domain\Analysis\SuspicionLabel;
 use App\Domain\Demo\Demo;
 use App\Domain\Player\Player;
 use App\Domain\Trace\TraceRating;
+use App\Infrastructure\Persistence\AnalysisResultRepository;
+use App\Infrastructure\Persistence\PlayerRepository;
+use App\Infrastructure\Persistence\TraceRatingRepository;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -31,7 +36,21 @@ final class GetPlayerComparisonHandlerTest extends KernelTestCase
     {
         self::bootKernel();
         $this->em = self::getContainer()->get(EntityManagerInterface::class);
-        $this->handler = self::getContainer()->get(GetPlayerComparisonHandler::class);
+
+        // Instantiate handler with dependencies from container
+        $traceRepo = self::getContainer()->get(TraceRatingRepository::class);
+        $analysisRepo = self::getContainer()->get(AnalysisResultRepository::class);
+        $playerRepo = self::getContainer()->get(PlayerRepository::class);
+        $percentiles = self::getContainer()->get(PercentileCalculator::class);
+        $logger = self::getContainer()->get(LoggerInterface::class);
+
+        $this->handler = new GetPlayerComparisonHandler(
+            $traceRepo,
+            $analysisRepo,
+            $playerRepo,
+            $percentiles,
+            $logger
+        );
 
         // Clear database
         $connection = self::getContainer()->get(Connection::class);
@@ -258,8 +277,7 @@ final class GetPlayerComparisonHandlerTest extends KernelTestCase
      */
     private function createPlayer(string $steamId, string $displayName): Player
     {
-        $player = new Player($steamId);
-        $player->setDisplayName($displayName);
+        $player = new Player($steamId, $displayName);
         $this->em->persist($player);
         $this->em->flush();
 
@@ -279,7 +297,7 @@ final class GetPlayerComparisonHandlerTest extends KernelTestCase
         float $traceAdjusted = 1.0,
     ): void {
         // Create demo and analysis result
-        $demo = new Demo();
+        $demo = new Demo('/tmp/test_demo_' . uniqid() . '.dem');
         $this->em->persist($demo);
 
         $player = $this->em->getRepository(Player::class)->find($playerId);
@@ -323,7 +341,7 @@ final class GetPlayerComparisonHandlerTest extends KernelTestCase
         string $map,
         float $traceAdjusted = 1.0,
     ): void {
-        $demo = new Demo();
+        $demo = new Demo('/tmp/test_demo_' . uniqid() . '.dem');
         $demo->setMap($map);
         $this->em->persist($demo);
 
@@ -364,7 +382,7 @@ final class GetPlayerComparisonHandlerTest extends KernelTestCase
      */
     private function createSharedDemo(string $playerAId, string $playerBId, string $map): void
     {
-        $demo = new Demo();
+        $demo = new Demo('/tmp/test_demo_' . uniqid() . '.dem');
         $demo->setMap($map);
         $this->em->persist($demo);
 
