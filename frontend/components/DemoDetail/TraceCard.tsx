@@ -5,11 +5,17 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TraceComponentChart } from './TraceComponentChart'
+import { TraceChart } from './TraceChart'
+import { TraceSparkline } from './TraceSparkline'
+import { PercentileBadge } from './PercentileBadge'
+import { CalibrationContextCard } from './CalibrationContextCard'
 import { useTraceQuery } from '@/lib/hooks/useTraceQuery'
+import { useTraceHistoryQuery } from '@/lib/hooks/useTraceHistoryQuery'
 import { AlertCircle, Info } from 'lucide-react'
 
 interface TraceCardProps {
   demoId: string
+  playerId?: string // Optional: if provided, enables advanced visualizations
 }
 
 /**
@@ -17,17 +23,25 @@ interface TraceCardProps {
  * Shows:
  * - Base, Adjusted, Normalized scores
  * - Trust multiplier with explanation
- * - Component breakdown (ekill, aim, kast, util, clutch)
+ * - Component breakdown chart (bar chart if playerId provided, else table)
+ * - Percentile badges (if playerId provided)
+ * - Historical trend sparkline (if playerId provided)
+ * - Calibration context card (if playerId provided)
  * - Calibration version and timestamp
  *
  * States:
  * - Loading: skeleton placeholder
- * - Success: full TRACE card
+ * - Success: full TRACE card with optional advanced visualizations
  * - No TRACE (404): returns null (card hidden)
  * - Error: error message with retry button
  */
-export function TraceCard({ demoId }: TraceCardProps): React.ReactNode {
+export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode {
   const { data: trace, isLoading, error, refetch } = useTraceQuery(demoId)
+  const {
+    data: historyData,
+    isLoading: historyLoading,
+    error: historyError,
+  } = useTraceHistoryQuery(playerId || '', 10)
 
   // No TRACE data available (404) - hide card completely
   if (!isLoading && trace === null) {
@@ -167,16 +181,94 @@ export function TraceCard({ demoId }: TraceCardProps): React.ReactNode {
             </div>
           </div>
 
-          {/* Component Breakdown */}
+          {/* Component Breakdown - Use new chart if playerId provided, else use table */}
           <div className="border rounded-lg p-4">
             <h3 className="text-sm font-semibold mb-3 text-gray-900 dark:text-gray-100">
               Component Scores
             </h3>
-            <TraceComponentChart
-              components={trace.components}
-              trustMultiplier={trace.trustMultiplier}
-            />
+
+            {playerId && historyData && !historyError ? (
+              <>
+                {/* Advanced visualization: Bar chart with percentiles */}
+                <TraceChart
+                  components={trace.components}
+                  percentiles={historyData.traces[0]?.percentiles || {
+                    ekill: null,
+                    aim: null,
+                    kast: null,
+                    util: null,
+                    clutch: null,
+                  }}
+                  calibrationMean={1.0}
+                />
+
+                {/* Percentile badges for each component */}
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    Component Percentiles
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <PercentileBadge
+                      percentile={historyData.traces[0]?.percentiles.ekill || null}
+                      componentName="E-Kill"
+                    />
+                    <PercentileBadge
+                      percentile={historyData.traces[0]?.percentiles.aim || null}
+                      componentName="AIM"
+                    />
+                    <PercentileBadge
+                      percentile={historyData.traces[0]?.percentiles.kast || null}
+                      componentName="KAST"
+                    />
+                    <PercentileBadge
+                      percentile={historyData.traces[0]?.percentiles.util || null}
+                      componentName="Utility"
+                    />
+                    <PercentileBadge
+                      percentile={historyData.traces[0]?.percentiles.clutch || null}
+                      componentName="Clutch"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* Fallback: Simple table view from Phase 10 */
+              <TraceComponentChart
+                components={trace.components}
+                trustMultiplier={trace.trustMultiplier}
+              />
+            )}
           </div>
+
+          {/* Historical Trend Sparkline - if playerId provided */}
+          {playerId && historyData && !historyLoading && !historyError && (
+            <div className="border rounded-lg p-4">
+              <h3 className="text-sm font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                TRACE Trend
+              </h3>
+              <TraceSparkline
+                history={historyData.traces}
+                height={120}
+                showTrend={true}
+              />
+            </div>
+          )}
+
+          {/* Calibration Context Card - if playerId provided */}
+          {playerId && historyData && !historyLoading && !historyError && (
+            <CalibrationContextCard
+              calibrationVersion={trace.calibrationVersion}
+              globalAverage={1.0}
+              playerValue={trace.traceAdjusted}
+              componentMeans={{
+                ekill: 1.0,
+                aim: 1.0,
+                kast: 1.0,
+                util: 1.0,
+                clutch: 1.0,
+              }}
+            />
+          )}
 
           {/* Calibration Info */}
           <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1 p-3 bg-gray-50 dark:bg-gray-900 rounded">
