@@ -1,17 +1,14 @@
 ---
 phase: 15
-plan: 01
+plan: 01b
 type: execute
 wave: 1
-depends_on: []
+depends_on: ["15-01a"]
 files_modified:
-  - symfony/src/Application/Query/GetFilteredDemosQuery.php
-  - symfony/src/Application/Handler/GetFilteredDemosHandler.php
-  - symfony/src/UI/Api/DemoController.php
-  - symfony/src/Infrastructure/Persistence/DemoRepository.php
   - frontend/lib/hooks/useFilteredDemos.ts
   - frontend/components/Analytics/FilterSidebar.tsx
   - frontend/app/dashboard/page.tsx
+  - frontend/lib/types.ts
 autonomous: true
 requirements: []
 user_setup: []
@@ -20,21 +17,21 @@ must_haves:
   truths:
     - User can select filters (map, rating band, outcome, timeframe) and see filtered demo list update in real-time
     - Filters persist to localStorage and auto-load on dashboard revisit
-    - Backend query correctly applies all four filter dimensions without N+1 queries
     - Filter sidebar is responsive and accessible
+    - useFilteredDemos hook correctly composes React Query queryKey, triggering refetch when any filter changes
   artifacts:
-    - path: symfony/src/Application/Query/GetFilteredDemosQuery.php
-      provides: CQRS query for filtered demo retrieval
-      min_lines: 25
-    - path: symfony/src/Application/Handler/GetFilteredDemosHandler.php
-      provides: Query handler with parameterized SQL WHERE clauses
-      min_lines: 80
     - path: frontend/lib/hooks/useFilteredDemos.ts
       provides: React Query hook for filter state + API call
       min_lines: 60
     - path: frontend/components/Analytics/FilterSidebar.tsx
       provides: UI component with map/rating/outcome/timeframe selectors
       min_lines: 120
+    - path: frontend/app/dashboard/page.tsx
+      provides: Dashboard integration with FilterSidebar + demo list
+      min_lines: 80
+    - path: frontend/lib/types.ts
+      provides: TypeScript types for FilterCriteria, DemoSummaryDto, FilteredDemosResponse
+      min_lines: 30
   key_links:
     - from: FilterSidebar.tsx
       to: useFilteredDemos hook
@@ -51,22 +48,12 @@ must_haves:
 
 ---
 
-## STATUS: SUPERSEDED — Split into 15-01a and 15-01b
-
-**This plan has been split into two sub-plans for improved parallelization:**
-- **15-01a:** Backend foundation (GetFilteredDemosQuery/Handler, DemoController endpoint, Wave 1)
-- **15-01b:** Frontend + integration (useFilteredDemos hook, FilterSidebar, dashboard, Wave 1 depends_on 15-01a)
-
-**Do not execute this plan.** Execute 15-01a and 15-01b instead. They run in the same wave but with explicit dependency ordering (01b depends_on 01a).
-
----
-
 <objective>
-Implement real-time multi-filter query for demos with localStorage-based persistence, enabling users to explore their analysis scope by map, opponent rating, game outcome, and timeframe.
+Implement frontend filtering UI and React Query integration: useFilteredDemos hook with localStorage persistence, FilterSidebar component, and dashboard integration. This wave makes the backend filtering API (from 15-01a) accessible to users, enabling real-time multi-filter queries.
 
-Purpose: Users need flexible filtering to understand how their suspicion score varies across playing contexts (specific map performance, opponent skill bands, win/loss patterns). Filtering is the foundation for all downstream analytics features.
+Purpose: Frontend filtering provides immediate user feedback and client-side state management. useFilteredDemos hook abstracts API calls, caching, and history management. Responsive FilterSidebar makes filtering intuitive.
 
-Output: Working filter sidebar on authenticated dashboard, backend filtering endpoint, React Query hook for client-side caching, localStorage history management.
+Output: Working filter sidebar on authenticated dashboard, React Query hook for client-side caching, localStorage history management, demo list updated by filter changes.
 </objective>
 
 <execution_context>
@@ -82,12 +69,10 @@ Output: Working filter sidebar on authenticated dashboard, backend filtering end
 @.planning/phases/15-advanced-analytics-user-scoping/15-RESEARCH.md
 @.planning/phases/14-landing-steam-login/14-CONTEXT.md
 
-Core entities and patterns:
-@symfony/src/Domain/Demo/Demo.php (map field, status enum)
-@symfony/src/Domain/Analysis/AnalysisResult.php (feature vectors, scores)
-@symfony/src/Domain/Trace/TraceRating.php (trace_adjusted, trace_normalized, player_id, calculated_at)
-@symfony/src/Infrastructure/Persistence/DemoRepository.php (existing query patterns)
+Reference implementations:
 @frontend/lib/hooks/useTraceQuery.ts (React Query pattern reference)
+@frontend/lib/api.ts (existing API client setup)
+@frontend/components (existing component patterns, tailwind styling)
 
 Filter specification (from 15-CONTEXT.md):
 - Map: Single or multi-select from extracted demo map values (Mirage, Inferno, Nuke, Ancient, Vertigo, Dust2, etc.)
@@ -99,151 +84,18 @@ Filter specification (from 15-CONTEXT.md):
 <tasks>
 
 <task type="auto">
-  <name>Task 1: Create CQRS Query/Handler for filtered demos with parameterized filtering</name>
-  <files>
-    symfony/src/Application/Query/GetFilteredDemosQuery.php
-    symfony/src/Application/Handler/GetFilteredDemosHandler.php
-  </files>
-  <read_first>
-    symfony/src/Domain/Demo/Demo.php
-    symfony/src/Domain/Trace/TraceRating.php
-    symfony/src/Domain/Analysis/AnalysisResult.php
-    symfony/src/Infrastructure/Persistence/DemoRepository.php
-  </read_first>
-  <action>
-1. Create GetFilteredDemosQuery.php in symfony/src/Application/Query/ with:
-   - Properties: userId (string, required), map (string|null), ratingBand (string|null), outcome (string|null), daysBack (int|null), limit (int, default 20), offset (int, default 0)
-   - ratingBand enum: '0-5', '5-10', '10+', or null
-   - outcome enum: 'win', 'loss', 'draw', or null
-   - daysBack validation: Accept 7, 30, 90, 999 (999 = null = all-time), or custom integer
-   - Constructor accepts all params and validates rating band + outcome against allowed values
-
-2. Create GetFilteredDemosHandler.php implementing MessageHandler with __invoke(GetFilteredDemosQuery):
-   - Use DemoRepository to build QueryBuilder with conditional WHERE clauses per D-01 in CONTEXT.md
-   - Join: demo → analysisResults (LEFT JOIN to filter results for current user) → traceRating (LEFT JOIN for TRACE scores)
-   - Filter 1 (map): If map !== null, add WHERE d.map = :map parameter
-   - Filter 2 (ratingBand): If ratingBand !== null, map to trace_adjusted percentile:
-     * '0-5' → tr.trace_adjusted < 0.33
-     * '5-10' → tr.trace_adjusted BETWEEN 0.33 AND 0.67
-     * '10+' → tr.trace_adjusted > 0.67
-     (Rationale: Per A2 in RESEARCH.md, TRACE score is proxy for opponent skill rating)
-   - Filter 3 (outcome): If outcome !== null, add WHERE d.outcome = :outcome parameter
-     (Note: Assume Demo entity has outcome field; if missing, flag in acceptance_criteria and handle as Wave 0 gap)
-   - Filter 4 (timeframe): If daysBack !== null and < 999, add WHERE d.uploadedAt >= DATE_SUB(NOW(), INTERVAL :days DAY)
-   - User scope: Always add WHERE ar.player_id = :playerId (per ASVS V4 from 15-RESEARCH.md)
-   - Pagination: setFirstResult($query->offset), setMaxResults($query->limit), ORDER BY d.uploadedAt DESC
-   - Return FilteredDemosDto with:
-     * demos array (id, map, status, uploadedAt, trace_adjusted)
-     * total count (for pagination UI)
-     * hasMore boolean
-   - No N+1 queries: All JOINs and filters executed in single query, tested with database profiler
-
-3. Add database index if missing:
-   - Verify index on trace_rating(player_id, calculated_at) exists (per 15-RESEARCH.md Pitfall 5)
-   - Verify index on demo(uploaded_at) and demo(map) exist for filter performance
-   - If any missing, note in acceptance_criteria for Wave 0 migration
-
-4. DTOs used:
-   - FilteredDemosDto: Contains demos (DemoSummaryDto[]), total (int), hasMore (bool)
-   - DemoSummaryDto: id (UUID), map (string), status (enum), uploadedAt (DateTime), trace_adjusted (float), outcome (string|null)
-  </action>
-  <verify>
-    <automated>cd symfony && php bin/console lint:container && ./vendor/bin/phpunit tests/Application/Handler/GetFilteredDemosHandlerTest.php -v</automated>
-  </verify>
-  <acceptance_criteria>
-    - GetFilteredDemosQuery.php exists with all required properties and constructor validation
-    - GetFilteredDemosHandlerTest.php test file exists and all tests pass:
-      * testFilterByMapReturnsOnlyMatchingDemos: Filter by map='Mirage' returns 2+ Mirage demos, 0 others
-      * testFilterByRatingBandReturnsCorrectPercentiles: '0-5' band returns demos with trace_adjusted < 0.33
-      * testFilterByOutcomeReturnsMatchingResults: outcome='win' returns only wins
-      * testFilterByTimeframeReturnsRecentDemos: daysBack=30 returns no demos older than 30 days
-      * testMultipleFiltersApplyAllConstraints: map + rating + outcome all combined correctly
-      * testUserScopeEnforcement: Different user ID returns different results
-      * testPaginationWorksCorrectly: limit=5, offset=5 skips first 5, returns next 5
-    - Database query profiler shows single SELECT (no N+1 joins)
-    - All query parameters bound (no string concatenation in WHERE clauses)
-    - Demo.outcome field confirmed to exist; if missing, acceptance_criteria updated to: "outcome field must be added in Wave 0 migration"
-  </acceptance_criteria>
-  <done>CQRS query and handler fully implemented, tested, parameterized WHERE clauses prevent SQL injection, filters compose correctly, no N+1 queries</done>
-</task>
-
-<task type="auto">
-  <name>Task 2: Extend DemoController with GET /api/demos?filters endpoint and expose filter metadata</name>
-  <files>
-    symfony/src/UI/Api/DemoController.php
-  </files>
-  <read_first>
-    symfony/src/UI/Api/DemoController.php (existing method structure, JWT auth pattern)
-    symfony/src/Application/Handler/GetFilteredDemosHandler.php (from Task 1)
-  </read_first>
-  <action>
-1. Add new public method getDemosByFilter(Request $request, GetFilteredDemosHandler $handler, JwtTokenProvider $jwt):
-   - Extract auth from JWT (per Phase 14 pattern): user_id from token, validate httpOnly cookie present
-   - Extract query parameters from Request:
-     * map: string|null (validate against enum of known CS2 maps: mirage, inferno, nuke, ancient, vertigo, dust2, etc. — reject unknown maps with 400)
-     * rating_band: string|null (validate against ['0-5', '5-10', '10+'] — reject others with 400)
-     * outcome: string|null (validate against ['win', 'loss', 'draw'] — reject others with 400)
-     * days_back: int|null (validate against [7, 30, 90, 999] — reject others with 400)
-     * limit: int, default 20 (validate 1-100, reject > 100 with 400)
-     * offset: int, default 0 (validate >= 0)
-   - Create GetFilteredDemosQuery from parameters (map, ratingBand, outcome, daysBack, limit, offset, userId from JWT)
-   - Dispatch via message bus: $this->queryBus->dispatch($query)
-   - Serialize response using SymfonySerializer with DemoSummaryDto
-   - Return JsonResponse with status 200, include X-Total-Count header (for pagination UI)
-
-2. Add new public method getFilterMetadata() -> JsonResponse:
-   - Return static JSON with filter options:
-     * maps: ['Mirage', 'Inferno', 'Nuke', 'Ancient', 'Vertigo', 'Dust2', 'Anubis'] (alphabetical)
-     * ratingBands: [{ id: '0-5', label: 'Below 5 RWS' }, { id: '5-10', label: '5-10 RWS' }, { id: '10+', label: '10+ RWS' }]
-     * outcomes: [{ id: 'win', label: 'Win' }, { id: 'loss', label: 'Loss' }, { id: 'draw', label: 'Draw' }]
-     * timeframes: [{ id: '7', label: 'Last 7 days' }, { id: '30', label: 'Last 30 days' }, { id: '90', label: 'Last 90 days' }, { id: '999', label: 'All-time' }]
-   - Route: GET /api/analytics/filters/metadata
-   - No auth required (public metadata)
-   - Cache response in Redis for 1 hour (static data, no need to recompute)
-
-3. Routing attributes per Symfony 7 pattern:
-   - GET /api/demos?filters → #[Route('/api/demos', methods: ['GET'])] with existing endpoint; add new filter parsing logic
-   - OR create separate #[Route('/api/demos/filtered', methods: ['GET'])] and leave old endpoint unchanged
-   - (Recommendation: Use existing /api/demos endpoint with backward-compatible query params)
-
-4. Error handling:
-   - Invalid map → 400 with message: "Invalid map. Allowed values: Mirage, Inferno, ..."
-   - Invalid rating_band → 400 with message: "Invalid rating band. Allowed values: 0-5, 5-10, 10+"
-   - Invalid outcome → 400 with message: "Invalid outcome. Allowed values: win, loss, draw"
-   - Invalid days_back → 400 with message: "Invalid timeframe. Allowed values: 7, 30, 90, 999"
-   - Unauthorized (no JWT or expired) → 401 (existing auth middleware)
-  </action>
-  <verify>
-    <automated>cd symfony && ./vendor/bin/phpunit tests/UI/Api/DemoControllerTest.php::testGetFilteredDemos -v && curl -H "Authorization: Bearer {valid_jwt}" "http://localhost/api/demos?map=mirage&rating_band=0-5&limit=5" 2>/dev/null | jq .</automated>
-  </verify>
-  <acceptance_criteria>
-    - GET /api/demos?map=Mirage&rating_band=0-5 returns 200 with filtered demo list
-    - Response includes X-Total-Count header with integer value
-    - Invalid map parameter returns 400 with descriptive error message
-    - Invalid rating_band returns 400
-    - Invalid outcome returns 400
-    - Invalid days_back returns 400
-    - Unauthorized request (no JWT) returns 401
-    - getFilterMetadata() returns 200 with full filter enum JSON structure
-    - All string parameters case-insensitive for map (e.g., 'mirage', 'Mirage', 'MIRAGE' all work)
-    - Curl test confirms demo list returns in expected structure with trace_adjusted scores included
-  </acceptance_criteria>
-  <done>DemoController extended with filter parsing, validation, and response formatting; metadata endpoint provides UI with enum values; all error cases return appropriate HTTP status codes</done>
-</task>
-
-<task type="auto">
-  <name>Task 3: Frontend: useFilteredDemos hook with React Query + localStorage history persistence</name>
+  <name>Task 1: Frontend: useFilteredDemos hook with React Query + localStorage history persistence</name>
   <files>
     frontend/lib/hooks/useFilteredDemos.ts
-    frontend/lib/types.ts (extend with FilterCriteria, FilteredDemosResponse types)
+    frontend/lib/types.ts
   </files>
   <read_first>
     frontend/lib/hooks/useTraceQuery.ts (React Query usage pattern)
     frontend/lib/api.ts (existing API client setup)
-    frontend/components/Analytics/FilterSidebar.tsx (consumer of this hook)
+    frontend/lib/types.ts (existing type patterns)
   </read_first>
   <action>
-1. Create frontend/lib/types.ts extensions (append to existing file):
+1. Extend frontend/lib/types.ts with new TypeScript interfaces (append to existing file):
    ```typescript
    export interface FilterCriteria {
      map?: string | null
@@ -326,12 +178,12 @@ Filter specification (from 15-CONTEXT.md):
 </task>
 
 <task type="auto">
-  <name>Task 4: Frontend: FilterSidebar component with map/rating/outcome/timeframe selectors</name>
+  <name>Task 2: Frontend: FilterSidebar component with map/rating/outcome/timeframe selectors</name>
   <files>
     frontend/components/Analytics/FilterSidebar.tsx
   </files>
   <read_first>
-    frontend/lib/hooks/useFilteredDemos.ts (from Task 3)
+    frontend/lib/hooks/useFilteredDemos.ts (from Task 1)
     frontend/lib/types.ts (FilterCriteria type)
     frontend/components (existing component patterns, tailwind styling)
   </read_first>
@@ -397,14 +249,14 @@ Filter specification (from 15-CONTEXT.md):
 </task>
 
 <task type="auto">
-  <name>Task 5: Integrate FilterSidebar into authenticated dashboard and connect to demo list display</name>
+  <name>Task 3: Integrate FilterSidebar into authenticated dashboard and connect to demo list display</name>
   <files>
     frontend/app/dashboard/page.tsx
   </files>
   <read_first>
     frontend/app/dashboard/page.tsx (existing dashboard structure)
-    frontend/components/Analytics/FilterSidebar.tsx (from Task 4)
-    frontend/lib/hooks/useFilteredDemos.ts (from Task 3)
+    frontend/components/Analytics/FilterSidebar.tsx (from Task 2)
+    frontend/lib/hooks/useFilteredDemos.ts (from Task 1)
   </read_first>
   <action>
 1. Update frontend/app/dashboard/page.tsx Dashboard component:
@@ -469,7 +321,6 @@ Filter specification (from 15-CONTEXT.md):
 
 | Boundary | Description |
 |----------|-------------|
-| Frontend → Backend API | Untrusted query parameters (map, rating_band, outcome, days_back) from URL; must validate all values against whitelist |
 | Browser → localStorage | Trusted (same-origin); user may manually edit localStorage, but filters just re-query, no injection risk |
 | Authenticated → Unauthenticated | JWT token in httpOnly cookie; if expired, user auto-redirected to login (existing Phase 14 behavior) |
 
@@ -477,68 +328,60 @@ Filter specification (from 15-CONTEXT.md):
 
 | Threat ID | Category | Component | Disposition | Mitigation Plan |
 |-----------|----------|-----------|-------------|-----------------|
-| T-15-01 | Tampering | GET /api/demos?map=Mirage' OR '1'='1 | Mitigate | Use Doctrine QueryBuilder with parameterized queries; test with common SQL injection payloads ('OR '1'='1, UNION SELECT, etc.) |
-| T-15-02 | Information Disclosure | User A queries filters, sees User B's demos | Mitigate | Always add WHERE ar.player_id = :playerId from JWT; unit test verifies different user_id returns different results |
-| T-15-03 | Denial of Service | POST large offset (offset=99999999) | Mitigate | Validate offset >= 0 and < (total + 1000); return 400 if invalid; limit query depth via LIMIT clause |
-| T-15-04 | Spoofing | Frontend claims false user_id in localStorage | Accept | localStorage persists filter state only; actual demo ownership verified by server JWT token (immune to client-side manipulation) |
-| T-15-05 | Information Disclosure | Filter metadata endpoint (map list) exposed | Accept | Maps and rating bands are public information (inferred from leaderboards, Phase 12); no sensitive data leaked |
+| T-15-01b | Spoofing | Frontend claims false user_id in localStorage | Accept | localStorage persists filter state only; actual demo ownership verified by server JWT token (immune to client-side manipulation) |
+| T-15-01d | Information Disclosure | Filter metadata endpoint (map list) exposed | Accept | Maps and rating bands are public information (inferred from leaderboards, Phase 12); no sensitive data leaked |
 
 </threat_model>
 
 <verification>
-**Phase 15 Wave 1 Checklist:**
+**Phase 15 Wave 1b Checklist:**
 
-- [ ] GetFilteredDemosQuery and GetFilteredDemosHandler implemented with parameterized WHERE clauses (no SQL injection)
-- [ ] DemoController.getDemosByFilter validates all query params against whitelist (map, rating_band, outcome, days_back)
-- [ ] User scope enforcement: Always filter by current user's player_id (ASVS V4)
 - [ ] useFilteredDemos hook tests pass (localStorage persistence, React Query refetch)
 - [ ] FilterSidebar component renders all four filter dimensions with proper callbacks
 - [ ] Dashboard page.tsx integrates FilterSidebar + demo list + pagination
 - [ ] E2E test confirms filter workflow end-to-end (select filter → list updates → localStorage persists)
-- [ ] Database indexes present on demo(map), demo(uploadedAt), trace_rating(player_id, calculated_at)
-- [ ] No N+1 queries: Profile demo filter query, confirm single SELECT with proper JOINs
-- [ ] Error handling: Invalid map/rating/outcome/days_back return 400 with descriptive messages
 - [ ] Responsive design: Sidebar + list render correctly on mobile and desktop
-- [ ] Security: User cannot access other users' demos via filter manipulation (verified by unit test)
+- [ ] No TypeScript errors in dashboard build
+- [ ] Frontend correctly consumes GET /api/demos?filters endpoint from 15-01a
+- [ ] Error states handled gracefully (API 400/500 → user-visible error message)
 
 **Open Questions for Executor:**
 
-1. Does Demo entity have `outcome` field (win/loss/draw)? If not, flag as Wave 0 gap to add in migration.
-2. Are database indexes on demo(map), demo(uploadedAt) already present from Phase 13? Confirm in schema.
-3. Should filter sidebar be sticky (always visible during scroll) or fixed? Per CONTEXT.md, no specific requirement; recommend sticky for UX.
+1. Does /api/analytics/filters/metadata endpoint exist and return expected enum from 15-01a? Confirm API contract.
+2. Are Demo detail routes (/demos/{id}) already established from Phase 13? Confirm navigation targets.
+3. Should FilterSidebar be sticky (always visible during scroll) or fixed? Per CONTEXT.md, no specific requirement; recommend sticky for UX.
 </verification>
 
 <success_criteria>
-**Wave 1 Complete When:**
+**Wave 1b Complete When:**
 
 1. FilterSidebar component visible on /dashboard with all four filter selectors (map, rating, outcome, timeframe)
 2. Adjusting any filter immediately updates demo list without page reload
 3. Filter combinations persist to browser localStorage; closing and reopening dashboard re-applies last combo
-4. GET /api/demos?map=Mirage&rating_band=0-5&days_back=30 returns correct filtered list (verified with curl)
-5. Backend rejects invalid filter values with 400 + descriptive error message
-6. No SQL injection vulnerabilities (parameterized queries only)
-7. User cannot access other users' demos (scope enforcement via JWT player_id)
-8. All unit/integration tests pass: `make test-unit`
-9. Responsive design passes visual inspection (mobile sidebar stacks, desktop side-by-side)
-10. Pagination works: 20 demos per page, "Load More" appends next batch
+4. Backend filtering from 15-01a works end-to-end with frontend
+5. All React component tests pass: `npm run test -- --run lib/hooks/ components/Analytics/`
+6. Responsive design passes visual inspection (mobile sidebar stacks, desktop side-by-side)
+7. Pagination works: 20 demos per page, "Load More" appends next batch
+8. Ready to proceed to Wave 2 (Sensitivity Tuner, feature vectors)
 
 **Definition of Done:**
 
-- Wave 1 SUMMARY.md committed to git with full execution notes
+- Wave 1b SUMMARY.md committed to git with full execution notes
 - All acceptance_criteria met for each task
+- No TypeScript errors or warnings in build
 - No blocking issues or warnings in console logs
-- Ready to proceed to Wave 2 (feature vector exposure + sensitivity tuner)
+- Frontend filtering ready to be consumed by downstream analytics features (15-02+)
 </success_criteria>
 
 <output>
-After completion, create `.planning/phases/15-advanced-analytics-user-scoping/15-01-SUMMARY.md`
+After completion, create `.planning/phases/15-advanced-analytics-user-scoping/15-01b-SUMMARY.md`
 
 Required sections:
-- What was built (FilterSidebar, useFilteredDemos hook, backend filtering endpoint)
-- Verify each acceptance criteria (tests pass, responsive, no N+1 queries)
-- Note any gaps discovered (e.g., missing Demo.outcome field → escalate as Wave 0)
+- What was built (useFilteredDemos hook, FilterSidebar, dashboard integration)
+- Verify each acceptance criteria (tests pass, responsive, localStorage persistence)
+- Note any gaps discovered (e.g., missing API endpoint → escalate as gap)
 - File changes (commit hashes, line counts added)
-- Performance notes (query time, response payload size, localStorage usage)
+- Performance notes (React Query cache TTL, localStorage usage)
 - Test coverage (unit/integration/E2E test counts, % of code tested)
-- Next steps (Wave 2 dependencies, any blockers)
+- Next steps (Wave 1b ready to complete; Wave 2 ready to begin once 15-01a completes)
 </output>
