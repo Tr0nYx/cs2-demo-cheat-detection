@@ -267,4 +267,35 @@ class TraceRatingRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /**
+     * Find top N maps for a player by TRACE score.
+     *
+     * Returns the highest TRACE-adjusted scores for each unique map that the player has played.
+     * Used for map affinity comparison view to show which maps the player performs best on.
+     *
+     * @param string $playerId Player ID to search for
+     * @param int $limit Maximum number of maps to return (default 3)
+     * @return array<array{mapId: string, traceAdjusted: float}> Array of top maps with scores
+     */
+    public function findTopMapsByPlayer(string $playerId, int $limit = 3): array
+    {
+        $results = $this->createQueryBuilder('tr')
+            ->select('d.map as mapId, MAX(tr.traceAdjusted) as traceAdjusted')
+            ->innerJoin('tr.analysisResult', 'ar')
+            ->innerJoin('ar.demo', 'd')
+            ->where('tr.playerId = :playerId')
+            ->groupBy('d.map')
+            ->setParameter('playerId', $playerId)
+            ->orderBy('traceAdjusted', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        // Convert to expected format
+        return array_map(fn(array $row) => [
+            'map' => $row['mapId'],
+            'traceAdjusted' => (float) $row['traceAdjusted'],
+        ], $results);
+    }
 }

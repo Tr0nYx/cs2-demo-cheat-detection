@@ -75,4 +75,35 @@ final class AnalysisResultRepository extends ServiceEntityRepository
 
         return $result;
     }
+
+    /**
+     * Find demos where both players participated together.
+     *
+     * Returns distinct Demo entities where both specified players have AnalysisResult records.
+     * Used for match history comparison view to show shared gameplay history.
+     *
+     * @param string $playerAId ID of first player
+     * @param string $playerBId ID of second player
+     * @param int $limit Maximum number of demos to return (default 10)
+     * @return array<Demo> Array of demos with both players
+     */
+    public function findSharedByPlayers(
+        string $playerAId,
+        string $playerBId,
+        int $limit = 10
+    ): array {
+        return $this->createQueryBuilder('arA')
+            ->select('DISTINCT d')
+            ->from(Demo::class, 'd')
+            ->innerJoin('d.analysisResults', 'arA')
+            ->innerJoin('d.analysisResults', 'arB')
+            ->where('arA.player = :playerA')
+            ->andWhere('arB.player = :playerB')
+            ->setParameter('playerA', $playerAId)
+            ->setParameter('playerB', $playerBId)
+            ->orderBy('d.uploadedAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
 }
