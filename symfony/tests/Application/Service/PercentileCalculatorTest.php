@@ -163,8 +163,8 @@ final class PercentileCalculatorTest extends TestCase
         $percentile = $this->calculator->calculateTraceAdjustedPercentile(1.45, 'default-v1');
 
         self::assertNotNull($percentile);
-        self::assertGreaterThanOrEqual(0.0, $percentile);
-        self::assertLessThanOrEqual(100.0, $percentile);
+        self::assertGreaterThanOrEqual($percentile, 0.0);
+        self::assertLessThanOrEqual($percentile, 100.0);
     }
 
     /**
@@ -211,8 +211,8 @@ final class PercentileCalculatorTest extends TestCase
         $percentiles = $this->calculator->calculateComponentPercentiles($testTrace);
 
         self::assertNotNull($percentiles);
-        self::assertGreaterThanOrEqual(0.0, $percentiles['ekill']);
-        self::assertLessThanOrEqual(100.0, $percentiles['ekill']);
+        self::assertGreaterThanOrEqual($percentiles['ekill'], 0.0);
+        self::assertLessThanOrEqual($percentiles['ekill'], 100.0);
     }
 
     /**
@@ -255,8 +255,8 @@ final class PercentileCalculatorTest extends TestCase
 
         self::assertNotNull($percentiles);
         foreach ($percentiles as $value) {
-            self::assertGreaterThanOrEqual(0.0, $value);
-            self::assertLessThanOrEqual(100.0, $value);
+            self::assertGreaterThanOrEqual($value, 0.0);
+            self::assertLessThanOrEqual($value, 100.0);
         }
     }
 
