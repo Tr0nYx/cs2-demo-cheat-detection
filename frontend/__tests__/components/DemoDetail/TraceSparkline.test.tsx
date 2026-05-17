@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { TraceSparkline } from '@/components/DemoDetail/TraceSparkline'
 import { TraceHistoryDto } from '@/lib/types'
 
 // Mock recharts
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 jest.mock('recharts', () => ({
   LineChart: ({ children, ...props }: any) => (
       <div data-testid="line-chart" {...props}>

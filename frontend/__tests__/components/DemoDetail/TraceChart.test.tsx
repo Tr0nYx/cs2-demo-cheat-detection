@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { TraceChart } from '@/components/DemoDetail/TraceChart'
 import { TraceComponentDto, TraceComponentPercentilesDto } from '@/lib/types'
 
 // Mock recharts to avoid canvas issues in Jest
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 jest.mock('recharts', () => ({
   BarChart: ({ children, ...props }: any) => (
       <div data-testid="bar-chart" {...props}>
