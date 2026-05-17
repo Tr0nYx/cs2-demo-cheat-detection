@@ -118,4 +118,43 @@ class TraceRatingRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /**
+     * Find qualified players (5+ demos) sorted by trace_adjusted descending for global leaderboard.
+     *
+     * Returns the N most recent TRACE ratings for players who have at least 5 qualifying demos.
+     * Sorted by trace_adjusted in descending order for leaderboard ranking by 95th percentile.
+     *
+     * @param int $limit Maximum number of results (default 100)
+     * @param int $offset Skip first N results for pagination
+     * @return array<TraceRating> Array of TraceRating entities from qualified players
+     */
+    public function findQualifiedAndSorted(int $limit = 100, int $offset = 0): array
+    {
+        return $this->createQueryBuilder('tr')
+            ->select('tr')
+            ->where('(SELECT COUNT(tr2.id) FROM TraceRating tr2 WHERE tr2.playerId = tr.playerId) >= 5')
+            ->orderBy('tr.traceAdjusted', 'DESC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Count total qualified players (5+ demos) for leaderboard pagination metadata.
+     *
+     * Returns distinct count of players who have at least 5 TRACE ratings.
+     * Used for pagination total and hasMore calculation.
+     *
+     * @return int Number of qualified players
+     */
+    public function countQualified(): int
+    {
+        return (int) $this->createQueryBuilder('tr')
+            ->select('COUNT(DISTINCT tr.playerId)')
+            ->where('(SELECT COUNT(tr2.id) FROM TraceRating tr2 WHERE tr2.playerId = tr.playerId) >= 5')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }
