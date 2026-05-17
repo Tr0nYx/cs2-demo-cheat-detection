@@ -32,9 +32,9 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 - [x] **Phase 12: TRACE Leaderboards** — Global, per-map, time-windowed, and team rankings with 4-metric player comparison (Complete 2026-05-17)
 - [x] **Phase 13: 2D Demo Viewer + Heatmap Module** — Interactive post-game radar viewer, server-rendered heatmaps, tick/event APIs, grenade inspector, and cheat-suspicion overlays (Complete 2026-05-17)
 
-### In Progress Phases
+### Completed Phases (Phase 14 - Final)
 
-- [x] **Phase 14: Landing Page + Steam Login** (3/4 waves complete; Wave 4 just finished)
+- [x] **Phase 14: Landing Page + Steam Login** — Public landing page, Steam OpenID 2.0 auth, user persistence, protected dashboard, demo history, public metrics caching (Complete 2026-05-17)
 
 ### Phase 14 Plans (Execution In Progress)
 
@@ -62,6 +62,14 @@ Cross-wave structure:
 - Wave 3 depends on Wave 2 (database for user persistence)
 - Wave 4 depends on all prior waves (dashboard uses auth from W2, user data from W3)
 
+### Phase 15 (Next)
+
+- **Phase 15: Advanced Analytics & User Scoping** — Sensitivity analysis, player profiling trends, per-user analysis scope management, advanced filtering
+
+Depends on: Phase 14 (User persistence), Phase 12 (Leaderboards), Phase 9 (TRACE)
+
+Goal: Enable users to customize analysis scope, explore sensitivity of detection models, and identify player profiling trends.
+
 ### Backlog
 
 - Advanced analytics and trend detection (sensitivity analysis, player profiling, trend forecasting)
@@ -79,4 +87,4 @@ Cross-wave structure:
 
 ---
 
-*Last updated: 2026-05-17 after Phase 14 Wave 4 completion; Phase 14 in progress (4/4 waves complete, all features deployed)*
+*Last updated: 2026-05-17 after Phase 14 completion; UAT approved for production*
