@@ -5,12 +5,12 @@
 See: .planning/PROJECT.md (updated 2026-05-15)
 
 **Core value:** Users can upload or point to a CS2 demo and receive a reproducible, explainable, player-level cheat suspicion analysis based only on post-game demo data.
-**Current focus:** Phase 14: Landing Page + Steam Login (Planned)
+**Current focus:** Phase 15: Advanced Analytics & User Scoping (Planned)
 
 ## Current Position
 
-Phase: 14 (Landing Page + Steam Login) - COMPLETE ✅
-Status: Phase 14 executed with 4 waves all complete + UAT passed
+Phase: 15 (Advanced Analytics & User Scoping) - PLANNED ✓
+Status: Phase 15 research complete, 6 plans drafted (includes split 15-01a/b), verification passed
 - Wave 1 (Landing Page UI): ✅ Complete
 - Wave 2 (Steam Authentication): ✅ Complete
 - Wave 3 (User Persistence + Refresh Tokens): ✅ Complete
@@ -48,7 +48,8 @@ Progress: [##############] v2 Core Complete → [##############] Phase 13 Comple
 | Phase 11: TRACE Advanced Visualizations | 2 | 45 min | 22 min |
 | Phase 12: TRACE Leaderboards | 4 | 98 min | 24 min |
 | Phase 13: 2D Demo Viewer + Heatmap | 6 | 154 min | 25 min |
-| Phase 14: Landing Page + Steam Login (in progress) | 4 | 47 min (W1-W4) | 12 min |
+| Phase 14: Landing Page + Steam Login | 4 | 47 min (W1-W4) | 12 min |
+| Phase 15: Advanced Analytics & User Scoping (planned) | 6 | (planning phase) | — |
 
 **Recent Trend:**
 - Last 5 plans: 06-01 (infrastructure setup), 06-02 (feature development), verification, bug fix, archival
@@ -86,8 +87,9 @@ None yet.
   - Model serving: Graceful shutdown updates, retry backoff, versioned results
 - Phase 8 added: Demo download per Sharecode — Automated CS2 demo import via Sharecode links
 - Phase 13 added: 2D Demo Viewer + Heatmap Module from `tasks/analyse.md`
-- Phase 13 planned: 6 waves covering Python viewer foundation, Symfony APIs/cache, heatmap worker, tick hooks, Canvas UI, suspicion review, and grenade inspector
-- Former Advanced Analytics placeholder shifted to Phase 14+
+- Phase 13 completed: 6 waves covering Python viewer foundation, Symfony APIs/cache, heatmap worker, tick hooks, Canvas UI, suspicion review, and grenade inspector
+- Phase 14 completed: 4 waves covering landing page, Steam auth, user persistence, dashboard
+- Phase 15 planned: 6 plans in 5 waves (01a backend filters, 01b frontend filters, 02 sensitivity tuner, 03 comparison validation, 04 trends/caching, 05 leaderboard filtering + E2E)
 
 ## Deferred Items
 
