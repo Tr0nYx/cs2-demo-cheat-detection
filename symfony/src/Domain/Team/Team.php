@@ -46,6 +46,11 @@ class Team
     #[ORM\Column(name: 'updated_at', type: 'datetime_immutable', nullable: false)]
     private \DateTimeImmutable $updatedAt;
 
+    /** @var Collection<int, \App\Domain\Player\Player> Players on this team */
+    #[ORM\ManyToMany(targetEntity: \App\Domain\Player\Player::class, inversedBy: 'teams')]
+    #[ORM\JoinTable(name: 'player_team')]
+    private Collection $players;
+
     public function __construct(
         string $name,
         ?string $displayName = null,
@@ -58,6 +63,7 @@ class Team
         $this->displayName = $displayName;
         $this->createdAt = $createdAt ?? new \DateTimeImmutable();
         $this->updatedAt = $updatedAt ?? new \DateTimeImmutable();
+        $this->players = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -89,5 +95,42 @@ class Team
     {
         $this->displayName = $displayName;
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    /**
+     * Get all players on this team.
+     *
+     * @return Collection<int, \App\Domain\Player\Player>
+     */
+    public function getPlayers(): Collection
+    {
+        return $this->players;
+    }
+
+    /**
+     * Add a player to this team.
+     *
+     * @param \App\Domain\Player\Player $player
+     * @return void
+     */
+    public function addPlayer(\App\Domain\Player\Player $player): void
+    {
+        if (!$this->players->contains($player)) {
+            $this->players->add($player);
+            $player->addTeam($this);
+        }
+    }
+
+    /**
+     * Remove a player from this team.
+     *
+     * @param \App\Domain\Player\Player $player
+     * @return void
+     */
+    public function removePlayer(\App\Domain\Player\Player $player): void
+    {
+        if ($this->players->removeElement($player)) {
+            $player->removeTeam($this);
+        }
     }
 }
