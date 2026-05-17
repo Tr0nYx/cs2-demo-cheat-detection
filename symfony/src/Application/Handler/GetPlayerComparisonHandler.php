@@ -132,32 +132,30 @@ final readonly class GetPlayerComparisonHandler implements MessageHandlerInterfa
             );
         }
 
-        // Calculate percentiles
+        // Calculate percentiles with validation
         $percentileData = $this->percentiles->calculateComponentPercentiles($trace);
 
+        // Validate percentile data structure and bounds
+        if (!is_array($percentileData)) {
+            $percentileData = [];
+        }
+
         // Build components array with values and percentiles
-        $components = [
-            'ekill' => [
-                'value' => $trace->getEkill(),
-                'percentile' => $percentileData['ekill'] ?? 0,
-            ],
-            'aim' => [
-                'value' => $trace->getAim(),
-                'percentile' => $percentileData['aim'] ?? 0,
-            ],
-            'kast' => [
-                'value' => $trace->getKast(),
-                'percentile' => $percentileData['kast'] ?? 0,
-            ],
-            'util' => [
-                'value' => $trace->getUtil(),
-                'percentile' => $percentileData['util'] ?? 0,
-            ],
-            'clutch' => [
-                'value' => $trace->getClutch(),
-                'percentile' => $percentileData['clutch'] ?? 0,
-            ],
-        ];
+        $components = [];
+        foreach (['ekill', 'aim', 'kast', 'util', 'clutch'] as $component) {
+            $percentile = $percentileData[$component] ?? 0;
+
+            // Validate percentile is in valid range [0, 100]
+            if (!is_numeric($percentile) || $percentile < 0 || $percentile > 100) {
+                $percentile = 0;  // Reset to safe default if invalid
+            }
+
+            $method = 'get' . ucfirst($component);
+            $components[$component] = [
+                'value' => (float) $trace->$method(),
+                'percentile' => (int) round($percentile),
+            ];
+        }
 
         return new ComponentBreakdownCardDto(
             components: $components,
