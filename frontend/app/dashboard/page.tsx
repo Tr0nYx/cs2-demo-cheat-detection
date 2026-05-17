@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { UserProfile } from '@/components/UserProfile'
+import { DemoHistoryTable } from '@/components/DemoHistoryTable'
 import { Loader2 } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -50,6 +51,7 @@ export default function DashboardPage() {
           {/* Left Column: User Profile & History */}
           <div className="lg:col-span-2 space-y-8">
             <UserProfile />
+            <DemoHistoryTable />
           </div>
 
           {/* Right Column: Quick Upload (placeholder for now) */}

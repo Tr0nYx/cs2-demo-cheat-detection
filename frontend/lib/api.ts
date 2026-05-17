@@ -161,6 +161,61 @@ export const demoHeatmapUrl = (
   return `${API_BASE_URL}/demos/${demoId}/heatmap${query ? `?${query}` : ''}`
 }
 
+// User profile and authentication endpoints
+export const fetchUserProfile = async () => {
+  try {
+    const response = await api.get('/auth/me')
+    return response.data
+  } catch (error) {
+    console.error('Failed to fetch user profile:', error)
+    throw error
+  }
+}
+
+// Fetch user's demos with pagination and sorting
+export interface DemoListResponse {
+  demos: Demo[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    hasMore: boolean
+  }
+}
+
+export const fetchUserDemos = async (
+  page = 1,
+  limit = 20,
+  sortBy = 'date',
+  sortOrder = 'desc'
+): Promise<DemoListResponse> => {
+  try {
+    const response = await api.get('/demos', {
+      params: {
+        page,
+        limit,
+        sort: sortBy,
+        order: sortOrder,
+      },
+    })
+    return response.data
+  } catch (error) {
+    console.error('Failed to fetch user demos:', error)
+    throw error
+  }
+}
+
+// Logout function
+export const logout = async () => {
+  try {
+    const { signOut } = await import('next-auth/react')
+    await signOut({ callbackUrl: '/' })
+  } catch (error) {
+    console.error('Logout error:', error)
+    throw error
+  }
+}
+
 // Public metrics endpoint (no authentication required)
 export const fetchPublicMetrics = async () => {
   try {
