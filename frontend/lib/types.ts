@@ -70,3 +70,33 @@ export interface TraceError {
   message: string
   code?: string
 }
+
+// TRACE Component Percentiles - each component ranked 0-100% against peers
+export interface TraceComponentPercentilesDto {
+  ekill: number | null // E-Kill percentile (0-100) or null if insufficient data
+  aim: number | null // Aim percentile (0-100)
+  kast: number | null // KAST percentile (0-100)
+  util: number | null // Utility percentile (0-100)
+  clutch: number | null // Clutch percentile (0-100)
+}
+
+// TRACE History Entry - extends TraceDto with percentile rankings
+export interface TraceHistoryDto extends TraceDto {
+  percentiles: TraceComponentPercentilesDto
+  trustMultiplierPercentile: number | null
+  traceAdjustedPercentile: number | null
+}
+
+// Pagination metadata for history endpoints
+export interface PaginationMetadataDto {
+  total: number // Total records available
+  limit: number // Current page limit
+  offset: number // Current page offset
+  hasMore: boolean // Whether more records exist after current page
+}
+
+// TRACE History Collection - paginated list of history entries
+export interface TraceHistoryCollectionDto {
+  traces: TraceHistoryDto[]
+  pagination: PaginationMetadataDto
+}
