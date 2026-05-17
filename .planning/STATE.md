@@ -94,6 +94,7 @@ None yet.
 - Phase 13 completed: 6 waves covering Python viewer foundation, Symfony APIs/cache, heatmap worker, tick hooks, Canvas UI, suspicion review, and grenade inspector
 - Phase 14 completed: 4 waves covering landing page, Steam auth, user persistence, dashboard
 - Phase 15 completed: 6 plans in 5 waves covering user scoping filters, sensitivity analysis, comparison validation, trend metrics/caching, and filtered leaderboards
+- Phase 16 added: hltv demo scrape
 
 ## Deferred Items
 
@@ -106,9 +107,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-05-17
-Completed: Phase 15 advanced analytics and user scoping execution
-Current status: Phase 15 implementation complete
-Next work: Select next roadmap item or run full regression/UAT hardening
+Completed: Phase 16 planned
+Current status: Ready for execution
+Next work: Run /gsd-execute-phase 16
 
 **PROJECT EXECUTION STATUS: PHASE 15 COMPLETE**
 - Phase 3: Python Analysis Pipeline complete (analysis engine complete)

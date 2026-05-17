@@ -55,6 +55,12 @@ Depends on: Phase 14 (User persistence), Phase 12 (Leaderboards), Phase 9 (TRACE
 - [x] 15-04-PLAN.md - Consistency, arc, weapon trend endpoints and cache invalidation
 - [x] 15-05-PLAN.md - Dynamic filtered TRACE rankings and route-mocked integration spec
 
+### Phase 16 Plans (Not started)
+
+Goal: hltv demo scrape
+
+Depends on: Phase 15
+
 ### Backlog
 
 - Trend forecasting beyond current consistency/arc/weapon analytics
