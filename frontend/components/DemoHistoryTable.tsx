@@ -26,7 +26,11 @@ interface SortState {
   sortOrder: 'asc' | 'desc'
 }
 
-export function DemoHistoryTable() {
+interface DemoHistoryTableProps {
+  refreshKey?: number
+}
+
+export function DemoHistoryTable({ refreshKey = 0 }: DemoHistoryTableProps) {
   const router = useRouter()
   const [demos, setDemos] = useState<Demo[]>([])
   const [pagination, setPagination] = useState({
@@ -55,8 +59,8 @@ export function DemoHistoryTable() {
   }
 
   useEffect(() => {
-    loadDemos(pagination.page, sort.sortBy, sort.sortOrder)
-  }, [])
+    loadDemos(1, sort.sortBy, sort.sortOrder)
+  }, [refreshKey])
 
   const handleSort = (column: 'date' | 'suspicion') => {
     const newSort: SortState =

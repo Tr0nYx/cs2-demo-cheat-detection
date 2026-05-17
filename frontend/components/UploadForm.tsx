@@ -23,7 +23,11 @@ const uploadSchema = z.object({
 
 type UploadInput = z.infer<typeof uploadSchema>
 
-export function UploadForm() {
+interface UploadFormProps {
+  onUploadSuccess?: () => void
+}
+
+export function UploadForm({ onUploadSuccess }: UploadFormProps = {}) {
   const router = useRouter()
   const uploadMutation = useUploadDemo()
   const [isDragActive, setIsDragActive] = useState(false)
@@ -48,7 +52,11 @@ export function UploadForm() {
         file: data.file,
         steamMatchId: data.steamMatchId || undefined,
       })
-      router.push(`/results/${result.id}`)
+      onUploadSuccess?.()
+      // Only redirect if not in a quick-upload context (no callback = landing page)
+      if (!onUploadSuccess) {
+        router.push(`/results/${result.id}`)
+      }
     } catch (error) {
       // Error is handled by mutation state
     }

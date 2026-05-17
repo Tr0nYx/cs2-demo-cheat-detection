@@ -1,16 +1,18 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { UserProfile } from '@/components/UserProfile'
 import { DemoHistoryTable } from '@/components/DemoHistoryTable'
+import { QuickUploadCard } from '@/components/QuickUploadCard'
 import { Loader2 } from 'lucide-react'
 
 export default function DashboardPage() {
   const { status } = useSession()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     if (status === 'loading') {
@@ -51,16 +53,16 @@ export default function DashboardPage() {
           {/* Left Column: User Profile & History */}
           <div className="lg:col-span-2 space-y-8">
             <UserProfile />
-            <DemoHistoryTable />
+            <DemoHistoryTable refreshKey={refreshKey} />
           </div>
 
-          {/* Right Column: Quick Upload (placeholder for now) */}
+          {/* Right Column: Quick Upload */}
           <div className="space-y-8">
-            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <h2 className="text-xl font-semibold text-white mb-4">Quick Upload</h2>
-              <p className="text-gray-400 text-sm mb-4">Upload a demo file to get started with analysis.</p>
-              <p className="text-xs text-gray-500">(Coming soon in next section)</p>
-            </div>
+            <QuickUploadCard
+              onUploadSuccess={() => {
+                setRefreshKey((k) => k + 1)
+              }}
+            />
           </div>
         </div>
       </div>
