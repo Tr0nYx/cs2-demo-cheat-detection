@@ -119,6 +119,30 @@ final class AnalyticsControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(429);
     }
 
+    public function testGetTrendInsufficientDataReturnsMessage(): void
+    {
+        $client = self::createClient();
+
+        $client->request(
+            'GET',
+            '/api/analytics/trends/arc',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('player-a')]
+        );
+
+        self::assertResponseIsSuccessful();
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('Only 0 demos, need 5+.', $payload['message']);
+    }
+
+    public function testGetTrendRequiresJwt(): void
+    {
+        $client = self::createClient();
+
+        $client->request('GET', '/api/analytics/trends/consistency');
+
+        self::assertResponseStatusCodeSame(401);
+    }
+
     /** @param array<string, int> $thresholds */
     private function postCompare(\Symfony\Bundle\FrameworkBundle\KernelBrowser $client, string $demoId, array $thresholds, string $steamId): void
     {

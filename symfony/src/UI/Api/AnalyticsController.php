@@ -6,7 +6,9 @@ namespace App\UI\Api;
 
 use App\Application\Handler\ValidateSensitivityComparisonHandler;
 use App\Application\Exception\AccessDeniedException;
+use App\Application\Handler\GetAnalyticsTrendHandler;
 use App\Application\Query\ValidateSensitivityComparisonQuery;
+use App\Application\Query\GetAnalyticsTrendQuery;
 use App\Application\Service\SensitivityComparisonRateLimiter;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,11 +21,40 @@ final class AnalyticsController extends AbstractController
 {
     public function __construct(
         private readonly ValidateSensitivityComparisonHandler $comparisonHandler,
+        private readonly GetAnalyticsTrendHandler $trendHandler,
         private readonly SensitivityComparisonRateLimiter $rateLimiter,
         private readonly ApiErrorResponder $errors,
         private readonly LoggerInterface $logger,
         private readonly string $jwtSecret,
     ) {
+    }
+
+    #[Route('/trends/{metric}', name: 'api_analytics_trend', methods: ['GET'])]
+    public function trend(string $metric, Request $request): JsonResponse
+    {
+        $payload = $this->authenticatedPayload($request);
+        $userId = is_array($payload) ? (string) ($payload['steam_id'] ?? $payload['sub'] ?? '') : '';
+
+        if ($userId === '') {
+            return $this->errors->problem(ApiProblem::unauthorized('unauthorized', 'Missing or invalid Authorization header.'));
+        }
+
+        if (!$this->rateLimiter->consume($userId.':trend')) {
+            return $this->errors->problem(ApiProblem::tooManyRequests('rate_limited', 'Too many trend requests. Try again in a minute.'));
+        }
+
+        try {
+            $window = $metric === 'consistency' ? $request->query->getInt('window', 30) : 999;
+            $trend = ($this->trendHandler)(new GetAnalyticsTrendQuery($userId, $metric, $window));
+
+            return new JsonResponse($trend->toArray());
+        } catch (\InvalidArgumentException $e) {
+            return $this->errors->problem(ApiProblem::badRequest('invalid_trend_request', $e->getMessage()));
+        } catch (\Throwable $e) {
+            $this->logger->error('Trend request failed.', ['message' => $e->getMessage()]);
+
+            return $this->errors->unexpected();
+        }
     }
 
     #[Route('/compare', name: 'api_analytics_compare', methods: ['POST'])]

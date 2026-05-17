@@ -119,6 +119,30 @@ class TraceRatingRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
+    /** @return list<TraceRating> */
+    public function findByPlayerSince(string $playerId, \DateTimeImmutable $since): array
+    {
+        return $this->createQueryBuilder('tr')
+            ->where('tr.playerId = :playerId')
+            ->andWhere('tr.calculatedAt >= :since')
+            ->setParameter('playerId', $playerId)
+            ->setParameter('since', $since, \Doctrine\DBAL\Types\Types::DATETIME_IMMUTABLE)
+            ->orderBy('tr.calculatedAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /** @return list<TraceRating> */
+    public function findAllByPlayerAscending(string $playerId): array
+    {
+        return $this->createQueryBuilder('tr')
+            ->where('tr.playerId = :playerId')
+            ->setParameter('playerId', $playerId)
+            ->orderBy('tr.calculatedAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     /**
      * Find qualified players (5+ demos) sorted by trace_adjusted descending for global leaderboard.
      *

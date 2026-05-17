@@ -276,3 +276,43 @@ export interface DemoDetailDto extends Demo {
     original_filename?: string | null
   }
 }
+
+export type TrendMetric = 'consistency' | 'arc' | 'weapons'
+
+export interface VarianceBandDto {
+  timestamp: string
+  meanScore: number
+  upperBound: number
+  lowerBound: number
+  demoCount: number
+}
+
+export interface ConsistencyTrendDto {
+  bands: VarianceBandDto[]
+  flaggedDates: string[]
+  minDemosRequirement: number
+  message: string | null
+}
+
+export interface OutlierDto {
+  demoIndex: number
+  demoId: string
+  actualScore: number
+  predictedScore: number
+  deviation: number
+}
+
+export interface ArcTrendDto {
+  slope: number
+  intercept: number
+  rSquared: number
+  outliersDetected: OutlierDto[]
+  message: string | null
+}
+
+export interface WeaponStrengthDto {
+  strengths: Record<string, number>
+  message: string | null
+}
+
+export type AnalyticsTrendResponse = ConsistencyTrendDto | ArcTrendDto | WeaponStrengthDto
