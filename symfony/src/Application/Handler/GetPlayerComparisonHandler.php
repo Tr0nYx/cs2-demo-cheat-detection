@@ -11,6 +11,7 @@ use App\Application\Leaderboard\PlayerComparisonDto;
 use App\Application\Leaderboard\TrendCardDto;
 use App\Application\Query\GetPlayerComparisonQuery;
 use App\Application\Service\PercentileCalculator;
+use App\Domain\Player\PlayerNotFoundException;
 use App\Infrastructure\Persistence\AnalysisResultRepository;
 use App\Infrastructure\Persistence\PlayerRepository;
 use App\Infrastructure\Persistence\TraceRatingRepository;
@@ -48,7 +49,7 @@ final readonly class GetPlayerComparisonHandler implements MessageHandlerInterfa
      *
      * @param GetPlayerComparisonQuery $query Query with playerId and compareWithId
      * @return PlayerComparisonDto Aggregated comparison data for both players
-     * @throws \InvalidArgumentException if players not found
+     * @throws PlayerNotFoundException if players not found
      */
     public function __invoke(GetPlayerComparisonQuery $query): PlayerComparisonDto
     {
@@ -58,7 +59,10 @@ final readonly class GetPlayerComparisonHandler implements MessageHandlerInterfa
             $playerB = $this->playerRepo->find($query->compareWithId);
 
             if (!$playerA || !$playerB) {
-                throw new \InvalidArgumentException('One or both players not found');
+                throw PlayerNotFoundException::forComparison(
+                    !$playerA ? $query->playerId : '',
+                    !$playerB ? $query->compareWithId : ''
+                );
             }
 
             $playerAName = $playerA->getDisplayName() ?? 'Unknown';
@@ -95,8 +99,9 @@ final readonly class GetPlayerComparisonHandler implements MessageHandlerInterfa
                 playerBMaps: $mapAffinityCardB,
                 playerBHistory: $historyCardB,
             );
-        } catch (\InvalidArgumentException $e) {
-            $this->logger->warning('Player comparison failed: invalid arguments', [
+        } catch (PlayerNotFoundException $e) {
+            // Domain exception: player resource not found
+            $this->logger->info('Player not found for comparison', [
                 'playerId' => $query->playerId,
                 'compareWithId' => $query->compareWithId,
                 'error' => $e->getMessage(),

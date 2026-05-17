@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Presentation\Controller;
 
 use App\Application\Query\GetPlayerComparisonQuery;
+use App\Domain\Player\PlayerNotFoundException;
 use App\UI\Api\ApiErrorResponder;
 use App\UI\Api\ApiProblem;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -98,6 +99,11 @@ final class PlayerComparisonController extends AbstractController
             $response->headers->set('Cache-Control', 'public, max-age=300');
 
             return $response;
+        } catch (PlayerNotFoundException $e) {
+            // Player resource not found - return 404
+            return $this->errors->problem(
+                ApiProblem::notFound('player_not_found', $e->getMessage())
+            );
         } catch (\InvalidArgumentException $e) {
             // Validation errors from handler
             return $this->errors->problem(
