@@ -4,10 +4,9 @@ import { TraceSparkline } from '@/components/DemoDetail/TraceSparkline'
 import { TraceHistoryDto } from '@/lib/types'
 
 // Mock recharts
-jest.mock('recharts', () => {
-  const React = require('react')
-  return {
-    LineChart: ({ children, ...props }: any) => (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+jest.mock('recharts', () => ({
+  LineChart: ({ children, ...props }: any) => (
       <div data-testid="line-chart" {...props}>
         {children}
       </div>
@@ -190,7 +189,7 @@ describe('TraceSparkline', () => {
       createHistoryEntry(0.7, 0),
     ]
 
-    const { container } = render(<TraceSparkline history={history} />)
+    render(<TraceSparkline history={history} />)
 
     const chart = screen.getByLabelText('TRACE score trend sparkline')
     expect(chart).toBeInTheDocument()
@@ -233,7 +232,7 @@ describe('TraceSparkline', () => {
       createHistoryEntry(0.8, 0),
     ]
 
-    const { container } = render(<TraceSparkline history={history} />)
+    render(<TraceSparkline history={history} />)
 
     const trendElement = screen.getByText('Improving').parentElement
     expect(trendElement).toHaveClass('text-green-600')
@@ -246,7 +245,7 @@ describe('TraceSparkline', () => {
       createHistoryEntry(0.5, 0),
     ]
 
-    const { container } = render(<TraceSparkline history={history} />)
+    render(<TraceSparkline history={history} />)
 
     const trendElement = screen.getByText('Declining').parentElement
     expect(trendElement).toHaveClass('text-red-600')

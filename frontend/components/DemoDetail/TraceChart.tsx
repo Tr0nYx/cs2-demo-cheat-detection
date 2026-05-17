@@ -8,7 +8,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts'
@@ -18,6 +17,53 @@ interface TraceChartProps {
   components: TraceComponentDto
   percentiles: TraceComponentPercentilesDto
   calibrationMean?: number // Optional: reference line for baseline
+}
+
+interface ChartDataItem {
+  name: string
+  value: number
+  percentile: number | null
+  fullName: string
+}
+
+/**
+ * Custom tooltip component showing value, percentile, and mean
+ */
+function CustomTooltip({
+  active,
+  payload,
+  calibrationMean,
+}: {
+  active?: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: Array<{ value: number; payload: any }>
+  calibrationMean: number
+}) {
+  if (active && payload && payload[0]) {
+    const item = payload[0].payload as ChartDataItem
+    const delta = item.value - calibrationMean
+    const deltaStr = delta > 0 ? `+${delta.toFixed(2)}` : delta.toFixed(2)
+
+    return (
+      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 shadow-lg z-50">
+        <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+          {item.name}
+        </p>
+        <p className="text-sm text-gray-700 dark:text-gray-300">
+          Score: <span className="font-mono font-semibold">{item.value.toFixed(2)}</span>
+        </p>
+        {item.percentile !== null && (
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            Percentile: <span className="font-mono font-semibold">{Math.round(item.percentile)}%ile</span>
+          </p>
+        )}
+        <p className="text-sm text-gray-700 dark:text-gray-300">
+          vs. Mean: <span className="font-mono font-semibold">{deltaStr}</span>
+        </p>
+      </div>
+    )
+  }
+  return null
 }
 
 /**
@@ -90,43 +136,6 @@ export function TraceChart({
     }
   }
 
-  /**
-   * Custom tooltip component showing value, percentile, and mean
-   */
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean
-    payload?: Array<{ value: number; payload: (typeof data)[0] }>
-  }) => {
-    if (active && payload && payload[0]) {
-      const { payload: item } = payload[0]
-      const delta = item.value - calibrationMean
-      const deltaStr = delta > 0 ? `+${delta.toFixed(2)}` : delta.toFixed(2)
-
-      return (
-        <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 shadow-lg z-50">
-          <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
-            {item.name}
-          </p>
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            Score: <span className="font-mono font-semibold">{item.value.toFixed(2)}</span>
-          </p>
-          {item.percentile !== null && (
-            <p className="text-sm text-gray-700 dark:text-gray-300">
-              Percentile: <span className="font-mono font-semibold">{Math.round(item.percentile)}%ile</span>
-            </p>
-          )}
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            vs. Mean: <span className="font-mono font-semibold">{deltaStr}</span>
-          </p>
-        </div>
-      )
-    }
-    return null
-  }
-
   return (
     <div className="w-full space-y-4">
       <ResponsiveContainer width="100%" height={300}>
@@ -153,7 +162,9 @@ export function TraceChart({
             width={60}
             tick={{ fontSize: 12 }}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip
+            content={<CustomTooltip calibrationMean={calibrationMean} />}
+          />
           <ReferenceLine
             x={1.0}
             stroke="#9ca3af"
@@ -168,11 +179,7 @@ export function TraceChart({
           <Bar
             dataKey="value"
             fill="#8884d8"
-            shape={
-              <BarShape
-                getColor={getBarColor}
-              />
-            }
+            shape={<BarShape />}
             radius={[0, 8, 8, 0]}
           />
         </BarChart>
@@ -205,23 +212,35 @@ export function TraceChart({
 /**
  * Custom bar shape that applies color based on value
  */
-function BarShape({
-  getColor,
-  ...props
-}: {
-  getColor: (value: number) => string
+interface BarShapeProps extends React.SVGProps<SVGRectElement> {
+  getColor?: (value: number) => string
   x?: number
   y?: number
   width?: number
   height?: number
   fill?: string
-  payload?: { value: number }
-} & React.SVGProps<SVGRectElement>) {
-  const { x = 0, y = 0, width = 0, height = 0, payload } = props
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: any
+}
 
+function BarShape({
+  x = 0,
+  y = 0,
+  width = 0,
+  height = 0,
+  payload,
+}: BarShapeProps) {
   if (!payload) return null
 
-  const color = getColor(payload.value)
+  // Determine color based on value
+  let color = '#8884d8'
+  if (payload.value < 0.6) {
+    color = '#dc2626' // red-600
+  } else if (payload.value < 1.4) {
+    color = '#f59e0b' // amber-500
+  } else {
+    color = '#16a34a' // green-600
+  }
 
   return (
     <rect

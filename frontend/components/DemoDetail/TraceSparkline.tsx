@@ -110,15 +110,10 @@ export function TraceSparkline({
   /**
    * Custom tooltip component
    */
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean
-    payload?: Array<{ value: number; payload: (typeof data)[0] }>
-  }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function CustomTooltip({ active, payload }: { active?: boolean; payload?: any }) {
     if (active && payload && payload[0]) {
-      const { payload: item } = payload[0]
+      const item = payload[0].payload
 
       return (
         <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700 shadow-lg z-50">
@@ -130,7 +125,11 @@ export function TraceSparkline({
           </p>
           {item.delta !== 0 && (
             <p className="text-xs text-gray-700 dark:text-gray-300">
-              Change: <span className="font-mono">{item.delta > 0 ? '+' : ''}{item.delta.toFixed(3)}</span>
+              Change:{' '}
+              <span className="font-mono">
+                {item.delta > 0 ? '+' : ''}
+                {item.delta.toFixed(3)}
+              </span>
             </p>
           )}
         </div>

@@ -1,14 +1,12 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { TraceChart } from '@/components/DemoDetail/TraceChart'
 import { TraceComponentDto, TraceComponentPercentilesDto } from '@/lib/types'
 
 // Mock recharts to avoid canvas issues in Jest
-jest.mock('recharts', () => {
-  const React = require('react')
-  return {
-    BarChart: ({ children, ...props }: any) => (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+jest.mock('recharts', () => ({
+  BarChart: ({ children, ...props }: any) => (
       <div data-testid="bar-chart" {...props}>
         {children}
       </div>
@@ -86,7 +84,7 @@ describe('TraceChart', () => {
   })
 
   it('has proper ARIA labels for accessibility', () => {
-    const { container } = render(
+    render(
       <TraceChart components={mockComponents} percentiles={mockPercentiles} />
     )
 
@@ -153,7 +151,7 @@ describe('TraceChart', () => {
   })
 
   it('renders mobile-responsive container', () => {
-    const { container } = render(
+    render(
       <TraceChart components={mockComponents} percentiles={mockPercentiles} />
     )
 

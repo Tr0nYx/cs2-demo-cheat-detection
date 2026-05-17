@@ -402,8 +402,6 @@ test.describe('TRACE Visualizations', () => {
 
     await page.goto(`/results/${demoId}`)
 
-    // Page should load without the TRACE card
-    const page_title = page.locator('text=Analysis')
     // TRACE card should be hidden when not available
     expect(page).toBeDefined()
   })
