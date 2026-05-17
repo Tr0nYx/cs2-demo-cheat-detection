@@ -3,7 +3,7 @@
 import type { FeatureThresholds, FeatureVectorsDto } from '@/lib/types'
 import { DEFAULT_THRESHOLDS, COMPONENT_WEIGHTS, useSensitivityTuner } from '@/lib/hooks/useSensitivityTuner'
 import { Button } from '@/components/ui/button'
-import { Loader2, RotateCcw, SlidersHorizontal } from 'lucide-react'
+import { Copy, Loader2, RotateCcw, SlidersHorizontal } from 'lucide-react'
 
 const FEATURES: Array<{
   key: keyof FeatureThresholds
@@ -66,14 +66,29 @@ function SensitivityTunerContent({
   onSave,
   isSaving = false,
 }: SensitivityTunerProps & { featureVectors: FeatureVectorsDto }) {
-  const { thresholds, setThresholds, estimatedScore, saveComparison } = useSensitivityTuner(demoId, featureVectors)
+  const {
+    thresholds,
+    setThresholds,
+    estimatedScore,
+    comparisonResult,
+    mutation,
+    saveComparison,
+    clearComparison,
+  } = useSensitivityTuner(demoId, featureVectors)
   const baseline = baselineSuspicion ?? 0
   const difference = estimatedScore - baseline
-  const changed = Math.abs(difference) > 0.001
+  const changed = Math.abs(difference) >= 0.01
+  const saving = isSaving || mutation.isPending
 
   const handleSave = () => {
     onSave?.()
     saveComparison()
+  }
+
+  const handleCopy = async () => {
+    if (comparisonResult && navigator.clipboard) {
+      await navigator.clipboard.writeText(JSON.stringify(comparisonResult, null, 2))
+    }
   }
 
   return (
@@ -142,11 +157,77 @@ function SensitivityTunerContent({
           <RotateCcw className="h-4 w-4" />
           Reset to Defaults
         </Button>
-        <Button type="button" onClick={handleSave} disabled={!changed || isSaving}>
-          {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+        <Button type="button" onClick={handleSave} disabled={!changed || saving}>
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
           Save Comparison
         </Button>
       </div>
+
+      {mutation.error && (
+        <div className="mt-4 rounded-md border border-red-800 bg-red-950/40 p-3 text-sm text-red-200">
+          Failed to save comparison: {mutation.error.message}
+        </div>
+      )}
+
+      {comparisonResult && (
+        <div className="mt-5 rounded-md border border-blue-900 bg-blue-950/30 p-4">
+          <h3 className="text-sm font-semibold text-blue-100">Validated Comparison</h3>
+          <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+            <div>
+              <div className="text-xs uppercase text-blue-300/70">Baseline Suspicion</div>
+              <div className="text-lg text-white">{comparisonResult.baselineSuspicion.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase text-blue-300/70">Tuned Suspicion</div>
+              <div className={`text-lg font-semibold ${scoreColor(comparisonResult.tunedSuspicion)}`}>
+                {comparisonResult.tunedSuspicion.toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs uppercase text-blue-300/70">Difference</div>
+              <div className={comparisonResult.tunedSuspicion >= comparisonResult.baselineSuspicion ? 'text-red-300' : 'text-green-300'}>
+                {(comparisonResult.tunedSuspicion - comparisonResult.baselineSuspicion) >= 0 ? '+' : ''}
+                {(comparisonResult.tunedSuspicion - comparisonResult.baselineSuspicion).toFixed(2)}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-xs text-blue-100">
+              <thead className="text-blue-300/70">
+                <tr>
+                  <th className="py-2 pr-3 font-medium">Feature</th>
+                  <th className="py-2 pr-3 font-medium">Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                {FEATURES.map((feature) => {
+                  const impact = comparisonResult.impactBreakdown[feature.key] ?? 0
+
+                  return (
+                    <tr key={feature.key} className="border-t border-blue-900/60">
+                      <td className="py-2 pr-3">{feature.label}</td>
+                      <td className={impact >= 0 ? 'py-2 pr-3 text-red-300' : 'py-2 pr-3 text-green-300'}>
+                        {impact >= 0 ? '+' : ''}{impact.toFixed(2)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={handleCopy}>
+              <Copy className="h-4 w-4" />
+              Copy Comparison
+            </Button>
+            <Button type="button" variant="outline" onClick={clearComparison}>
+              Adjust More
+            </Button>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

@@ -4,6 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SensitivityTuner } from '@/components/Analytics/SensitivityTuner'
 import type { FeatureVectorsDto } from '@/lib/types'
 
+jest.mock('next-auth/react', () => ({
+  useSession: () => ({
+    data: { accessToken: 'test-token' },
+  }),
+}))
+
 const vectors: FeatureVectorsDto = {
   aimbotScore: 0.9,
   wallhackScore: 0.1,
@@ -22,6 +28,24 @@ function renderWithQueryClient(ui: React.ReactElement) {
 }
 
 describe('SensitivityTuner', () => {
+  beforeEach(() => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        baselineSuspicion: 0.51,
+        tunedSuspicion: 0.4,
+        impactBreakdown: {
+          aimbot: -0.25,
+          wallhack: 0,
+          triggerbot: 0,
+          recoil: 0,
+          bhop: 0,
+          session: 0,
+        },
+      }),
+    }) as jest.Mock
+  })
+
   it('shows an unavailable state when feature vectors are missing', () => {
     renderWithQueryClient(<SensitivityTuner demoId="demo-1" featureVectors={null} />)
 

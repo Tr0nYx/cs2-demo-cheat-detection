@@ -60,5 +60,9 @@ services:
         arguments:
             $jwtSecret: '%jwt_secret%'
 
+    App\UI\Api\AnalyticsController:
+        arguments:
+            $jwtSecret: '%jwt_secret%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

@@ -45,6 +45,20 @@ final class AnalysisResultRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function findByDemoIdAndUserId(string $demoId, string $steamId): ?AnalysisResult
+    {
+        return $this->createQueryBuilder('result')
+            ->join('result.demo', 'demo')
+            ->join('result.player', 'player')
+            ->andWhere('demo.id = :demoId')
+            ->andWhere('player.steamId = :steamId')
+            ->setParameter('demoId', $demoId)
+            ->setParameter('steamId', $steamId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     /** @param array<string, mixed> $featureData @param array<string, mixed> $supportData */
     public function upsertForDemoAndPlayer(
         Demo $demo,

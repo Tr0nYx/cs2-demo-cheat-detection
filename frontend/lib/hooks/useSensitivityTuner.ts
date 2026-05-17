@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { useSession } from 'next-auth/react'
 import type { FeatureThresholds, FeatureVectorsDto, SensitivityComparisonDto } from '@/lib/types'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'
 
 export const DEFAULT_THRESHOLDS: FeatureThresholds = {
   aimbot: 50,
@@ -41,6 +44,7 @@ export function calculateEstimatedScore(thresholds: FeatureThresholds, vectors: 
 }
 
 export function useSensitivityTuner(demoId: string, featureVectors: FeatureVectorsDto) {
+  const { data: session } = useSession()
   const [thresholds, updateThresholds] = useState<FeatureThresholds>(DEFAULT_THRESHOLDS)
   const [comparisonResult, setComparisonResult] = useState<SensitivityComparisonDto | null>(null)
 
@@ -61,13 +65,28 @@ export function useSensitivityTuner(demoId: string, featureVectors: FeatureVecto
     }))
   }
 
-  const mutation = useMutation({
+  const mutation = useMutation<SensitivityComparisonDto, Error, { demoId: string; adjustedThresholds: FeatureThresholds }>({
     mutationKey: ['demo', demoId, 'sensitivity-comparison'],
-    mutationFn: async (): Promise<SensitivityComparisonDto> => ({
-      baselineSuspicion: calculateEstimatedScore(DEFAULT_THRESHOLDS, featureVectors),
-      tunedSuspicion: estimatedScore,
-      impactBreakdown: {},
-    }),
+    mutationFn: async ({ demoId, adjustedThresholds }) => {
+      const response = await fetch(`${API_BASE_URL}/analytics/compare`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          demo_id: demoId,
+          adjusted_thresholds: adjustedThresholds,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.error?.message || 'Failed to validate comparison')
+      }
+
+      return response.json()
+    },
     onSuccess: setComparisonResult,
   })
 
@@ -77,6 +96,7 @@ export function useSensitivityTuner(demoId: string, featureVectors: FeatureVecto
     estimatedScore,
     comparisonResult,
     mutation,
-    saveComparison: () => mutation.mutate(),
+    saveComparison: () => mutation.mutate({ demoId, adjustedThresholds: thresholds }),
+    clearComparison: () => setComparisonResult(null),
   }
 }

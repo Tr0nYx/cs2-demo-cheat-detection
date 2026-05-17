@@ -8,6 +8,12 @@ import {
 } from '@/lib/hooks/useSensitivityTuner'
 import type { FeatureVectorsDto } from '@/lib/types'
 
+jest.mock('next-auth/react', () => ({
+  useSession: () => ({
+    data: { accessToken: 'test-token' },
+  }),
+}))
+
 const vectors: FeatureVectorsDto = {
   aimbotScore: 0.9,
   wallhackScore: 0.1,
@@ -17,15 +23,19 @@ const vectors: FeatureVectorsDto = {
   sessionScore: 0.6,
 }
 
-function wrapper({ children }: { children: React.ReactNode }) {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  })
+let queryClient: QueryClient
 
+function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }
 
 describe('useSensitivityTuner', () => {
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })
+  })
+
   it('calculates the weighted triggered feature score', () => {
     expect(calculateEstimatedScore(DEFAULT_THRESHOLDS, vectors)).toBeCloseTo(0.65)
   })
