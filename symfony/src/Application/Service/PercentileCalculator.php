@@ -49,11 +49,21 @@ final readonly class PercentileCalculator
     {
         $startTime = microtime(true);
 
-        // Get total count of TRACE records (latest 1000 for performance)
+        // Get total count of TRACE records
         $allTraces = $this->repository->findByCalibrationVersion($trace->getCalibrationVersion());
+        $totalAvailable = count($allTraces);
 
-        // Limit to last 1000 for performance
+        // Limit to last 1000 for performance: recent data is most representative
+        // WARNING: Percentiles exclude older records, potentially skewing results
         $allTraces = array_slice($allTraces, -1000);
+
+        if ($totalAvailable > 1000) {
+            $this->logger->warning('Percentile calculation uses limited dataset', [
+                'limit' => 1000,
+                'totalAvailable' => $totalAvailable,
+                'discarded' => $totalAvailable - 1000,
+            ]);
+        }
 
         if (count($allTraces) < 10) {
             $this->logger->info('Insufficient TRACE data for percentile calculation', [
@@ -97,7 +107,19 @@ final readonly class PercentileCalculator
     public function calculateTrustMultiplierPercentile(float $trustMultiplier, string $calibrationVersion): ?float
     {
         $allTraces = $this->repository->findByCalibrationVersion($calibrationVersion);
+        $totalAvailable = count($allTraces);
+
+        // Limit to last 1000 for performance: recent data is most representative
+        // WARNING: Percentiles exclude older records, potentially skewing results
         $allTraces = array_slice($allTraces, -1000);
+
+        if ($totalAvailable > 1000) {
+            $this->logger->warning('Percentile calculation uses limited dataset', [
+                'limit' => 1000,
+                'totalAvailable' => $totalAvailable,
+                'discarded' => $totalAvailable - 1000,
+            ]);
+        }
 
         if (count($allTraces) < 10) {
             return null;
@@ -120,7 +142,19 @@ final readonly class PercentileCalculator
     public function calculateTraceAdjustedPercentile(float $traceAdjusted, string $calibrationVersion): ?float
     {
         $allTraces = $this->repository->findByCalibrationVersion($calibrationVersion);
+        $totalAvailable = count($allTraces);
+
+        // Limit to last 1000 for performance: recent data is most representative
+        // WARNING: Percentiles exclude older records, potentially skewing results
         $allTraces = array_slice($allTraces, -1000);
+
+        if ($totalAvailable > 1000) {
+            $this->logger->warning('Percentile calculation uses limited dataset', [
+                'limit' => 1000,
+                'totalAvailable' => $totalAvailable,
+                'discarded' => $totalAvailable - 1000,
+            ]);
+        }
 
         if (count($allTraces) < 10) {
             return null;
