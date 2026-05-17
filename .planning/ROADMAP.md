@@ -32,11 +32,11 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 - [x] **Phase 12: TRACE Leaderboards** — Global, per-map, time-windowed, and team rankings with 4-metric player comparison (Complete 2026-05-17)
 - [x] **Phase 13: 2D Demo Viewer + Heatmap Module** — Interactive post-game radar viewer, server-rendered heatmaps, tick/event APIs, grenade inspector, and cheat-suspicion overlays (Complete 2026-05-17)
 
-### Planned Phases
+### In Progress Phases
 
-- [ ] **Phase 14: Landing Page + Steam Login** — Public landing page with Steam API authentication, user profile, demo history, quick demo upload
+- [x] **Phase 14: Landing Page + Steam Login** (3/4 waves complete; Wave 4 just finished)
 
-### Phase 14 Plans (Planning Complete)
+### Phase 14 Plans (Execution In Progress)
 
 **Phase 14: Landing Page + Steam Login**
 
@@ -44,17 +44,17 @@ Goal: Build a public landing page with Steam API authentication, user session ma
 
 Depends on: Phase 13 (Demo Viewer), Phase 6 (Frontend), Phase 2 (Symfony Backend)
 
-**Wave 1: Landing Page UI**
-- [ ] 14-01-PLAN.md — Hero section, features cards, public metrics display, responsive design
+**Wave 1: Landing Page UI** ✅
+- [x] 14-01-PLAN.md — Hero section, features cards, public metrics display, responsive design (Complete 2026-05-17)
 
-**Wave 2: Steam Authentication**
-- [ ] 14-02-PLAN.md — Custom Steam OpenID 2.0 provider with next-auth, backend validation, JWT token generation
+**Wave 2: Steam Authentication** ✅
+- [x] 14-02-PLAN.md — Custom Steam OpenID 2.0 provider with next-auth, backend validation, JWT token generation (Complete 2026-05-17)
 
-**Wave 3: User Persistence**
-- [ ] 14-03-PLAN.md — Doctrine User entity, PostgreSQL migrations, refresh token storage, repository methods
+**Wave 3: User Persistence** ✅
+- [x] 14-03-PLAN.md — Doctrine User entity, PostgreSQL migrations, refresh token storage, repository methods (Complete 2026-05-17)
 
-**Wave 4: Dashboard & Demo History**
-- [ ] 14-04-PLAN.md — Authenticated dashboard, personalized demo history with pagination/sorting, quick upload, public metrics caching
+**Wave 4: Dashboard & Demo History** ✅
+- [x] 14-04-PLAN.md — Authenticated dashboard, personalized demo history with pagination/sorting, quick upload, public metrics caching (Complete 2026-05-17)
 
 Cross-wave structure:
 - Wave 1 is independent (landing page UI only)
@@ -79,4 +79,4 @@ Cross-wave structure:
 
 ---
 
-*Last updated: 2026-05-17 after Phase 13 completion; Phase 14 planned with 4 waves (1 landing page UI, 1 Steam auth, 1 user persistence, 1 dashboard)*
+*Last updated: 2026-05-17 after Phase 14 Wave 4 completion; Phase 14 in progress (4/4 waves complete, all features deployed)*
