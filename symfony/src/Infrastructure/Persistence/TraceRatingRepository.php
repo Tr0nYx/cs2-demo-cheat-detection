@@ -274,9 +274,12 @@ class TraceRatingRepository extends ServiceEntityRepository
      * Returns the highest TRACE-adjusted scores for each unique map that the player has played.
      * Used for map affinity comparison view to show which maps the player performs best on.
      *
+     * Note: SQL query aliases 'd.map' as 'mapId', but array key is 'map' for
+     * consistency with frontend MapAffinityCardDto expectations.
+     *
      * @param string $playerId Player ID to search for
      * @param int $limit Maximum number of maps to return (default 3)
-     * @return array<array{mapId: string, traceAdjusted: float}> Array of top maps with scores
+     * @return array<array{map: string, traceAdjusted: float}> Array of top maps with scores
      */
     public function findTopMapsByPlayer(string $playerId, int $limit = 3): array
     {
@@ -285,6 +288,9 @@ class TraceRatingRepository extends ServiceEntityRepository
             ->innerJoin('tr.analysisResult', 'ar')
             ->innerJoin('ar.demo', 'd')
             ->where('tr.playerId = :playerId')
+            // Safe: d.map is a direct entity column reference, not user input.
+            // The groupBy clause is safe from SQL injection as it references the mapped column.
+            // If refactoring to parameterize map filtering, ensure new parameters are properly bound.
             ->groupBy('d.map')
             ->setParameter('playerId', $playerId)
             ->orderBy('traceAdjusted', 'DESC')
@@ -292,9 +298,9 @@ class TraceRatingRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
 
-        // Convert to expected format
+        // Convert to expected format (returning 'map' instead of 'mapId' for consistency with frontend)
         return array_map(fn(array $row) => [
-            'map' => $row['mapId'],
+            'map' => $row['mapId'],  // Clarify: this is the Map ID string, not a Map object
             'traceAdjusted' => (float) $row['traceAdjusted'],
         ], $results);
     }
