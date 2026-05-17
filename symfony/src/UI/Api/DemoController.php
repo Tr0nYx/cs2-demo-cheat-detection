@@ -44,6 +44,79 @@ final class DemoController extends AbstractController
         }
     }
 
+    #[Route('', name: 'api_demos_list', methods: ['GET'])]
+    public function list(Request $request): JsonResponse
+    {
+        try {
+            $page = $request->query->getInt('page', 1);
+            $limit = $request->query->getInt('limit', 20);
+            $sortBy = $request->query->getString('sort', 'date');
+            $sortOrder = $request->query->getString('order', 'desc');
+
+            // Validate pagination parameters
+            if ($page < 1) $page = 1;
+            if ($limit < 1 || $limit > 100) $limit = 20;
+
+            $offset = ($page - 1) * $limit;
+
+            // Get all demos (for now, no user filtering)
+            // TODO: When user authentication is integrated, filter by current user's steam_id
+            $allDemos = $this->demos->findAll();
+
+            // Sort demos
+            usort($allDemos, function ($a, $b) use ($sortBy, $sortOrder) {
+                $comparison = 0;
+
+                if ($sortBy === 'date') {
+                    $comparison = ($b->getUploadedAt() <=> $a->getUploadedAt());
+                } elseif ($sortBy === 'suspicion') {
+                    // Get average suspicion score from all analysis results
+                    $aResults = $a->getAnalysisResults()->toArray();
+                    $bResults = $b->getAnalysisResults()->toArray();
+
+                    $aScore = 0;
+                    if (!empty($aResults)) {
+                        $sum = 0;
+                        foreach ($aResults as $result) {
+                            $sum += $result->getOverallSuspicion();
+                        }
+                        $aScore = $sum / count($aResults);
+                    }
+
+                    $bScore = 0;
+                    if (!empty($bResults)) {
+                        $sum = 0;
+                        foreach ($bResults as $result) {
+                            $sum += $result->getOverallSuspicion();
+                        }
+                        $bScore = $sum / count($bResults);
+                    }
+
+                    $comparison = $bScore <=> $aScore;
+                }
+
+                return $sortOrder === 'asc' ? -$comparison : $comparison;
+            });
+
+            $total = count($allDemos);
+            $demos = array_slice($allDemos, $offset, $limit);
+
+            $demoResponses = array_map(fn ($demo) => $this->responses->demo($demo), $demos);
+
+            return new JsonResponse([
+                'demos' => $demoResponses,
+                'pagination' => [
+                    'total' => $total,
+                    'page' => $page,
+                    'limit' => $limit,
+                    'hasMore' => ($offset + $limit) < $total,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->errors->unexpected();
+        }
+    }
+
     #[Route('/{id}', name: 'api_demos_show', methods: ['GET'])]
     public function show(string $id): JsonResponse
     {
