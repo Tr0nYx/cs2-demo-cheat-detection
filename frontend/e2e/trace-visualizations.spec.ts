@@ -82,12 +82,30 @@ test.describe('TRACE Visualizations', () => {
   })
 
   test('renders demo detail page with TRACE card', async ({ page }) => {
-    // This test requires a demo detail page - adjust URL as needed
-    // For now, we verify the component structure
-    await page.goto('/results/test-demo-id')
+    const demoId = 'test-demo-id'
 
-    // Check if page loads
-    expect(page).toBeDefined()
+    // Mock the API endpoints
+    await page.route('**/api/demos/test-demo-id/trace', (route) => {
+      route.resolve({
+        status: 200,
+        body: JSON.stringify(mockTraceResponse),
+        contentType: 'application/json',
+      })
+    })
+
+    await page.route('**/api/players/*/trace-history*', (route) => {
+      route.resolve({
+        status: 200,
+        body: JSON.stringify(mockTraceHistoryResponse),
+        contentType: 'application/json',
+      })
+    })
+
+    await page.goto(`/results/${demoId}`)
+
+    // Assert TRACE card is visible
+    const traceCard = page.locator('text=TRACE Rating Analysis')
+    await expect(traceCard).toBeVisible()
   })
 
   test('trace chart renders with all component bars', async ({ page }) => {
