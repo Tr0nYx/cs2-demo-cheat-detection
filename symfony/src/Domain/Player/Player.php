@@ -25,6 +25,12 @@ class Player
     #[ORM\Column(name: 'display_name', length: 255, nullable: true)]
     private ?string $displayName;
 
+    #[ORM\Column(name: 'hltv_rating', type: 'float', nullable: true)]
+    private ?float $hltvRating = null;
+
+    #[ORM\Column(name: 'hltv_team', length: 255, nullable: true)]
+    private ?string $hltvTeam = null;
+
     /** @var Collection<int, AnalysisResult> */
     #[ORM\OneToMany(mappedBy: 'player', targetEntity: AnalysisResult::class)]
     private Collection $analysisResults;
@@ -60,6 +66,26 @@ class Player
     public function rename(?string $displayName): void
     {
         $this->displayName = $displayName;
+    }
+
+    public function getHltvRating(): ?float
+    {
+        return $this->hltvRating;
+    }
+
+    public function setHltvRating(?float $rating): void
+    {
+        $this->hltvRating = $rating;
+    }
+
+    public function getHltvTeam(): ?string
+    {
+        return $this->hltvTeam;
+    }
+
+    public function setHltvTeam(?string $team): void
+    {
+        $this->hltvTeam = $team;
     }
 
     /**

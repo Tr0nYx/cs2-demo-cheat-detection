@@ -94,6 +94,7 @@ None yet.
 - Phase 13 completed: 6 waves covering Python viewer foundation, Symfony APIs/cache, heatmap worker, tick hooks, Canvas UI, suspicion review, and grenade inspector
 - Phase 14 completed: 4 waves covering landing page, Steam auth, user persistence, dashboard
 - Phase 15 completed: 6 plans in 5 waves covering user scoping filters, sensitivity analysis, comparison validation, trend metrics/caching, and filtered leaderboards
+- Phase 16 added: hltv demo scrape
 
 ## Deferred Items
 
@@ -106,9 +107,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-05-17
-Completed: Phase 15 advanced analytics and user scoping execution
-Current status: Phase 15 implementation complete
-Next work: Select next roadmap item or run full regression/UAT hardening
+Completed: Phase 16 executed
+Current status: Phase 16 shipped — PR #1
+Next work: Review PR and merge when CI passes
 
 **PROJECT EXECUTION STATUS: PHASE 15 COMPLETE**
 - Phase 3: Python Analysis Pipeline complete (analysis engine complete)
@@ -122,6 +123,13 @@ Next work: Select next roadmap item or run full regression/UAT hardening
 - Phase 13: 2D Demo Viewer + Heatmap complete (interactive Canvas viewer, heatmaps, grenade inspector)
 - Phase 14: Landing Page + Steam Login complete (landing, auth, persistence, dashboard)
 - Phase 15: Advanced Analytics & User Scoping complete (filters, sensitivity tuner, trend metrics, filtered leaderboard)
+- Phase 16: HLTV Demo Scrape complete (playwright scraper, async symfony handler, cron command)
+
+**PHASE 16 COMPLETE**
+- Node.js Playwright scraper bypassing Cloudflare for demo URLs and stats
+- `hltv-scraper` container integrated in docker-compose.yml
+- Asynchronous symfony handler dispatching to standard demo import pipeline
+- Admin API for manual triggers and CLI command for Cron tier-1 auto-ingestion
 
 **PHASE 15 COMPLETE**
 - User Analysis Scoping: Real-time multi-filter query (map, rating, outcome, timeframe)

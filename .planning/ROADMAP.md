@@ -23,6 +23,7 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 - [x] **Phase 13: 2D Demo Viewer + Heatmap Module** - Interactive post-game radar viewer, server-rendered heatmaps, tick/event APIs, grenade inspector, and suspicion overlays (Complete 2026-05-17)
 - [x] **Phase 14: Landing Page + Steam Login** - Public landing page, Steam OpenID 2.0 auth, user persistence, protected dashboard, demo history, public metrics caching (Complete 2026-05-17)
 - [x] **Phase 15: Advanced Analytics & User Scoping** - User-scoped demo filters, sensitivity tuner and validation, trend metrics, and filtered TRACE leaderboards (Complete 2026-05-17)
+- [x] **Phase 16: HLTV Demo Scrape** - Node.js Playwright scraper, Async Symfony handler, manual triggers, and Cron auto-ingestion (Complete 2026-05-17)
 
 ### Phase 8 Plans (All Complete)
 
@@ -54,6 +55,16 @@ Depends on: Phase 14 (User persistence), Phase 12 (Leaderboards), Phase 9 (TRACE
 - [x] 15-03-PLAN.md - Backend sensitivity comparison endpoint, validation, and rate limiting
 - [x] 15-04-PLAN.md - Consistency, arc, weapon trend endpoints and cache invalidation
 - [x] 15-05-PLAN.md - Dynamic filtered TRACE rankings and route-mocked integration spec
+
+### Phase 16 Plans (All Complete)
+
+Goal: Implement automated HLTV match data scraping and demo ingestion.
+
+Depends on: Phase 15
+
+- [x] 16-01-PLAN.md - Core Entities & Infrastructure (docker-compose, schema extensions)
+- [x] 16-02-PLAN.md - Scraper Service (Node.js + Playwright Express microservice)
+- [x] 16-03-PLAN.md - Symfony Trigger & Background Cron (Messenger handler, Admin API, CLI cron)
 
 ### Backlog
 

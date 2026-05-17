@@ -11,4 +11,5 @@ enum DemoStatus: string
     case Processing = 'processing';
     case Done = 'done';
     case Error = 'error';
+    case CloudflareBlocked = 'cloudflare_blocked';
 }
