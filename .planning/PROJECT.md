@@ -92,4 +92,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-05-15 after v1 milestone completion*
+*Last updated: 2026-05-17 after Phase 11 TRACE Advanced Visualizations completion*
+
+## Current Status
+**Phase 11: TRACE Advanced Visualizations** (Complete 2026-05-17) — Backend API for percentile calculations, frontend interactive charts (TraceChart, TraceSparkline, PercentileBadge), calibration context card, and end-to-end TRACE history visualization with peer comparison capability. All 13 must-haves verified.

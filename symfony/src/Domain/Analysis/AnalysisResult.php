@@ -67,6 +67,9 @@ class AnalysisResult
     #[ORM\Column(name: 'analyzed_at', type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $analyzedAt;
 
+    #[ORM\Column(name: 'model_version', length: 255, nullable: true)]
+    private ?string $modelVersion = null;
+
     /** @param array<string, mixed> $featureData @param array<string, mixed> $supportData */
     public function __construct(
         Demo $demo,
@@ -84,11 +87,13 @@ class AnalysisResult
         array $supportData = [],
         ?Uuid $id = null,
         ?\DateTimeImmutable $analyzedAt = null,
+        ?string $modelVersion = null,
     ) {
         $this->id = $id ?? Uuid::v7();
         $this->demo = $demo;
         $this->player = $player;
         $this->roundCount = $roundCount;
+        $this->modelVersion = $modelVersion;
         $this->replaceScores($roundCount, $aimbotScore, $wallhackScore, $triggerbotScore, $recoilScore, $bhopScore, $sessionConsistencyScore, $overallSuspicion, $suspicionLabel, $featureData, $supportData, $analyzedAt);
     }
 
@@ -196,5 +201,15 @@ class AnalysisResult
     public function getAnalyzedAt(): \DateTimeImmutable
     {
         return $this->analyzedAt;
+    }
+
+    public function getModelVersion(): ?string
+    {
+        return $this->modelVersion;
+    }
+
+    public function setModelVersion(?string $modelVersion): void
+    {
+        $this->modelVersion = $modelVersion;
     }
 }

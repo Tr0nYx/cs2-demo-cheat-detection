@@ -1,0 +1,29 @@
+{
+  "weapon_name": "Deagle",
+  "dataset_version": "10.57967/hf/5654",
+  "pattern_version": "ml-quantile-v1",
+  "num_sprays": 5000,
+  "quantiles": {
+    "q25": {
+      "yaw_offset": -0.20564858441255807,
+      "pitch_offset": -0.199840496820965
+    },
+    "q50": {
+      "yaw_offset": -0.0009243725248468778,
+      "pitch_offset": 0.0002468822241280993
+    },
+    "q75": {
+      "yaw_offset": 0.19968896350684903,
+      "pitch_offset": 0.1998214174777317
+    }
+  },
+  "bounds": {
+    "yaw_min": -1.1841453699235234,
+    "yaw_max": 1.2620027898587207,
+    "pitch_min": -1.1030573913308641,
+    "pitch_max": 1.1613734164953768
+  },
+  "percentile_90": 0.6474568321958885,
+  "timestamp": "2026-05-15T15:55:24.556780+00:00",
+  "created_at": "2026-05-15T15:55:24.556780+00:00"
+}

@@ -4,9 +4,11 @@ framework:
 
         transports:
             analysis_dispatch: '%env(MESSENGER_TRANSPORT_DSN)%/%env(SYMFONY_ANALYSIS_QUEUE)%'
+            import_dispatch: '%env(MESSENGER_TRANSPORT_DSN)%/cs2.import'
             failed: '%env(MESSENGER_FAILED_TRANSPORT_DSN)%'
 
         routing:
+            'App\Application\Command\ImportDemoMessage': import_dispatch
             # Plan 04 adds AnalyzeDemoMessage and routes it once the class exists.
 
 when@test:

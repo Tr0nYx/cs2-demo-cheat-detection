@@ -12,6 +12,7 @@ import pandas as pd
 from scipy.stats import pearsonr
 
 from .base import AbstractFeatureExtractor, FeatureExtractionError, FeatureResult
+from .patterns.movement_sensitivity import apply_movement_sensitivity
 
 if TYPE_CHECKING:
     from parser.types import ParsedDemo
@@ -63,11 +64,23 @@ class RecoilExtractor(AbstractFeatureExtractor):
     def _load_patterns(self) -> None:
         """Load recoil patterns from data/recoil_patterns/ directory.
 
-        Expected format per file:
+        Supports both legacy and new pattern formats:
+
+        Legacy format:
         {
             "weapon_name": "AK-47",
             "spray_points": [[x1, y1], [x2, y2], ...],
             "version": "cs2_2025"
+        }
+
+        New quantile-based format:
+        {
+            "weapon_name": "AK-47",
+            "quantiles": {
+                "q50": {"yaw_offset": float, "pitch_offset": float},
+                ...
+            },
+            "dataset_version": "10.57967/hf/5654"
         }
         """
         patterns_dir = Path(__file__).parent.parent.parent / "data" / "recoil_patterns"
@@ -82,16 +95,39 @@ class RecoilExtractor(AbstractFeatureExtractor):
                     pattern = json.load(f)
 
                 weapon_name = pattern.get("weapon_name")
-                spray_points = pattern.get("spray_points", [])
 
-                if not weapon_name or not spray_points:
+                # Try new quantile format first
+                if "quantiles" in pattern:
+                    # Extract q50 (median) spray points as representative pattern
+                    quantiles = pattern.get("quantiles", {})
+                    q50 = quantiles.get("q50", {})
+                    if q50:
+                        # Convert quantile structure to spray points
+                        # For now, use q50 as single reference point
+                        spray_points = [[
+                            q50.get("yaw_offset", 0.0),
+                            q50.get("pitch_offset", 0.0)
+                        ]]
+                        self.patterns[weapon_name] = np.array(spray_points, dtype=float)
+                        logger.info(f"Loaded recoil pattern (quantile): {weapon_name}")
+                    else:
+                        logger.warning(f"Invalid pattern file {json_file.name}: missing q50 in quantiles")
+                        continue
+                # Fallback to legacy format
+                elif "spray_points" in pattern:
+                    spray_points = pattern.get("spray_points", [])
+                    if not spray_points:
+                        logger.warning(
+                            f"Invalid pattern file {json_file.name}: missing spray_points"
+                        )
+                        continue
+                    self.patterns[weapon_name] = np.array(spray_points, dtype=float)
+                    logger.info(f"Loaded recoil pattern (legacy): {weapon_name} ({len(spray_points)} points)")
+                else:
                     logger.warning(
-                        f"Invalid pattern file {json_file.name}: missing weapon_name or spray_points"
+                        f"Invalid pattern file {json_file.name}: missing spray_points or quantiles"
                     )
                     continue
-
-                self.patterns[weapon_name] = np.array(spray_points, dtype=float)
-                logger.info(f"Loaded recoil pattern: {weapon_name} ({len(spray_points)} points)")
 
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to parse pattern file {json_file.name}: {e}")
@@ -124,6 +160,7 @@ class RecoilExtractor(AbstractFeatureExtractor):
             spray_sequences = []
             weapons_used = set()
             correlation_values = []
+            movement_sensitivity_data = []
 
             # b. Spray sequence extraction per weapon fire event
             for _, fire_event in fire_events.iterrows():
@@ -155,8 +192,37 @@ class RecoilExtractor(AbstractFeatureExtractor):
 
                 # Build spray as [x, y] coordinates
                 spray = np.column_stack((yaw_deltas, pitch_deltas))
-                if len(spray) > 0:
-                    spray_sequences.append(spray)
+                if len(spray) == 0:
+                    continue
+
+                # Extract player velocity at fire tick for movement sensitivity
+                player_state = ticks_df[ticks_df["tick"] == fire_tick]
+                velocity_x = 0.0
+                velocity_y = 0.0
+                movement_sensitivity_available = True
+
+                if not player_state.empty:
+                    if "velocity_x" in ticks_df.columns:
+                        velocity_x = float(player_state["velocity_x"].values[0])
+                    if "velocity_y" in ticks_df.columns:
+                        velocity_y = float(player_state["velocity_y"].values[0])
+                else:
+                    movement_sensitivity_available = False
+                    logger.debug(f"Player velocity data not available at tick {fire_tick}")
+
+                # Apply movement sensitivity adjustment if velocity data available
+                velocity_vector = (velocity_x, velocity_y)
+                velocity_magnitude = np.sqrt(velocity_x**2 + velocity_y**2)
+                spray_adjusted = apply_movement_sensitivity(spray, velocity_vector)
+
+                spray_sequences.append(spray_adjusted)
+                movement_sensitivity_data.append({
+                    "velocity_x": velocity_x,
+                    "velocity_y": velocity_y,
+                    "velocity_magnitude": velocity_magnitude,
+                    "jitter_factor": min(velocity_magnitude / 400.0, 1.0),
+                    "available": movement_sensitivity_available,
+                })
 
             # Validate we have sprays to analyze
             if not spray_sequences:
@@ -218,6 +284,11 @@ class RecoilExtractor(AbstractFeatureExtractor):
             self._validate_score(final_score)
 
             # f. Return FeatureResult
+            # Calculate average movement sensitivity statistics
+            avg_velocity_magnitude = np.mean([m["velocity_magnitude"] for m in movement_sensitivity_data]) if movement_sensitivity_data else 0.0
+            avg_jitter_factor = np.mean([m["jitter_factor"] for m in movement_sensitivity_data]) if movement_sensitivity_data else 0.0
+            movement_sensitivity_available = any(m["available"] for m in movement_sensitivity_data)
+
             raw_measurements = {
                 "sprays_detected": len(spray_sequences),
                 "spray_window_max_ticks": self.SPRAY_WINDOW_MAX_TICKS,
@@ -229,13 +300,21 @@ class RecoilExtractor(AbstractFeatureExtractor):
                 "weapons_used": list(weapons_used),
                 "sensitivity_px_per_deg": 1.0,
                 "correlation_sigmoid_normalized": float(correlation_sigmoid),
+                "movement_sensitivity": {
+                    "velocity_magnitude_avg": float(avg_velocity_magnitude),
+                    "jitter_factor_avg": float(avg_jitter_factor),
+                    "available": movement_sensitivity_available,
+                    "max_velocity_threshold_ms": 400.0,
+                },
             }
 
             metadata = {
                 "method": "recoil_correlation_sigmoid",
-                "version": "1.0",
+                "version": "2.0",  # Updated version to reflect movement sensitivity
                 "patterns_loaded": list(self.patterns.keys()),
                 "correlation_formula": "scipy.stats.pearsonr(extracted_spray, pattern)",
+                "movement_sensitivity_enabled": True,
+                "movement_sensitivity_available": movement_sensitivity_available,
                 "warnings": [],
             }
 

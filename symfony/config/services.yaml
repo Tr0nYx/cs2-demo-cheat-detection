@@ -12,11 +12,19 @@ parameters:
     max_demo_upload_size: '%env(int:default:max_demo_upload_size_default:MAX_DEMO_UPLOAD_SIZE)%'
     python_worker_queue: '%env(default:python_worker_queue_default:PYTHON_WORKER_QUEUE)%'
     result_ingest_token: '%env(default:result_ingest_token_default:RESULT_INGEST_TOKEN)%'
+    heatmap_storage_path: '%env(default:heatmap_storage_path_default:HEATMAP_STORAGE_PATH)%'
+    python_viewer_queue: '%env(default:python_viewer_queue_default:PYTHON_VIEWER_QUEUE)%'
+    steam_api_key: '%env(default:steam_api_key_default:STEAM_API_KEY)%'
+    jwt_secret: '%env(default:jwt_secret_default:JWT_SECRET)%'
     demo_storage_disk_default: 'local'
     demo_storage_path_default: '/storage/demos'
     max_demo_upload_size_default: 2147483648
     python_worker_queue_default: 'cs2.analysis'
     result_ingest_token_default: ''
+    heatmap_storage_path_default: '/storage/heatmaps'
+    python_viewer_queue_default: 'cs2.viewer'
+    steam_api_key_default: ''
+    jwt_secret_default: 'change-me-in-local-env'
 
 services:
     # default configuration for services in *this* file
@@ -34,6 +42,27 @@ services:
 
     App\Infrastructure\Queue\AnalysisJobPublisher:
         alias: App\Infrastructure\Queue\RedisAnalysisJobPublisher
+
+    # Authentication services (Phase 14)
+    App\Infrastructure\Steam\SteamOpenIdValidator:
+        arguments:
+            $steamApiKey: '%steam_api_key%'
+
+    App\Application\Auth\SteamVerifyHandler:
+        arguments:
+            $jwtSecret: '%jwt_secret%'
+
+    App\Controller\AuthController:
+        arguments:
+            $jwtSecret: '%jwt_secret%'
+
+    App\UI\Api\DemoController:
+        arguments:
+            $jwtSecret: '%jwt_secret%'
+
+    App\UI\Api\AnalyticsController:
+        arguments:
+            $jwtSecret: '%jwt_secret%'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

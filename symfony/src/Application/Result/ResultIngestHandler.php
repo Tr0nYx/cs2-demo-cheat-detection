@@ -8,6 +8,7 @@ use App\Domain\Analysis\SuspicionLabel;
 use App\Infrastructure\Persistence\AnalysisResultRepository;
 use App\Infrastructure\Persistence\DemoRepository;
 use App\Infrastructure\Persistence\PlayerRepository;
+use App\Infrastructure\Persistence\ViewerEventRepository;
 use App\UI\Api\ApiProblem;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -18,6 +19,7 @@ final readonly class ResultIngestHandler
         private DemoRepository $demos,
         private PlayerRepository $players,
         private AnalysisResultRepository $results,
+        private ViewerEventRepository $viewerEvents,
         private EntityManagerInterface $entityManager,
     ) {
     }
@@ -58,9 +60,51 @@ final readonly class ResultIngestHandler
             );
         }
 
+        $this->populateViewerSummaries($demo, $message->payload['viewer'] ?? []);
         $demo->markDone();
         $this->entityManager->flush();
 
         return ['results_written' => count($payload['results'])];
+    }
+
+    /** @param mixed $viewer */
+    private function populateViewerSummaries(\App\Domain\Demo\Demo $demo, mixed $viewer): void
+    {
+        if (!is_array($viewer)) {
+            return;
+        }
+
+        $rounds = is_array($viewer['rounds'] ?? null) ? $viewer['rounds'] : [];
+        $grenades = is_array($viewer['grenades'] ?? null) ? $viewer['grenades'] : [];
+        $kills = is_array($viewer['suspicious_kills'] ?? $viewer['kills'] ?? null) ? ($viewer['suspicious_kills'] ?? $viewer['kills']) : [];
+
+        if ($rounds === [] && $grenades === [] && $kills === []) {
+            return;
+        }
+
+        $this->viewerEvents->clearViewerSummaries($demo);
+
+        foreach ($rounds as $round) {
+            if (is_array($round)) {
+                $this->viewerEvents->addRoundSummary($demo, $round);
+            }
+        }
+
+        foreach ($grenades as $grenade) {
+            if (is_array($grenade)) {
+                $this->viewerEvents->addGrenadeSummary($demo, $grenade);
+            }
+        }
+
+        foreach ($kills as $kill) {
+            if (!is_array($kill)) {
+                continue;
+            }
+            $signal = is_array($kill['review_signal'] ?? null) ? $kill['review_signal'] : [];
+            $reasons = $kill['flag_reasons'] ?? $signal['flag_reasons'] ?? [];
+            if (is_array($reasons) && $reasons !== []) {
+                $this->viewerEvents->addSuspiciousKillSummary($demo, $kill);
+            }
+        }
     }
 }

@@ -8,6 +8,7 @@ use App\Domain\Analysis\AnalysisResult;
 use App\Domain\Analysis\SuspicionLabel;
 use App\Domain\Demo\Demo;
 use App\Domain\Player\Player;
+use App\Domain\Trace\TraceRating;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -19,7 +20,7 @@ final class DemoControllerTest extends WebTestCase
     {
         self::ensureKernelShutdown();
         self::bootKernel();
-        self::getContainer()->get(Connection::class)->executeStatement('TRUNCATE analysis_result, player, demo RESTART IDENTITY CASCADE');
+        self::getContainer()->get(Connection::class)->executeStatement('TRUNCATE trace_rating, analysis_result, player, demo RESTART IDENTITY CASCADE');
         $this->redis()->del($this->queueName());
         self::ensureKernelShutdown();
     }
@@ -110,6 +111,302 @@ final class DemoControllerTest extends WebTestCase
         self::assertSame('76561198000000001', $payload['results'][0]['player']['steam_id']);
     }
 
+    public function testDetailDemoScopesFeatureVectorsToAuthenticatedPlayer(): void
+    {
+        $client = self::createClient();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $demo = new Demo('/storage/demos/detail.dem', originalFilename: 'detail.dem');
+        $demo->setMap('Mirage');
+        $demo->setOutcome('win');
+        $demo->markDone(new \DateTimeImmutable('2026-05-15T12:00:00+00:00'));
+
+        $playerOne = new Player('76561198000000001', 'Player One');
+        $playerTwo = new Player('76561198000000002', 'Player Two');
+        $resultOne = new AnalysisResult(
+            $demo,
+            $playerOne,
+            24,
+            0.1,
+            0.2,
+            0.3,
+            0.4,
+            0.5,
+            0.6,
+            0.51,
+            SuspicionLabel::Suspicious,
+        );
+        $resultTwo = new AnalysisResult(
+            $demo,
+            $playerTwo,
+            24,
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+            0.4,
+            0.3,
+            0.72,
+            SuspicionLabel::LikelyCheating,
+        );
+
+        $entityManager->persist($demo);
+        $entityManager->persist($playerOne);
+        $entityManager->persist($playerTwo);
+        $entityManager->persist($resultOne);
+        $entityManager->persist($resultTwo);
+        $entityManager->flush();
+        $entityManager->clear();
+
+        $client->request(
+            'GET',
+            '/api/demos/'.$demo->getIdString().'/detail',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000002')]
+        );
+
+        self::assertResponseIsSuccessful();
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame($demo->getIdString(), $payload['id']);
+        self::assertSame('Mirage', $payload['metadata']['map']);
+        self::assertSame('win', $payload['metadata']['outcome']);
+        self::assertSame(0.8, $payload['featureVectors']['aimbotScore']);
+        self::assertSame(0.3, $payload['featureVectors']['sessionScore']);
+        self::assertSame(0.72, $payload['baselineSuspicion']);
+    }
+
+    public function testListDemosReturnsEmptyWhenNoDemos(): void
+    {
+        $client = self::createClient();
+
+        $client->request('GET', '/api/demos');
+
+        self::assertResponseIsSuccessful();
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame([], $payload['demos']);
+        self::assertSame(0, $payload['pagination']['total']);
+        self::assertSame(1, $payload['pagination']['page']);
+        self::assertSame(20, $payload['pagination']['limit']);
+        self::assertFalse($payload['pagination']['hasMore']);
+    }
+
+    public function testListDemosWithPagination(): void
+    {
+        $client = self::createClient();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+
+        // Create 5 demos
+        for ($i = 0; $i < 5; $i++) {
+            $demo = new Demo("/storage/demos/demo{$i}.dem", originalFilename: "demo{$i}.dem");
+            $entityManager->persist($demo);
+        }
+        $entityManager->flush();
+        $entityManager->clear();
+
+        // Test page 1 with limit 3
+        $client->request('GET', '/api/demos?page=1&limit=3');
+
+        self::assertResponseIsSuccessful();
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertCount(3, $payload['demos']);
+        self::assertSame(5, $payload['pagination']['total']);
+        self::assertSame(1, $payload['pagination']['page']);
+        self::assertSame(3, $payload['pagination']['limit']);
+        self::assertTrue($payload['pagination']['hasMore']);
+
+        // Test page 2
+        $client->request('GET', '/api/demos?page=2&limit=3');
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertCount(2, $payload['demos']);
+        self::assertSame(2, $payload['pagination']['page']);
+        self::assertFalse($payload['pagination']['hasMore']);
+    }
+
+    public function testListDemosOrdersByDateDescending(): void
+    {
+        $client = self::createClient();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+
+        // Create 3 demos with different dates
+        $demo1 = new Demo('/storage/demos/demo1.dem', originalFilename: 'demo1.dem');
+        $demo2 = new Demo('/storage/demos/demo2.dem', originalFilename: 'demo2.dem');
+        $demo3 = new Demo('/storage/demos/demo3.dem', originalFilename: 'demo3.dem');
+
+        // Set uploaded times (using reflection since there's no setter)
+        $reflection = new \ReflectionClass(Demo::class);
+        $property = $reflection->getProperty('uploadedAt');
+        $property->setAccessible(true);
+
+        $property->setValue($demo1, new \DateTimeImmutable('2026-05-15T10:00:00+00:00'));
+        $property->setValue($demo2, new \DateTimeImmutable('2026-05-16T10:00:00+00:00'));
+        $property->setValue($demo3, new \DateTimeImmutable('2026-05-14T10:00:00+00:00'));
+
+        $entityManager->persist($demo1);
+        $entityManager->persist($demo2);
+        $entityManager->persist($demo3);
+        $entityManager->flush();
+        $entityManager->clear();
+
+        // Test descending order (default)
+        $client->request('GET', '/api/demos?sort=date&order=desc');
+
+        self::assertResponseIsSuccessful();
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertCount(3, $payload['demos']);
+        // Should be in order: demo2, demo1, demo3 (newest first)
+        self::assertStringContainsString('demo2', $payload['demos'][0]['metadata']['original_filename']);
+        self::assertStringContainsString('demo1', $payload['demos'][1]['metadata']['original_filename']);
+        self::assertStringContainsString('demo3', $payload['demos'][2]['metadata']['original_filename']);
+    }
+
+    public function testListDemosOrdersBySuspicionScore(): void
+    {
+        $client = self::createClient();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+
+        // Create 2 demos with different suspicion scores
+        $demo1 = new Demo('/storage/demos/demo1.dem', originalFilename: 'demo1.dem');
+        $demo2 = new Demo('/storage/demos/demo2.dem', originalFilename: 'demo2.dem');
+
+        $player1 = new Player('76561198000000001', 'Player 1');
+        $player2 = new Player('76561198000000002', 'Player 2');
+
+        // Demo1 with 0.3 suspicion
+        $result1 = new AnalysisResult(
+            $demo1,
+            $player1,
+            10,
+            0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+            0.3,  // overall suspicion
+            SuspicionLabel::Clean,
+        );
+
+        // Demo2 with 0.7 suspicion
+        $result2 = new AnalysisResult(
+            $demo2,
+            $player2,
+            10,
+            0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+            0.7,  // overall suspicion
+            SuspicionLabel::LikelyCheating,
+        );
+
+        $entityManager->persist($demo1);
+        $entityManager->persist($demo2);
+        $entityManager->persist($player1);
+        $entityManager->persist($player2);
+        $entityManager->persist($result1);
+        $entityManager->persist($result2);
+        $entityManager->flush();
+        $entityManager->clear();
+
+        // Test sorting by suspicion (highest first)
+        $client->request('GET', '/api/demos?sort=suspicion&order=desc');
+
+        self::assertResponseIsSuccessful();
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertCount(2, $payload['demos']);
+        // Should be in order: demo2 (0.7), demo1 (0.3)
+        self::assertStringContainsString('demo2', $payload['demos'][0]['metadata']['original_filename']);
+        self::assertStringContainsString('demo1', $payload['demos'][1]['metadata']['original_filename']);
+    }
+
+    public function testGetFilteredDemos(): void
+    {
+        $client = self::createClient();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $this->createFilteredFixture($entityManager, '76561198000000001', 'Mirage', 0.2, 'win');
+        $this->createFilteredFixture($entityManager, '76561198000000001', 'Nuke', 0.8, 'loss');
+        $this->createFilteredFixture($entityManager, '76561198000000002', 'Mirage', 0.2, 'win');
+
+        $client->request(
+            'GET',
+            '/api/demos?map=mirage&rating_band=0-5&outcome=win&days_back=999&limit=5',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000001')]
+        );
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('1', $client->getResponse()->headers->get('X-Total-Count'));
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertCount(1, $payload['demos']);
+        self::assertSame('Mirage', $payload['demos'][0]['map']);
+        self::assertSame('win', $payload['demos'][0]['outcome']);
+        self::assertSame(1, $payload['pagination']['total']);
+    }
+
+    public function testGetFilteredDemosRejectsInvalidMap(): void
+    {
+        $client = self::createClient();
+
+        $client->request(
+            'GET',
+            '/api/demos?map=office',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000001')]
+        );
+
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testGetFilteredDemosRejectsInvalidRatingBand(): void
+    {
+        $client = self::createClient();
+
+        $client->request(
+            'GET',
+            '/api/demos?rating_band=elite',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000001')]
+        );
+
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testGetFilteredDemosRejectsInvalidOutcome(): void
+    {
+        $client = self::createClient();
+
+        $client->request(
+            'GET',
+            '/api/demos?outcome=forfeit',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000001')]
+        );
+
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testGetFilteredDemosRejectsInvalidDaysBack(): void
+    {
+        $client = self::createClient();
+
+        $client->request(
+            'GET',
+            '/api/demos?days_back=365',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000001')]
+        );
+
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testGetFilteredDemosRequiresAuthorization(): void
+    {
+        $client = self::createClient();
+
+        $client->request('GET', '/api/demos?map=mirage');
+
+        self::assertResponseStatusCodeSame(401);
+    }
+
+    public function testGetFilterMetadata(): void
+    {
+        $client = self::createClient();
+
+        $client->request('GET', '/api/analytics/filters/metadata');
+
+        self::assertResponseIsSuccessful();
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertContains('Mirage', $payload['maps']);
+        self::assertSame('0-5', $payload['ratingBands'][0]['id']);
+        self::assertSame('win', $payload['outcomes'][0]['id']);
+        self::assertSame('999', $payload['timeframes'][3]['id']);
+    }
+
     private function redis(): \Redis
     {
         $url = getenv('REDIS_URL') ?: 'redis://redis:6379';
@@ -123,5 +420,84 @@ final class DemoControllerTest extends WebTestCase
     private function queueName(): string
     {
         return getenv('PYTHON_WORKER_QUEUE') ?: 'cs2.analysis';
+    }
+
+    private function createFilteredFixture(
+        EntityManagerInterface $entityManager,
+        string $steamId,
+        string $map,
+        float $traceAdjusted,
+        string $outcome,
+    ): void {
+        $demo = new Demo('/storage/demos/filter.dem', originalFilename: 'filter.dem');
+        $demo->setMap($map);
+        $demo->setOutcome($outcome);
+        $demo->markDone();
+        $player = $entityManager->getRepository(Player::class)->findOneBy(['steamId' => $steamId])
+            ?? new Player($steamId, $steamId);
+        $analysis = new AnalysisResult(
+            $demo,
+            $player,
+            24,
+            0.1,
+            0.2,
+            0.3,
+            0.4,
+            0.5,
+            0.6,
+            0.51,
+            SuspicionLabel::Suspicious,
+        );
+        $trace = new TraceRating(
+            analysisResult: $analysis,
+            playerId: $steamId,
+            demoId: $demo->getIdString(),
+            calibrationVersion: 'default-v1',
+            traceBase: $traceAdjusted,
+            traceAdjusted: $traceAdjusted,
+            traceNormalized: 1.0,
+            trustMultiplier: 0.95,
+            roundCount: 24,
+            ekill: 1.0,
+            aim: 1.0,
+            kast: 1.0,
+            util: 1.0,
+            clutch: 1.0,
+            ekillRaw: 0.8,
+            aimCpq: 0.75,
+            aimCsq: 0.82,
+            aimTtd: 0.88,
+            aimScs: 0.85,
+            kastPercentage: 0.75,
+            clutchAttempts: 5,
+            clutchWins: 3,
+            calculatedAt: new \DateTimeImmutable(),
+        );
+
+        $entityManager->persist($demo);
+        $entityManager->persist($player);
+        $entityManager->persist($analysis);
+        $entityManager->persist($trace);
+        $entityManager->flush();
+    }
+
+    private function jwtForSteamId(string $steamId): string
+    {
+        $header = $this->base64UrlEncode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'], JSON_THROW_ON_ERROR));
+        $payload = $this->base64UrlEncode(json_encode([
+            'iss' => 'cs2-demo-cheat-detection',
+            'sub' => $steamId,
+            'steam_id' => $steamId,
+            'iat' => time(),
+            'exp' => time() + 3600,
+        ], JSON_THROW_ON_ERROR));
+        $signature = hash_hmac('sha256', "{$header}.{$payload}", 'change-me-in-local-env', true);
+
+        return "{$header}.{$payload}.".$this->base64UrlEncode($signature);
+    }
+
+    private function base64UrlEncode(string $value): string
+    {
+        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
     }
 }

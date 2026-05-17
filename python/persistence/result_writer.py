@@ -3,6 +3,12 @@ PostgreSQL persistence layer for analysis results and errors.
 
 Handles writing feature extraction results and parser/feature failures to the database
 with parameterized queries to prevent SQL injection.
+
+Also integrates TRACE rating system (Wave 2):
+- Loads active calibration via CalibrationManager
+- Calls TraceCalculator to compute TRACE scores
+- Persists TRACE results to trace_rating table
+- Checks recalibration trigger (100-sample threshold)
 """
 
 from __future__ import annotations
@@ -16,6 +22,7 @@ import psycopg2.extras
 
 if TYPE_CHECKING:
     from features.base import FeatureResult
+    from python.scoring.trace_rating import TraceComponents
 
 
 class ResultWriter:
@@ -40,13 +47,12 @@ class ResultWriter:
         Record a parser or extraction error for a demo.
 
         Updates the Demo record with:
-        - errorStatus = true
-        - errorMessage = error_message
+        - error_message = error_message
         - status = 'error'
 
         Args:
             demo_id: UUID of the demo that failed
-            error_message: Error description (will be stored in errorMessage field)
+            error_message: Error description (will be stored in error_message field)
 
         Raises:
             psycopg2.Error: If database write fails (logged with context before re-raising)
@@ -58,7 +64,7 @@ class ResultWriter:
             # Use parameterized query to prevent SQL injection
             update_query = """
                 UPDATE demo
-                SET error_status = true, error_message = %s, status = %s
+                SET error_message = %s, status = %s
                 WHERE id = %s
             """
             cursor.execute(update_query, (error_message, 'error', demo_id))
@@ -90,15 +96,27 @@ class ResultWriter:
         demo_id: str,
         feature_results: dict[str, Optional[FeatureResult]],
         scoring_summary: Any,
+        model_version: Optional[str] = None,
+        trace_components: Optional[TraceComponents] = None,
+        player_id: Optional[str] = None,
+        round_count: Optional[int] = None,
+        raw_trace_values: Optional[dict[str, Any]] = None,
     ) -> None:
         """
-        Record a successful analysis result.
+        Record a successful analysis result with optional TRACE rating.
 
         Creates an AnalysisResult record with:
         - demo_id (FK to Demo)
         - Normalized feature scores: aimbotScore, triggerBotScore, wallhackScore, recoilScore, bhopScore, sessionScore
         - overallSuspicion and suspicionLabel from the scoring_summary
         - featureData JSON containing raw measurements (per D-14, D-15, D-16)
+        - model_version: semantic version or git SHA of the model used for analysis
+
+        If trace_components is provided, also:
+        - Calculates TRACE rating using TraceCalculator with active calibration
+        - Persists TRACE result to trace_rating table
+        - Checks if recalibration should be triggered (100-sample threshold)
+        - Stores new calibration if threshold met
 
         Also updates Demo status to 'done'.
 
@@ -107,6 +125,11 @@ class ResultWriter:
             feature_results: Dict mapping feature extractor names to their FeatureResult objects
                            (or None if extraction failed). e.g., {"AimbotExtractor": FeatureResult(...), ...}
             scoring_summary: ScoringSummary object with overall_score (float 0.0-1.0) and label (str)
+            model_version: Optional semantic version or git SHA of the model
+            trace_components: Optional TraceComponents from component extraction (eKILL, AIM, KAST, UTIL, CLUTCH)
+            player_id: Optional player identifier (required if trace_components provided)
+            round_count: Optional number of rounds in demo (required if trace_components provided)
+            raw_trace_values: Optional dict with raw component values for debugging
 
         Raises:
             psycopg2.Error: If database write fails (logged with context before re-raising)
@@ -184,8 +207,8 @@ class ResultWriter:
             # Insert AnalysisResult record
             insert_query = """
                 INSERT INTO analysis_result
-                (demo_id, aimbot_score, trigger_bot_score, wallhack_score, recoil_score, bhop_score, session_score, overall_suspicion, suspicion_label, feature_data)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (demo_id, aimbot_score, trigger_bot_score, wallhack_score, recoil_score, bhop_score, session_score, overall_suspicion, suspicion_label, feature_data, model_version)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             overall_score = (
@@ -212,6 +235,7 @@ class ResultWriter:
                     overall_score,
                     label,
                     feature_data_json,
+                    model_version,
                 ),
             )
 
@@ -222,6 +246,128 @@ class ResultWriter:
                 WHERE id = %s
             """
             cursor.execute(update_demo_query, ("done", demo_id))
+
+            # Fetch the analysis_result_id for TRACE linking
+            analysis_result_id_query = "SELECT id FROM analysis_result WHERE demo_id = %s ORDER BY id DESC LIMIT 1"
+            cursor.execute(analysis_result_id_query, (demo_id,))
+            analysis_result_row = cursor.fetchone()
+            analysis_result_id = analysis_result_row[0] if analysis_result_row else None
+
+            # Persist TRACE rating if components provided
+            if trace_components is not None and analysis_result_id is not None and player_id is not None:
+                try:
+                    # Import here to avoid circular imports
+                    from python.scoring.trace_rating import TraceCalculator
+                    from python.scoring.trace_calibration import CalibrationManager
+
+                    # Initialize CalibrationManager and load active calibration
+                    calibration_manager = CalibrationManager(self.db_conn)
+                    calibration = calibration_manager.get_active_calibration()
+
+                    # Calculate TRACE using TraceCalculator
+                    calculator = TraceCalculator()
+                    trace_result = calculator.calculate(
+                        trace_components,
+                        suspicion_score=overall_score,
+                        calibration=calibration,
+                    )
+
+                    # Prepare raw values with defaults
+                    raw = raw_trace_values or {}
+                    ekill_raw = raw.get("ekill_raw", 0.0)
+                    aim_cpq = raw.get("aim_cpq", 0.0)
+                    aim_csq = raw.get("aim_csq", 0.0)
+                    aim_ttd = raw.get("aim_ttd", 0.0)
+                    aim_scs = raw.get("aim_scs", 0.0)
+                    kast_percentage = raw.get("kast_percentage", 0.0)
+                    clutch_attempts = raw.get("clutch_attempts", 0)
+                    clutch_wins = raw.get("clutch_wins", 0)
+                    rc = round_count if round_count is not None else 0
+
+                    # Insert TRACE result into trace_rating table
+                    trace_insert_query = """
+                        INSERT INTO trace_rating
+                        (analysis_result_id, player_id, demo_id, calibration_version,
+                         trace_base, trace_adjusted, trace_normalized, trust_multiplier,
+                         round_count, ekill, aim, kast, util, clutch,
+                         ekill_raw, aim_cpq, aim_csq, aim_ttd, aim_scs,
+                         kast_percentage, clutch_attempts, clutch_wins, calculated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,
+                                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                                %s, %s, %s, NOW())
+                    """
+
+                    cursor.execute(
+                        trace_insert_query,
+                        (
+                            analysis_result_id,
+                            player_id,
+                            demo_id,
+                            calibration["version"],
+                            trace_result.trace_base,
+                            trace_result.trace_adjusted,
+                            trace_result.trace_normalized,
+                            trace_result.trust_multiplier,
+                            rc,
+                            trace_result.components.ekill,
+                            trace_result.components.aim,
+                            trace_result.components.kast,
+                            trace_result.components.util,
+                            trace_result.components.clutch,
+                            ekill_raw,
+                            aim_cpq,
+                            aim_csq,
+                            aim_ttd,
+                            aim_scs,
+                            kast_percentage,
+                            clutch_attempts,
+                            clutch_wins,
+                        ),
+                    )
+
+                    # Log TRACE persistence
+                    trace_log = {
+                        "event": "trace_persisted",
+                        "demo_id": demo_id,
+                        "player_id": player_id,
+                        "trace_base": trace_result.trace_base,
+                        "trace_adjusted": trace_result.trace_adjusted,
+                        "trust_multiplier": trace_result.trust_multiplier,
+                        "calibration_version": calibration["version"],
+                    }
+                    print(
+                        json.dumps(trace_log, separators=(",", ":")),
+                        file=sys.stdout,
+                        flush=True,
+                    )
+
+                    # Check if recalibration should be triggered
+                    if calibration_manager.should_recalibrate():
+                        new_calibration = calibration_manager.calculate_calibration()
+                        new_version = calibration_manager.store_calibration(new_calibration)
+                        log_recal = {
+                            "event": "calibration_recalibrated",
+                            "new_version": new_version,
+                            "sample_size": new_calibration["sample_size"],
+                        }
+                        print(
+                            json.dumps(log_recal, separators=(",", ":")),
+                            file=sys.stdout,
+                            flush=True,
+                        )
+
+                except Exception as e:
+                    # TRACE is optional enrichment; log but don't fail analysis
+                    trace_error = {
+                        "event": "trace_persistence_failed",
+                        "demo_id": demo_id,
+                        "error": str(e),
+                    }
+                    print(
+                        json.dumps(trace_error, separators=(",", ":")),
+                        file=sys.stdout,
+                        flush=True,
+                    )
 
             self.db_conn.commit()
 

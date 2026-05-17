@@ -25,9 +25,19 @@ class Player
     #[ORM\Column(name: 'display_name', length: 255, nullable: true)]
     private ?string $displayName;
 
+    #[ORM\Column(name: 'hltv_rating', type: 'float', nullable: true)]
+    private ?float $hltvRating = null;
+
+    #[ORM\Column(name: 'hltv_team', length: 255, nullable: true)]
+    private ?string $hltvTeam = null;
+
     /** @var Collection<int, AnalysisResult> */
     #[ORM\OneToMany(mappedBy: 'player', targetEntity: AnalysisResult::class)]
     private Collection $analysisResults;
+
+    /** @var Collection<int, \App\Domain\Team\Team> Teams this player is on */
+    #[ORM\ManyToMany(targetEntity: \App\Domain\Team\Team::class, mappedBy: 'players')]
+    private Collection $teams;
 
     public function __construct(string $steamId, ?string $displayName = null, ?Uuid $id = null)
     {
@@ -35,6 +45,7 @@ class Player
         $this->steamId = $steamId;
         $this->displayName = $displayName;
         $this->analysisResults = new ArrayCollection();
+        $this->teams = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -55,5 +66,62 @@ class Player
     public function rename(?string $displayName): void
     {
         $this->displayName = $displayName;
+    }
+
+    public function getHltvRating(): ?float
+    {
+        return $this->hltvRating;
+    }
+
+    public function setHltvRating(?float $rating): void
+    {
+        $this->hltvRating = $rating;
+    }
+
+    public function getHltvTeam(): ?string
+    {
+        return $this->hltvTeam;
+    }
+
+    public function setHltvTeam(?string $team): void
+    {
+        $this->hltvTeam = $team;
+    }
+
+    /**
+     * Get all teams this player is on.
+     *
+     * @return Collection<int, \App\Domain\Team\Team>
+     */
+    public function getTeams(): Collection
+    {
+        return $this->teams;
+    }
+
+    /**
+     * Add this player to a team.
+     *
+     * @param \App\Domain\Team\Team $team
+     * @return void
+     */
+    public function addTeam(\App\Domain\Team\Team $team): void
+    {
+        if (!$this->teams->contains($team)) {
+            $this->teams->add($team);
+            $team->addPlayer($this);
+        }
+    }
+
+    /**
+     * Remove this player from a team.
+     *
+     * @param \App\Domain\Team\Team $team
+     * @return void
+     */
+    public function removeTeam(\App\Domain\Team\Team $team): void
+    {
+        if ($this->teams->removeElement($team)) {
+            $team->removePlayer($this);
+        }
     }
 }

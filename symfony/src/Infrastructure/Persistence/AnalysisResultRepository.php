@@ -45,6 +45,20 @@ final class AnalysisResultRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function findByDemoIdAndUserId(string $demoId, string $steamId): ?AnalysisResult
+    {
+        return $this->createQueryBuilder('result')
+            ->join('result.demo', 'demo')
+            ->join('result.player', 'player')
+            ->andWhere('demo.id = :demoId')
+            ->andWhere('player.steamId = :steamId')
+            ->setParameter('demoId', $demoId)
+            ->setParameter('steamId', $steamId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     /** @param array<string, mixed> $featureData @param array<string, mixed> $supportData */
     public function upsertForDemoAndPlayer(
         Demo $demo,
@@ -74,5 +88,36 @@ final class AnalysisResultRepository extends ServiceEntityRepository
         $this->getEntityManager()->persist($result);
 
         return $result;
+    }
+
+    /**
+     * Find demos where both players participated together.
+     *
+     * Returns distinct Demo entities where both specified players have AnalysisResult records.
+     * Used for match history comparison view to show shared gameplay history.
+     *
+     * @param string $playerAId ID of first player
+     * @param string $playerBId ID of second player
+     * @param int $limit Maximum number of demos to return (default 10)
+     * @return array<Demo> Array of demos with both players
+     */
+    public function findSharedByPlayers(
+        string $playerAId,
+        string $playerBId,
+        int $limit = 10
+    ): array {
+        return $this->createQueryBuilder('arA')
+            ->select('DISTINCT d')
+            ->from(Demo::class, 'd')
+            ->innerJoin('d.analysisResults', 'arA')
+            ->innerJoin('d.analysisResults', 'arB')
+            ->where('arA.player = :playerA')
+            ->andWhere('arB.player = :playerB')
+            ->setParameter('playerA', $playerAId)
+            ->setParameter('playerB', $playerBId)
+            ->orderBy('d.uploadedAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
     }
 }

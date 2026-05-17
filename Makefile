@@ -1,5 +1,5 @@
 .SHELL := /bin/bash
-.PHONY: help build up down restart clean logs test test-all test-php test-python test-ml lint format analyze-demo train
+.PHONY: help build up down restart clean logs test test-all test-php test-python test-ml lint format analyze-demo train heatmaps viewer-worker export-ticks
 
 # Default target
 .DEFAULT_GOAL := help
@@ -29,12 +29,18 @@ help:
 	@echo "  lint            Run linters (PHP-CS-Fixer, pylint)"
 	@echo "  format          Auto-fix code style (PHP-CS-Fixer, black)"
 	@echo "  analyze-demo    Analyze a local demo file (FILE=path/to/demo.dem)"
+	@echo "  heatmaps        Queue heatmap generation for a demo (demo=UUID)"
+	@echo "  viewer-worker   Start the Python viewer worker"
+	@echo "  export-ticks    Queue tick export for a demo (demo=UUID)"
 	@echo "  train           Train the ML model (EPOCHS=50, OUTPUT_DIR=data/models)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make up"
 	@echo "  make test-all"
 	@echo "  make analyze-demo FILE=demo.dem"
+	@echo "  make heatmaps demo=11111111-1111-7111-8111-111111111111"
+	@echo "  make viewer-worker"
+	@echo "  make export-ticks demo=11111111-1111-7111-8111-111111111111"
 	@echo "  make train EPOCHS=100 OUTPUT_DIR=models/exp1"
 
 .PHONY: build
@@ -112,6 +118,7 @@ EPOCHS ?= 50
 BATCH_SIZE ?= 128
 LEARNING_RATE ?= 0.0001
 OUTPUT_DIR ?= data/models
+DEMO ?= $(demo)
 
 .PHONY: analyze-demo
 analyze-demo:
@@ -133,3 +140,30 @@ train:
 		--batch-size $(BATCH_SIZE) \
 		--learning-rate $(LEARNING_RATE) \
 		--output-dir $(OUTPUT_DIR)
+
+.PHONY: heatmaps
+heatmaps:
+	@if [ -z "$(DEMO)" ]; then \
+		echo "ERROR: demo parameter required"; \
+		echo "Usage: make heatmaps demo=UUID"; \
+		exit 1; \
+	fi
+	@echo "Queueing heatmap generation for demo $(DEMO)"
+	docker compose exec -T redis redis-cli LPUSH $${PYTHON_VIEWER_QUEUE:-cs2.viewer} \
+		'{"type":"generate_heatmap","demo_id":"$(DEMO)","heatmap_type":"kills"}'
+
+.PHONY: viewer-worker
+viewer-worker:
+	@echo "Starting Python viewer worker..."
+	docker compose exec -T python python -m viewer.worker_viewer
+
+.PHONY: export-ticks
+export-ticks:
+	@if [ -z "$(DEMO)" ]; then \
+		echo "ERROR: demo parameter required"; \
+		echo "Usage: make export-ticks demo=UUID"; \
+		exit 1; \
+	fi
+	@echo "Queueing tick export for demo $(DEMO)"
+	docker compose exec -T redis redis-cli LPUSH $${PYTHON_VIEWER_QUEUE:-cs2.viewer} \
+		'{"type":"export_ticks","demo_id":"$(DEMO)"}'
