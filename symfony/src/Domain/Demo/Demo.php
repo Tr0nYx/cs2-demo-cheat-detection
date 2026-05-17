@@ -15,6 +15,8 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'demo')]
 #[ORM\Index(name: 'idx_demo_status', columns: ['status'])]
 #[ORM\Index(name: 'idx_demo_uploaded_at', columns: ['uploaded_at'])]
+#[ORM\Index(name: 'idx_demo_map', columns: ['map'])]
+#[ORM\Index(name: 'idx_demo_outcome', columns: ['outcome'])]
 class Demo
 {
     #[ORM\Id]
@@ -47,6 +49,9 @@ class Demo
 
     #[ORM\Column(name: 'map', length: 64, nullable: true)]
     private ?string $map = null;
+
+    #[ORM\Column(name: 'outcome', length: 16, nullable: true)]
+    private ?string $outcome = null;
 
     /** @var Collection<int, AnalysisResult> */
     #[ORM\OneToMany(mappedBy: 'demo', targetEntity: AnalysisResult::class, cascade: ['persist'], orphanRemoval: true)]
@@ -128,6 +133,20 @@ class Demo
     public function setMap(?string $map): void
     {
         $this->map = $map;
+    }
+
+    public function getOutcome(): ?string
+    {
+        return $this->outcome;
+    }
+
+    public function setOutcome(?string $outcome): void
+    {
+        if ($outcome !== null && !in_array($outcome, ['win', 'loss', 'draw'], true)) {
+            throw new \InvalidArgumentException('Outcome must be win, loss, draw, or null');
+        }
+
+        $this->outcome = $outcome;
     }
 
     /** @return Collection<int, AnalysisResult> */

@@ -8,6 +8,7 @@ use App\Domain\Analysis\AnalysisResult;
 use App\Domain\Analysis\SuspicionLabel;
 use App\Domain\Demo\Demo;
 use App\Domain\Player\Player;
+use App\Domain\Trace\TraceRating;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -19,7 +20,7 @@ final class DemoControllerTest extends WebTestCase
     {
         self::ensureKernelShutdown();
         self::bootKernel();
-        self::getContainer()->get(Connection::class)->executeStatement('TRUNCATE analysis_result, player, demo RESTART IDENTITY CASCADE');
+        self::getContainer()->get(Connection::class)->executeStatement('TRUNCATE trace_rating, analysis_result, player, demo RESTART IDENTITY CASCADE');
         $this->redis()->del($this->queueName());
         self::ensureKernelShutdown();
     }
@@ -246,6 +247,104 @@ final class DemoControllerTest extends WebTestCase
         self::assertStringContainsString('demo1', $payload['demos'][1]['metadata']['original_filename']);
     }
 
+    public function testGetFilteredDemos(): void
+    {
+        $client = self::createClient();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $this->createFilteredFixture($entityManager, '76561198000000001', 'Mirage', 0.2, 'win');
+        $this->createFilteredFixture($entityManager, '76561198000000001', 'Nuke', 0.8, 'loss');
+        $this->createFilteredFixture($entityManager, '76561198000000002', 'Mirage', 0.2, 'win');
+
+        $client->request(
+            'GET',
+            '/api/demos?map=mirage&rating_band=0-5&outcome=win&days_back=999&limit=5',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000001')]
+        );
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('1', $client->getResponse()->headers->get('X-Total-Count'));
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertCount(1, $payload['demos']);
+        self::assertSame('Mirage', $payload['demos'][0]['map']);
+        self::assertSame('win', $payload['demos'][0]['outcome']);
+        self::assertSame(1, $payload['pagination']['total']);
+    }
+
+    public function testGetFilteredDemosRejectsInvalidMap(): void
+    {
+        $client = self::createClient();
+
+        $client->request(
+            'GET',
+            '/api/demos?map=office',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000001')]
+        );
+
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testGetFilteredDemosRejectsInvalidRatingBand(): void
+    {
+        $client = self::createClient();
+
+        $client->request(
+            'GET',
+            '/api/demos?rating_band=elite',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000001')]
+        );
+
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testGetFilteredDemosRejectsInvalidOutcome(): void
+    {
+        $client = self::createClient();
+
+        $client->request(
+            'GET',
+            '/api/demos?outcome=forfeit',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000001')]
+        );
+
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testGetFilteredDemosRejectsInvalidDaysBack(): void
+    {
+        $client = self::createClient();
+
+        $client->request(
+            'GET',
+            '/api/demos?days_back=365',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000001')]
+        );
+
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testGetFilteredDemosRequiresAuthorization(): void
+    {
+        $client = self::createClient();
+
+        $client->request('GET', '/api/demos?map=mirage');
+
+        self::assertResponseStatusCodeSame(401);
+    }
+
+    public function testGetFilterMetadata(): void
+    {
+        $client = self::createClient();
+
+        $client->request('GET', '/api/analytics/filters/metadata');
+
+        self::assertResponseIsSuccessful();
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertContains('Mirage', $payload['maps']);
+        self::assertSame('0-5', $payload['ratingBands'][0]['id']);
+        self::assertSame('win', $payload['outcomes'][0]['id']);
+        self::assertSame('999', $payload['timeframes'][3]['id']);
+    }
+
     private function redis(): \Redis
     {
         $url = getenv('REDIS_URL') ?: 'redis://redis:6379';
@@ -259,5 +358,84 @@ final class DemoControllerTest extends WebTestCase
     private function queueName(): string
     {
         return getenv('PYTHON_WORKER_QUEUE') ?: 'cs2.analysis';
+    }
+
+    private function createFilteredFixture(
+        EntityManagerInterface $entityManager,
+        string $steamId,
+        string $map,
+        float $traceAdjusted,
+        string $outcome,
+    ): void {
+        $demo = new Demo('/storage/demos/filter.dem', originalFilename: 'filter.dem');
+        $demo->setMap($map);
+        $demo->setOutcome($outcome);
+        $demo->markDone();
+        $player = $entityManager->getRepository(Player::class)->findOneBy(['steamId' => $steamId])
+            ?? new Player($steamId, $steamId);
+        $analysis = new AnalysisResult(
+            $demo,
+            $player,
+            24,
+            0.1,
+            0.2,
+            0.3,
+            0.4,
+            0.5,
+            0.6,
+            0.51,
+            SuspicionLabel::Suspicious,
+        );
+        $trace = new TraceRating(
+            analysisResult: $analysis,
+            playerId: $steamId,
+            demoId: $demo->getIdString(),
+            calibrationVersion: 'default-v1',
+            traceBase: $traceAdjusted,
+            traceAdjusted: $traceAdjusted,
+            traceNormalized: 1.0,
+            trustMultiplier: 0.95,
+            roundCount: 24,
+            ekill: 1.0,
+            aim: 1.0,
+            kast: 1.0,
+            util: 1.0,
+            clutch: 1.0,
+            ekillRaw: 0.8,
+            aimCpq: 0.75,
+            aimCsq: 0.82,
+            aimTtd: 0.88,
+            aimScs: 0.85,
+            kastPercentage: 0.75,
+            clutchAttempts: 5,
+            clutchWins: 3,
+            calculatedAt: new \DateTimeImmutable(),
+        );
+
+        $entityManager->persist($demo);
+        $entityManager->persist($player);
+        $entityManager->persist($analysis);
+        $entityManager->persist($trace);
+        $entityManager->flush();
+    }
+
+    private function jwtForSteamId(string $steamId): string
+    {
+        $header = $this->base64UrlEncode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'], JSON_THROW_ON_ERROR));
+        $payload = $this->base64UrlEncode(json_encode([
+            'iss' => 'cs2-demo-cheat-detection',
+            'sub' => $steamId,
+            'steam_id' => $steamId,
+            'iat' => time(),
+            'exp' => time() + 3600,
+        ], JSON_THROW_ON_ERROR));
+        $signature = hash_hmac('sha256', "{$header}.{$payload}", 'change-me-in-local-env', true);
+
+        return "{$header}.{$payload}.".$this->base64UrlEncode($signature);
+    }
+
+    private function base64UrlEncode(string $value): string
+    {
+        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
     }
 }

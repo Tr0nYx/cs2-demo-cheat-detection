@@ -11,7 +11,6 @@ use App\Application\Query\GetMapLeaderboardQuery;
 use App\Infrastructure\Persistence\PlayerRepository;
 use App\Infrastructure\Persistence\TraceRatingRepository;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 
 /**
  * GetMapLeaderboardHandler - CQRS query handler for per-map leaderboards.
@@ -29,7 +28,7 @@ use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
  * Per D-06: Qualification is GLOBAL (5+ total demos), not per-map.
  * Per BLOCKER-003: Map field is stored in Demo.map entity column.
  */
-final readonly class GetMapLeaderboardHandler implements MessageHandlerInterface
+final readonly class GetMapLeaderboardHandler
 {
     public function __construct(
         private TraceRatingRepository $repo,

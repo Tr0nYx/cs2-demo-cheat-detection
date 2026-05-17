@@ -16,7 +16,6 @@ use App\Infrastructure\Persistence\AnalysisResultRepository;
 use App\Infrastructure\Persistence\PlayerRepository;
 use App\Infrastructure\Persistence\TraceRatingRepository;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 
 /**
  * GetPlayerComparisonHandler - CQRS query handler for player comparison view.
@@ -33,7 +32,7 @@ use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
  * - Build match history cards (shared demos)
  * - Return aggregated comparison DTO
  */
-final readonly class GetPlayerComparisonHandler implements MessageHandlerInterface
+final readonly class GetPlayerComparisonHandler
 {
     public function __construct(
         private TraceRatingRepository $traceRepo,

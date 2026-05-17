@@ -11,7 +11,6 @@ use App\Application\Query\GetTeamLeaderboardQuery;
 use App\Infrastructure\Persistence\TeamRepository;
 use App\Infrastructure\Persistence\TraceRatingRepository;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 
 /**
  * GetTeamLeaderboardHandler - CQRS query handler for team leaderboard.
@@ -27,7 +26,7 @@ use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
  * - Count total demos analyzed by team members
  * - Return paginated response with metadata
  */
-final readonly class GetTeamLeaderboardHandler implements MessageHandlerInterface
+final readonly class GetTeamLeaderboardHandler
 {
     public function __construct(
         private TeamRepository $teamRepo,

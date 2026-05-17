@@ -11,7 +11,6 @@ use App\Application\Query\GetGlobalLeaderboardQuery;
 use App\Infrastructure\Persistence\PlayerRepository;
 use App\Infrastructure\Persistence\TraceRatingRepository;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 
 /**
  * GetGlobalLeaderboardHandler - CQRS query handler for global leaderboard.
@@ -26,7 +25,7 @@ use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
  * - Include component scores and demo counts
  * - Return paginated response with metadata
  */
-final readonly class GetGlobalLeaderboardHandler implements MessageHandlerInterface
+final readonly class GetGlobalLeaderboardHandler
 {
     public function __construct(
         private TraceRatingRepository $repo,

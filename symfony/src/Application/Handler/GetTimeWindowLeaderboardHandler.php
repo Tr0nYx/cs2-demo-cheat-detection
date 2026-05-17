@@ -11,7 +11,6 @@ use App\Application\Query\GetTimeWindowLeaderboardQuery;
 use App\Infrastructure\Persistence\PlayerRepository;
 use App\Infrastructure\Persistence\TraceRatingRepository;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 
 /**
  * GetTimeWindowLeaderboardHandler - CQRS query handler for time-windowed leaderboards.
@@ -30,7 +29,7 @@ use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
  * Per D-04: Time-windows filter by TraceRating.calculated_at (UTC timestamps).
  * Per D-06: Qualification is TIME-WINDOWED (5+ demos within the specified window).
  */
-final readonly class GetTimeWindowLeaderboardHandler implements MessageHandlerInterface
+final readonly class GetTimeWindowLeaderboardHandler
 {
     public function __construct(
         private TraceRatingRepository $repo,
