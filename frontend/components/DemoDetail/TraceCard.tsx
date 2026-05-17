@@ -258,8 +258,12 @@ export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode
           {playerId && historyData && !historyLoading && !historyError && (
             <CalibrationContextCard
               calibrationVersion={trace.calibrationVersion}
+              // TODO: Fetch from backend calibration statistics API
               globalAverage={1.0}
               playerValue={trace.traceAdjusted}
+              // TODO: These are placeholder values (all 1.0). Fetch real component means from backend
+              // calibration statistics endpoint once implemented. Current implementation assumes
+              // global average for all components is exactly 1.0, which is unrealistic with real data.
               componentMeans={{
                 ekill: 1.0,
                 aim: 1.0,
