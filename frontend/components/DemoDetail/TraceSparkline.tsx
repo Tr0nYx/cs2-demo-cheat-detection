@@ -139,13 +139,13 @@ export function TraceSparkline({
             stroke="#9ca3af"
           />
           <YAxis
-            domain="dataMin"
+            domain={['dataMin', 'dataMax']}
             tick={{ fontSize: 10 }}
             stroke="#9ca3af"
             width={40}
           />
           <Tooltip
-            formatter={(value) => [value.toFixed(3), 'TRACE']}
+            formatter={(value) => [typeof value === 'number' ? value.toFixed(3) : value, 'TRACE']}
             labelFormatter={(label) => `Demo ${label}`}
           />
           <Line

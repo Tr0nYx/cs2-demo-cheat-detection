@@ -1,6 +1,6 @@
 'use client'
 
-import { PercentileBadge } from '../TRACE/PercentileBadge'
+import { PercentileBadge } from '../DemoDetail/PercentileBadge'
 
 /**
  * ComponentBreakdownCard - Displays player's 5 TRACE components with percentile rankings.
