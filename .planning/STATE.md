@@ -9,20 +9,20 @@ See: .planning/PROJECT.md (updated 2026-05-15)
 
 ## Current Position
 
-Phase: 14 (Landing Page + Steam Login) - IN PROGRESS 🔄
-Current Wave: Wave 4 (Dashboard + Demo History + Public Metrics) - COMPLETE ✅
-Status: Phase 14 executing with 4 waves planned
+Phase: 14 (Landing Page + Steam Login) - COMPLETE ✅
+Status: Phase 14 executed with 4 waves all complete + UAT passed
 - Wave 1 (Landing Page UI): ✅ Complete
 - Wave 2 (Steam Authentication): ✅ Complete
 - Wave 3 (User Persistence + Refresh Tokens): ✅ Complete
 - Wave 4 (Dashboard + Demo History + Metrics): ✅ Complete
-- Delivered: Dashboard page, demo history table with pagination/sorting, quick upload integration, public metrics caching, backend API endpoints
-- Architecture: Protected routes via middleware, key-based refresh pattern, Redis metrics cache
-- Testing: 4 new backend integration tests added
-- Security: Dashboard protected, public metrics intentional, no cross-user data leaks
-Last activity: 2026-05-17 - Phase 14 Wave 4 execution complete; 6 commits; 7 new files, 4 modified
+- UAT: ✅ APPROVED FOR PRODUCTION
+- Delivered: Public landing page, Steam OpenID 2.0 auth, user persistence, protected dashboard, demo history with pagination, public metrics caching
+- Architecture: Next.js middleware auth, JWT + refresh tokens, httpOnly cookies, Symfony User entity, Redis metrics cache
+- Security: Dashboard protected, public metrics safe, httpOnly/Secure/SameSite=Strict, refresh token rotation
+- Testing: 4 backend integration tests, 10 Playwright E2E tests, all functional paths verified
+Last activity: 2026-05-17 - Phase 14 complete; UAT.md created; 14-04-SUMMARY.md with full execution details
 
-Progress: [##############] v2 Core Complete → [##############] Phase 13 Complete → [#########---] Phase 14 Wave 4 Complete
+Progress: [##############] v2 Core Complete → [##############] Phase 13 Complete → [##############] Phase 14 Complete
 
 ## Performance Metrics
 
@@ -100,9 +100,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-05-17
-Completed: Phase 14 Wave 4 execution (dashboard, demo history, metrics caching)
-Current status: Phase 14 Wave 4 Complete — Authenticated user dashboard production-ready
-Next work: Phase 14 Wave 5 (Advanced Analytics + User Scoping) OR Phase 15
+Completed: Phase 15 context gathering and decision locking
+Current status: Phase 15 context locked — Ready for research and planning
+Next work: Phase 15 research (feature vectors, leaderboard pre-computation, trend algorithms)
 
 **PROJECT EXECUTION STATUS: PHASE 14 WAVE 4 COMPLETE ✅**
 - Phase 3: Python Analysis Pipeline ✓ (analysis engine complete)
@@ -118,5 +118,12 @@ Next work: Phase 14 Wave 5 (Advanced Analytics + User Scoping) OR Phase 15
 - Phase 14 Wave 2: Steam Authentication ✓ (OpenID login flow, JWT tokens)
 - Phase 14 Wave 3: User Persistence ✓ (User/RefreshToken entities, repositories)
 - Phase 14 Wave 4: Dashboard + Demo History + Metrics ✓ (protected dashboard, pagination, caching)
+- Phase 15 Context: Advanced Analytics & User Scoping (context gathered, decisions locked, ready for research)
 
-**PHASE 14 WAVE 4 APPROVED FOR TESTING**
+**PHASE 15 CONTEXT LOCKED ✅**
+- User Analysis Scoping: Real-time multi-filter query (map, rating, outcome, timeframe)
+- Sensitivity Analysis: Individual feature thresholds with live preview + backend validation
+- Player Profiling Trends: Consistency, improvement arc, weapon strengths
+- Advanced Leaderboard Filtering: Map, rating band, region, timeframe filters
+- Computation: Hybrid (frontend preview + backend validation)
+- Filter Persistence: Auto-save recent combos to browser history (localStorage)
