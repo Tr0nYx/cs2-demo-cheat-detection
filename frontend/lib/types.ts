@@ -241,3 +241,38 @@ export interface FilterMetadataResponse {
   outcomes: FilterOption[]
   timeframes: FilterOption[]
 }
+
+export interface FeatureThresholds {
+  aimbot: number
+  triggerbot: number
+  wallhack: number
+  recoil: number
+  bhop: number
+  session: number
+}
+
+export interface FeatureVectorsDto {
+  aimbotScore: number
+  wallhackScore: number
+  triggerbotScore: number
+  recoilScore: number
+  bhopScore: number
+  sessionScore: number
+}
+
+export interface SensitivityComparisonDto {
+  baselineSuspicion: number
+  tunedSuspicion: number
+  impactBreakdown: Record<string, number>
+}
+
+export interface DemoDetailDto extends Demo {
+  featureVectors: FeatureVectorsDto | null
+  baselineSuspicion: number | null
+  metadata?: {
+    map?: string | null
+    outcome?: DemoOutcome | null
+    uploaded_at?: string
+    original_filename?: string | null
+  }
+}

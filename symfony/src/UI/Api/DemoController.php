@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\UI\Api;
 
 use App\Application\Demo\DemoResponseFactory;
+use App\Application\Handler\GetDemoDetailHandler;
 use App\Application\Handler\GetFilteredDemosHandler;
+use App\Application\Query\GetDemoDetailQuery;
 use App\Application\Query\GetFilteredDemosQuery;
 use App\Application\Demo\UploadDemoRequest;
 use App\Application\Demo\UploadDemoService;
@@ -23,6 +25,7 @@ final class DemoController extends AbstractController
         private readonly DemoRepository $demos,
         private readonly DemoResponseFactory $responses,
         private readonly ApiErrorResponder $errors,
+        private readonly GetDemoDetailHandler $demoDetails,
         private readonly GetFilteredDemosHandler $filteredDemos,
         private readonly string $jwtSecret,
     ) {
@@ -209,6 +212,26 @@ final class DemoController extends AbstractController
         }
 
         return new JsonResponse($this->responses->demo($demo));
+    }
+
+    #[Route('/{id}/detail', name: 'api_demos_detail', methods: ['GET'])]
+    public function detail(string $id, Request $request): JsonResponse
+    {
+        try {
+            $payload = $this->authenticatedPayload($request);
+            $userId = is_array($payload) ? (string) ($payload['steam_id'] ?? $payload['sub'] ?? '') : null;
+            $detail = ($this->demoDetails)(new GetDemoDetailQuery($id, $userId));
+
+            if ($detail === null) {
+                return $this->errors->problem(ApiProblem::notFound('demo_not_found', 'Demo not found.'));
+            }
+
+            return new JsonResponse($detail);
+        } catch (\InvalidArgumentException) {
+            return $this->errors->problem(ApiProblem::badRequest('invalid_demo_id', 'Invalid demo ID.'));
+        } catch (\Throwable) {
+            return $this->errors->unexpected();
+        }
     }
 
     private function isFilteredRequest(Request $request): bool

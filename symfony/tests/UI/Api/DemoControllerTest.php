@@ -111,6 +111,68 @@ final class DemoControllerTest extends WebTestCase
         self::assertSame('76561198000000001', $payload['results'][0]['player']['steam_id']);
     }
 
+    public function testDetailDemoScopesFeatureVectorsToAuthenticatedPlayer(): void
+    {
+        $client = self::createClient();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $demo = new Demo('/storage/demos/detail.dem', originalFilename: 'detail.dem');
+        $demo->setMap('Mirage');
+        $demo->setOutcome('win');
+        $demo->markDone(new \DateTimeImmutable('2026-05-15T12:00:00+00:00'));
+
+        $playerOne = new Player('76561198000000001', 'Player One');
+        $playerTwo = new Player('76561198000000002', 'Player Two');
+        $resultOne = new AnalysisResult(
+            $demo,
+            $playerOne,
+            24,
+            0.1,
+            0.2,
+            0.3,
+            0.4,
+            0.5,
+            0.6,
+            0.51,
+            SuspicionLabel::Suspicious,
+        );
+        $resultTwo = new AnalysisResult(
+            $demo,
+            $playerTwo,
+            24,
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+            0.4,
+            0.3,
+            0.72,
+            SuspicionLabel::LikelyCheating,
+        );
+
+        $entityManager->persist($demo);
+        $entityManager->persist($playerOne);
+        $entityManager->persist($playerTwo);
+        $entityManager->persist($resultOne);
+        $entityManager->persist($resultTwo);
+        $entityManager->flush();
+        $entityManager->clear();
+
+        $client->request(
+            'GET',
+            '/api/demos/'.$demo->getIdString().'/detail',
+            server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->jwtForSteamId('76561198000000002')]
+        );
+
+        self::assertResponseIsSuccessful();
+        $payload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame($demo->getIdString(), $payload['id']);
+        self::assertSame('Mirage', $payload['metadata']['map']);
+        self::assertSame('win', $payload['metadata']['outcome']);
+        self::assertSame(0.8, $payload['featureVectors']['aimbotScore']);
+        self::assertSame(0.3, $payload['featureVectors']['sessionScore']);
+        self::assertSame(0.72, $payload['baselineSuspicion']);
+    }
+
     public function testListDemosReturnsEmptyWhenNoDemos(): void
     {
         $client = self::createClient();

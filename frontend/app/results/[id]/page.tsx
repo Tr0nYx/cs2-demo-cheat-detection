@@ -1,8 +1,10 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useDemoFetch } from '@/lib/hooks/useDemoFetch'
+import { useDemoDetail } from '@/lib/hooks/useDemoDetail'
 import { ResultsCard } from '@/components/ResultsCard'
+import { SensitivityTuner } from '@/components/Analytics/SensitivityTuner'
 import { TraceCard } from '@/components/DemoDetail/TraceCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -13,10 +15,10 @@ import Link from 'next/link'
 
 export default function ResultsPage() {
   const params = useParams()
-  const router = useRouter()
   const demoId = params.id as string
 
   const { demo, isLoading, error, isTimeout, failureCount } = useDemoFetch(demoId)
+  const { data: demoDetail } = useDemoDetail(demoId)
 
   // Not found state
   if (demo === null) {
@@ -119,18 +121,22 @@ export default function ResultsPage() {
   if (demo) {
     return (
       <div className="flex flex-col flex-1 items-center justify-center bg-white dark:bg-gray-950">
-        <main className="flex flex-col items-center justify-center py-8 px-4 max-w-4xl w-full">
+        <main className="flex flex-col items-center justify-center py-8 px-4 max-w-7xl w-full">
           <div className="w-full mb-4">
             <Link href="/history" className="text-blue-600 dark:text-blue-400 hover:underline text-sm">
-              ← Back to History
+              {'\u2190'} Back to History
             </Link>
           </div>
 
           <ResultsCard demo={demo} />
 
-          {/* TRACE Rating Card - shown below analysis results if available */}
-          <div className="w-full mt-6">
+          <div className="mt-6 grid w-full gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
             <TraceCard demoId={demoId} />
+            <SensitivityTuner
+              demoId={demoId}
+              featureVectors={demoDetail?.featureVectors ?? null}
+              baselineSuspicion={demoDetail?.baselineSuspicion ?? null}
+            />
           </div>
         </main>
       </div>
