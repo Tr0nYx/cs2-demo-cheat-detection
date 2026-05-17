@@ -100,3 +100,144 @@ export interface TraceHistoryCollectionDto {
   traces: TraceHistoryDto[]
   pagination: PaginationMetadataDto
 }
+
+export type HeatmapType = 'kills' | 'deaths' | 'damage' | 'taken' | 'grenades'
+
+export interface DemoRoundDto {
+  round_number: number
+  start_tick: number
+  end_tick: number
+  winner: string | null
+  end_reason: string | null
+  duration_ms: number
+  kills: number
+  first_kill_tick: number | null
+  bomb_planted: boolean
+}
+
+export interface DemoRoundsResponseDto {
+  rounds: DemoRoundDto[]
+}
+
+export interface DemoTickPlayerDto {
+  steam_id: string
+  name?: string | null
+  team?: string | null
+  x: number
+  y: number
+  z?: number | null
+  yaw?: number | null
+  health?: number | null
+  alive?: boolean
+}
+
+export interface DemoTickGrenadeDto {
+  id?: string
+  type: string
+  x: number
+  y: number
+  z?: number | null
+  state?: string | null
+}
+
+export interface DemoTickDto {
+  tick: number
+  time_ms?: number
+  players: DemoTickPlayerDto[]
+  grenades?: DemoTickGrenadeDto[]
+}
+
+export interface DemoTicksResponseDto {
+  status: 'ready' | 'generating'
+  from_tick: number
+  to_tick: number
+  step: number
+  ticks?: DemoTickDto[]
+  retryAfterSeconds?: number
+}
+
+export interface DemoKillEventDto {
+  round_number: number
+  tick: number
+  attacker: {
+    steam_id: string
+    name: string | null
+    position?: { x: number | null; y: number | null; z: number | null }
+  }
+  victim: {
+    steam_id: string
+    name: string | null
+    position?: { x: number | null; y: number | null; z: number | null }
+  }
+  weapon: string | null
+  headshot: boolean
+  review_signal: {
+    suspicion_score: number
+    aimbot_score?: number
+    snap_ratio?: number
+    reaction_ms?: number | null
+    flag_reasons: string[]
+  }
+}
+
+export interface DemoGrenadeEventDto {
+  round_number: number
+  tick: number
+  time_ms?: number
+  thrower: {
+    steam_id: string
+    name: string | null
+  }
+  type: string
+  start: { x: number; y: number; z: number }
+  end: { x: number | null; y: number | null; z: number | null }
+  end_map_px?: number | null
+  end_map_py?: number | null
+  trajectory: Array<{ x: number; y: number; z?: number; tick?: number }>
+}
+
+export interface DemoEventsResponseDto {
+  kills?: DemoKillEventDto[]
+  grenades?: DemoGrenadeEventDto[]
+  damage?: unknown[]
+}
+
+export type RatingBand = '0-5' | '5-10' | '10+'
+export type DemoOutcome = 'win' | 'loss' | 'draw'
+export type FilterTimeframe = 7 | 30 | 90 | 999
+
+export interface FilterCriteria {
+  map?: string | null
+  ratingBand?: RatingBand | null
+  outcome?: DemoOutcome | null
+  daysBack?: FilterTimeframe | null
+  limit: number
+  offset: number
+}
+
+export interface DemoSummaryDto {
+  id: string
+  map: string | null
+  status: DemoStatus
+  uploadedAt: string
+  traceAdjusted: number | null
+  outcome?: DemoOutcome | null
+}
+
+export interface FilteredDemosResponse {
+  demos: DemoSummaryDto[]
+  total: number
+  hasMore: boolean
+}
+
+export interface FilterOption {
+  id: string
+  label: string
+}
+
+export interface FilterMetadataResponse {
+  maps: string[]
+  ratingBands: FilterOption[]
+  outcomes: FilterOption[]
+  timeframes: FilterOption[]
+}
