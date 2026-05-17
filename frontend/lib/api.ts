@@ -1,5 +1,11 @@
 import axios from 'axios'
-import type { Demo, AnalysisResult } from './types'
+import type {
+  Demo,
+  DemoEventsResponseDto,
+  DemoRoundsResponseDto,
+  DemoTicksResponseDto,
+  HeatmapType,
+} from './types'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'
 
@@ -90,6 +96,81 @@ export const deleteDemo = (id: string): Promise<void> =>
 
 export const downloadDemoUrl = (id: string): string =>
   `${API_BASE_URL}/demos/${id}/download`
+
+export interface DemoEventsParams {
+  type?: 'kills' | 'grenades' | 'damage' | 'all'
+  round?: number
+  player?: string
+}
+
+export interface DemoTicksParams {
+  fromTick?: number
+  toTick?: number
+  round?: number
+  players?: string[]
+  step?: number
+}
+
+export interface DemoHeatmapParams {
+  type?: HeatmapType
+  player?: string
+  roundFrom?: number
+  roundTo?: number
+}
+
+export const fetchDemoRounds = (demoId: string): Promise<DemoRoundsResponseDto> =>
+  api.get(`/demos/${demoId}/rounds`).then((r) => r.data)
+
+export const fetchDemoEvents = (
+  demoId: string,
+  params: DemoEventsParams = {}
+): Promise<DemoEventsResponseDto> =>
+  api
+    .get(`/demos/${demoId}/events`, {
+      params,
+    })
+    .then((r) => r.data)
+
+export const fetchDemoTicks = (
+  demoId: string,
+  params: DemoTicksParams = {}
+): Promise<DemoTicksResponseDto> =>
+  api
+    .get(`/demos/${demoId}/ticks`, {
+      params: {
+        from_tick: params.fromTick,
+        to_tick: params.toTick,
+        round: params.round,
+        step: params.step,
+        players: params.players,
+      },
+    })
+    .then((r) => r.data)
+
+export const demoHeatmapUrl = (
+  demoId: string,
+  params: DemoHeatmapParams = {}
+): string => {
+  const search = new URLSearchParams()
+  if (params.type) search.set('type', params.type)
+  if (params.player) search.set('player', params.player)
+  if (params.roundFrom !== undefined) search.set('round_from', String(params.roundFrom))
+  if (params.roundTo !== undefined) search.set('round_to', String(params.roundTo))
+  const query = search.toString()
+
+  return `${API_BASE_URL}/demos/${demoId}/heatmap${query ? `?${query}` : ''}`
+}
+
+// Public metrics endpoint (no authentication required)
+export const fetchPublicMetrics = async () => {
+  try {
+    const response = await api.get('/metrics/public')
+    return response.data
+  } catch (error) {
+    console.error('Failed to fetch public metrics:', error)
+    throw error
+  }
+}
 
 export { api }
 export default api
