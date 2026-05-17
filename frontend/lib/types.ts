@@ -316,3 +316,28 @@ export interface WeaponStrengthDto {
 }
 
 export type AnalyticsTrendResponse = ConsistencyTrendDto | ArcTrendDto | WeaponStrengthDto
+
+export interface LeaderboardFilterCriteria {
+  map?: string | null
+  ratingBand?: RatingBand | null
+  daysBack?: FilterTimeframe | null
+  limit: number
+  offset: number
+}
+
+export interface PlayerLeaderboardEntryDto {
+  rank: number
+  playerId: string
+  username: string
+  avatar: string | null
+  percentile95: number
+  demoCount: number
+  components: TraceComponentDto
+  lastAnalyzedAt: string
+}
+
+export interface FilteredLeaderboardResponse {
+  players: PlayerLeaderboardEntryDto[]
+  total: number
+  hasMore: boolean
+}

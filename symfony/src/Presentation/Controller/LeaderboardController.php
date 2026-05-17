@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Presentation\Controller;
 
+use App\Application\Handler\GetFilteredLeaderboardHandler;
 use App\Application\Query\GetGlobalLeaderboardQuery;
+use App\Application\Query\GetFilteredLeaderboardQuery;
 use App\Application\Query\GetMapLeaderboardQuery;
 use App\Application\Query\GetTeamLeaderboardQuery;
 use App\Application\Query\GetTimeWindowLeaderboardQuery;
@@ -41,7 +43,51 @@ final class LeaderboardController extends AbstractController
         private readonly MessageBusInterface $queryBus,
         private readonly SerializerInterface $serializer,
         private readonly ApiErrorResponder $errors,
+        private readonly GetFilteredLeaderboardHandler $filteredLeaderboardHandler,
     ) {
+    }
+
+    #[Route('/filtered', name: 'get_filtered_leaderboard', methods: ['GET'])]
+    public function getFilteredLeaderboard(Request $request): Response
+    {
+        try {
+            $limit = (int) $request->query->get('limit', 100);
+            $offset = (int) $request->query->get('offset', 0);
+            $daysBack = $request->query->get('days_back');
+
+            $query = new GetFilteredLeaderboardQuery(
+                map: $request->query->get('map'),
+                ratingBand: $request->query->get('rating_band'),
+                daysBack: $daysBack === null ? null : (int) $daysBack,
+                limit: $limit,
+                offset: $offset,
+            );
+
+            $result = ($this->filteredLeaderboardHandler)($query);
+            $data = $this->serializer->normalize($result);
+
+            $response = new Response(
+                content: json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
+                status: 200,
+                headers: ['Content-Type' => 'application/json']
+            );
+            $response->headers->set('Cache-Control', 'public, max-age=300');
+            $response->headers->set('X-Total-Count', (string) ($data['total'] ?? 0));
+
+            return $response;
+        } catch (\InvalidArgumentException $e) {
+            return $this->errors->problem(
+                ApiProblem::badRequest('validation_error', $e->getMessage())
+            );
+        } catch (\Throwable $e) {
+            return $this->errors->problem(
+                ApiProblem::serverError(
+                    'internal_error',
+                    'An unexpected error occurred while fetching the filtered leaderboard.',
+                    ['exception' => $e->getMessage()]
+                )
+            );
+        }
     }
 
     /**
