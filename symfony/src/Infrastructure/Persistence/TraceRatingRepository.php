@@ -70,4 +70,52 @@ class TraceRatingRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /**
+     * Find paginated TRACE ratings for a player with optional sorting.
+     *
+     * Returns a paginated set of TRACE history for a specific player.
+     * Supports sorting by calculated_at in ascending or descending order.
+     *
+     * @param string $playerId Player ID to search for
+     * @param int $limit Maximum number of results (typically 10-100)
+     * @param int $offset Skip first N results for pagination
+     * @param string $sortBy Sort order: 'date' (DESC), 'date_asc' (ASC)
+     * @return array<TraceRating> Array of TraceRating entities
+     */
+    public function findByPlayerIdPaginated(
+        string $playerId,
+        int $limit = 10,
+        int $offset = 0,
+        string $sortBy = 'date'
+    ): array {
+        $sortOrder = ($sortBy === 'date_asc') ? 'ASC' : 'DESC';
+
+        return $this->createQueryBuilder('tr')
+            ->where('tr.playerId = :playerId')
+            ->setParameter('playerId', $playerId)
+            ->orderBy('tr.calculatedAt', $sortOrder)
+            ->setMaxResults($limit)
+            ->setFirstResult($offset)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Count total TRACE ratings for a player.
+     *
+     * Used for pagination metadata (hasMore, total count).
+     *
+     * @param string $playerId Player ID to count records for
+     * @return int Total count of TRACE ratings for player
+     */
+    public function countByPlayerId(string $playerId): int
+    {
+        return (int) $this->createQueryBuilder('tr')
+            ->select('COUNT(tr.id)')
+            ->where('tr.playerId = :playerId')
+            ->setParameter('playerId', $playerId)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }
