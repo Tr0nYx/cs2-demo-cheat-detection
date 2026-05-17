@@ -107,9 +107,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-05-17
-Completed: Phase 16 planned
-Current status: Ready for execution
-Next work: Run /gsd-execute-phase 16
+Completed: Phase 16 executed
+Current status: Ready for verification
+Next work: Run /gsd-verify-work
 
 **PROJECT EXECUTION STATUS: PHASE 15 COMPLETE**
 - Phase 3: Python Analysis Pipeline complete (analysis engine complete)
@@ -123,6 +123,13 @@ Next work: Run /gsd-execute-phase 16
 - Phase 13: 2D Demo Viewer + Heatmap complete (interactive Canvas viewer, heatmaps, grenade inspector)
 - Phase 14: Landing Page + Steam Login complete (landing, auth, persistence, dashboard)
 - Phase 15: Advanced Analytics & User Scoping complete (filters, sensitivity tuner, trend metrics, filtered leaderboard)
+- Phase 16: HLTV Demo Scrape complete (playwright scraper, async symfony handler, cron command)
+
+**PHASE 16 COMPLETE**
+- Node.js Playwright scraper bypassing Cloudflare for demo URLs and stats
+- `hltv-scraper` container integrated in docker-compose.yml
+- Asynchronous symfony handler dispatching to standard demo import pipeline
+- Admin API for manual triggers and CLI command for Cron tier-1 auto-ingestion
 
 **PHASE 15 COMPLETE**
 - User Analysis Scoping: Real-time multi-filter query (map, rating, outcome, timeframe)
