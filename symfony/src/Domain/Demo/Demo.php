@@ -26,6 +26,10 @@ class Demo
     #[ORM\Column(name: 'steam_match_id', length: 64, nullable: true)]
     private ?string $steamMatchId = null;
 
+    #[ORM\Column(name: 'hltv_match_url', length: 1024, nullable: true)]
+    private ?string $hltvMatchUrl = null;
+
+
     #[ORM\Column(name: 'original_filename', length: 255, nullable: true)]
     private ?string $originalFilename = null;
 
@@ -88,6 +92,16 @@ class Demo
     public function getSteamMatchId(): ?string
     {
         return $this->steamMatchId;
+    }
+
+    public function getHltvMatchUrl(): ?string
+    {
+        return $this->hltvMatchUrl;
+    }
+
+    public function setHltvMatchUrl(?string $url): void
+    {
+        $this->hltvMatchUrl = $url;
     }
 
     public function getOriginalFilename(): ?string
