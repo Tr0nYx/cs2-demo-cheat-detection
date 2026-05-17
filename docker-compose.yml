@@ -155,13 +155,13 @@ services:
       php:
         condition: service_started
   hltv-scraper:
-    image: mcr.microsoft.com/playwright:v1.44.0-jammy
+    image: mcr.microsoft.com/playwright:v1.60.0-jammy
     container_name: cs2-hltv-scraper
     restart: unless-stopped
     command: npm run start
     working_dir: /app
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
       - ./hltv-scraper:/app
     networks:

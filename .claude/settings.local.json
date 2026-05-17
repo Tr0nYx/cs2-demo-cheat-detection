@@ -33,7 +33,9 @@
       "Skill(gsd-plan-phase)",
       "Skill(gsd-plan-phase:*)",
       "Skill(gsd-verify-work)",
-      "Skill(gsd-verify-work:*)"
+      "Skill(gsd-verify-work:*)",
+      "Skill(gsd-docs-update)",
+      "Skill(gsd-docs-update:*)"
     ]
   }
 }
