@@ -80,19 +80,19 @@ class TestDemoParserAdapter:
 
         Tests D-05: clear exception for invalid data.
         """
-        # Mock demoparser2 to return empty DataFrame
         import demoparser2
+        from unittest.mock import Mock
 
-        def mock_parse_ticks(cols):
-            return pd.DataFrame()
-
-        parser = DemoParserAdapter()
+        # Mock DemoParser to return a mock instance
+        mock_parser = Mock()
+        mock_parser.parse_ticks.return_value = pd.DataFrame()
         monkeypatch.setattr(
-            demoparser2.DemoParser, "parse_ticks", mock_parse_ticks
+            "parser.adapter.DemoParser", lambda path: mock_parser
         )
 
+        parser = DemoParserAdapter()
         with pytest.raises(DemoParseError, match="empty"):
-            parser.parse_demo("test.dem")
+            parser.parse_demo(__file__)
 
     def test_ticks_are_ordered(self, minimal_parsed_demo):
         """Verify ticks are ordered by tick number.

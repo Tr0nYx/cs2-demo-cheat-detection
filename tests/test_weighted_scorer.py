@@ -191,4 +191,91 @@ class TestWeightedScorer:
 
         result = scorer.score(feature_results)
 
-        assert result.weighting_strategy == "proportional_redistribution"
+        assert result.weighting_strategy == "conservative_proportional"
+
+    def test_conservative_single_high_feature_capped(self, scorer):
+        """A single high feature without others should be capped at suspicious."""
+        feature_results = {
+            "AimbotExtractor": FeatureResult(score=0.8),
+            "TriggerbotExtractor": None,
+            "WallhackExtractor": None,
+            "RecoilExtractor": None,
+            "BhopExtractor": None,
+            "SessionConsistencyExtractor": None,
+        }
+
+        result = scorer.score(feature_results)
+        assert result.overall_score == 0.69
+        assert result.label == "suspicious"
+
+    def test_conservative_exceptional_single_high_feature(self, scorer):
+        """An exceptional single high feature with strong metadata can reach likely_cheating."""
+        # Case A: Legacy fallback (score >= 0.95, no metadata)
+        feature_results_legacy = {
+            "AimbotExtractor": FeatureResult(score=0.96),
+            "TriggerbotExtractor": None,
+            "WallhackExtractor": None,
+            "RecoilExtractor": None,
+            "BhopExtractor": None,
+            "SessionConsistencyExtractor": None,
+        }
+        result_legacy = scorer.score(feature_results_legacy)
+        assert result_legacy.overall_score == 0.96
+        assert result_legacy.label == "likely_cheating"
+
+        # Case B: Standard high (score >= 0.9) with strong/high confidence metadata
+        feature_results_metadata = {
+            "AimbotExtractor": FeatureResult(
+                score=0.91,
+                metadata={"evidence_strength": "strong", "confidence": "high"}
+            ),
+            "TriggerbotExtractor": None,
+            "WallhackExtractor": None,
+            "RecoilExtractor": None,
+            "BhopExtractor": None,
+            "SessionConsistencyExtractor": None,
+        }
+        result_metadata = scorer.score(feature_results_metadata)
+        assert result_metadata.overall_score == 0.91
+        assert result_metadata.label == "likely_cheating"
+
+    def test_conservative_multiple_strong_features(self, scorer):
+        """Two or more strong features should allow reaching likely_cheating."""
+        feature_results = {
+            "AimbotExtractor": FeatureResult(score=0.8),
+            "WallhackExtractor": FeatureResult(score=0.7),
+            "TriggerbotExtractor": None,
+            "RecoilExtractor": None,
+            "BhopExtractor": None,
+            "SessionConsistencyExtractor": None,
+        }
+
+        result = scorer.score(feature_results)
+        assert result.overall_score >= 0.7
+        assert result.label == "likely_cheating"
+
+    def test_conservative_weak_capped_metadata_prevents_high_labels(self, scorer):
+        """Capped feature scores or weak metadata prevent overall high labels."""
+        feature_results = {
+            "AimbotExtractor": FeatureResult(
+                score=0.95,
+                metadata={"evidence_strength": "weak", "confidence": "low"}
+            ),
+            "WallhackExtractor": FeatureResult(
+                score=0.90,
+                metadata={"evidence_strength": "weak", "confidence": "low"}
+            ),
+            "TriggerbotExtractor": None,
+            "RecoilExtractor": None,
+            "BhopExtractor": None,
+            "SessionConsistencyExtractor": None,
+        }
+
+        result = scorer.score(feature_results)
+        # Even with two available features, Aimbot and Wallhack are capped because they aren't strong families
+        # (they need evidence_strength="strong" and confidence="high" when metadata is present).
+        # Since they are weak/low, they do not count as strong families.
+        # Thus, strong_families = 0.
+        # Hence, score is capped at 0.69!
+        assert result.overall_score == 0.69
+        assert result.label == "suspicious"

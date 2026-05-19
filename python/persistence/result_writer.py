@@ -163,10 +163,16 @@ class ResultWriter:
         steam_id: str,
         display_name: Optional[str],
     ) -> str:
-        cursor.execute("SELECT id FROM player WHERE steam_id = %s", (steam_id,))
+        cursor.execute("SELECT id, display_name FROM player WHERE steam_id = %s", (steam_id,))
         row = cursor.fetchone()
         if row:
-            return str(row[0])
+            player_id, current_display_name = row
+            if display_name and display_name != steam_id and (current_display_name is None or current_display_name == steam_id):
+                cursor.execute(
+                    "UPDATE player SET display_name = %s WHERE id = %s",
+                    (display_name, player_id),
+                )
+            return str(player_id)
 
         import uuid
 

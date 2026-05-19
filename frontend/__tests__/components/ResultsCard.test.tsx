@@ -157,4 +157,41 @@ describe('ResultsCard', () => {
     // Should render without error
     expect(screen.getByText(/analysis results/i)).toBeInTheDocument()
   })
+
+  it('renders Phase 20 calibration and score cap metadata', async () => {
+    const demoWithCalibration: Demo = {
+      ...mockDemo,
+      results: {
+        ...mockDemo.results!,
+        players: [
+          {
+            ...mockDemo.results!.players[0],
+            features: [
+              {
+                name: 'aimbot',
+                score: 49,
+                interpretation: 'Minor anomalies observed',
+                confidence: 'medium',
+                evidenceStrength: 'medium',
+                scoreCapApplied: true,
+                scoreCapReason: 'Capped due to proxy only evidence',
+                independentSignals: ['snap'],
+              },
+            ],
+          },
+        ],
+      },
+    }
+
+    render(<ResultsCard demo={demoWithCalibration} />)
+
+    await userEvent.click(screen.getByRole('button', { name: /toggle aimbot details/i }))
+
+    expect(screen.getByText(/confidence:/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/medium/i)).toHaveLength(2)
+    expect(screen.getByText(/evidence strength:/i)).toBeInTheDocument()
+    expect(screen.getByText(/calibration cap applied:/i)).toBeInTheDocument()
+    expect(screen.getByText(/capped due to proxy only evidence/i)).toBeInTheDocument()
+    expect(screen.getByText(/detected signals:/i)).toBeInTheDocument()
+  })
 })

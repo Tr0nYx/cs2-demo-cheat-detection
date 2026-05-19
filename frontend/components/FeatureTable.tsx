@@ -74,6 +74,34 @@ export function FeatureTable({ features }: FeatureTableProps) {
                           <span>{feature.method}</span>
                         </div>
                       )}
+                      {(feature.confidence || feature.evidenceStrength) && (
+                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                          {feature.confidence && (
+                            <div>
+                              <span className="font-semibold text-foreground">Confidence:</span>{' '}
+                              <span className="capitalize">{feature.confidence}</span>
+                            </div>
+                          )}
+                          {feature.evidenceStrength && (
+                            <div>
+                              <span className="font-semibold text-foreground">Evidence Strength:</span>{' '}
+                              <span className="capitalize">{feature.evidenceStrength}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {feature.independentSignals && feature.independentSignals.length > 0 && (
+                        <div>
+                          <span className="font-semibold text-foreground">Detected Signals:</span>{' '}
+                          <span>{feature.independentSignals.join(', ')}</span>
+                        </div>
+                      )}
+                      {feature.scoreCapApplied && (
+                        <div className="rounded border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-blue-700 dark:text-blue-300">
+                          <span className="font-semibold">Calibration Cap Applied:</span>{' '}
+                          <span>{feature.scoreCapReason || 'Suspicion score capped due to low sample size or lack of secondary corroboration.'}</span>
+                        </div>
+                      )}
                       {feature.warning && (
                         <div className="rounded border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-yellow-700 dark:text-yellow-300">
                           {feature.warning}

@@ -137,10 +137,6 @@ def _player_steam_ids(parsed_demo: ParsedDemo) -> list[str]:
     )
 
     return steam_ids
-    try:
-        return int(value)
-    except ValueError:
-        return default
 
 
 def process_job(
@@ -281,13 +277,21 @@ def process_job(
             if scoring_summary is None:
                 continue
 
+            # Extract the player's Steam profile name from the demo if available
+            player_display_name = steam_id
+            if "name" in player_demo.ticks_df.columns:
+                non_empty_names = player_demo.ticks_df["name"].dropna().unique()
+                non_empty_names = [n for n in non_empty_names if n and str(n).strip()]
+                if non_empty_names:
+                    player_display_name = str(non_empty_names[0])
+
             result_writer.write_result(
                 demo_id,
                 feature_results,
                 scoring_summary,
                 model_version,
                 player_steam_id=steam_id,
-                player_display_name=steam_id,
+                player_display_name=player_display_name,
                 map_name=parsed_demo.map_name,
             )
             results_written += 1

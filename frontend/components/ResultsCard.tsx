@@ -65,8 +65,9 @@ export function ResultsCard({ demo }: ResultsCardProps) {
     const overallScore = demo.results.overall_score ?? 0
     const hasOnlyDemoLevelResults = players.length > 0 && players.every((player) => player.steamId === '0')
 
-    const overallStatusVariant = overallScore <= 33 ? 'suspicion-clean' : overallScore <= 66 ? 'suspicion-review' : 'suspicion-high'
-    const overallStatusLabel = overallScore <= 33 ? 'Low review signal' : overallScore <= 66 ? 'Review signal' : 'High review signal'
+    const overallVerdict = demo.results.overall_verdict || 'clean'
+    const overallStatusVariant = overallVerdict === 'clean' ? 'suspicion-clean' : overallVerdict === 'suspicious' ? 'suspicion-review' : 'suspicion-high'
+    const overallStatusLabel = overallVerdict === 'clean' ? 'Low review signal' : overallVerdict === 'suspicious' ? 'Review signal' : 'High review signal'
 
     return (
       <div className="space-y-6">
@@ -131,8 +132,9 @@ export function ResultsCard({ demo }: ResultsCardProps) {
           </h3>
           {players.map((player: Player) => {
             const isDemoLevelResult = player.steamId === '0'
-            const playerStatusVariant = player.overallScore <= 33 ? 'suspicion-clean' : player.overallScore <= 66 ? 'suspicion-review' : 'suspicion-high'
-            const playerStatusLabel = player.overallScore <= 33 ? 'Low review signal' : player.overallScore <= 66 ? 'Review signal' : 'High review signal'
+            const playerVerdict = player.overallVerdict || 'clean'
+            const playerStatusVariant = playerVerdict === 'clean' ? 'suspicion-clean' : playerVerdict === 'suspicious' ? 'suspicion-review' : 'suspicion-high'
+            const playerStatusLabel = playerVerdict === 'clean' ? 'Low review signal' : playerVerdict === 'suspicious' ? 'Review signal' : 'High review signal'
 
             return (
               <ConsolePanel

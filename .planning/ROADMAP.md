@@ -30,6 +30,9 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 
 - [ ] **Phase 17: Steamprofile Usage** - Implemented and verified against Docker test DB; remaining debt is older handler test-harness access plus human review.
 - [ ] **Phase 19: Frontend UI/UX Analysis Console Redesign** - Rework the Next.js frontend into a cohesive analysis console using the UI/UX review in `tasks/frontend-ui-ux-review.md`, including design tokens, shared console layouts, dashboard workflow improvements, clearer TRACE/results explainability, demo viewer UX, responsive behavior, accessibility, and research-safe copy.
+- [ ] **Phase 20: Calibrate High Review Signals and Reduce False Positives in Player Analysis** - Audit and recalibrate player-specific aimbot, wallhack, triggerbot, recoil, bhop, session, and weighted scoring so normal demos do not produce blanket high review signals, while preserving explainable research-only output.
+- [ ] **Phase 21: AntiCheatPT Research and Python Pipeline Guidance** - Review AntiCheatPT dataset and code patterns to align our parser, feature extraction, and scoring pipeline with proven CS2 cheat-detection data conventions and defensible research-only guardrails.
+- [ ] **Phase 22: Apply AntiCheatPT Best Practices to Python Pipeline** - Implement feature engineering patterns (derivatives, cumulative displacement, statistical summaries), data augmentation for class imbalance, transformer-based sequence patterns with positional encoding, and modular pipeline structure (extraction → conversion → augmentation → analysis).
 
 ### Phase 8 Plans (All Complete)
 
@@ -173,6 +176,42 @@ Cross-cutting constraints:
 - Do not alter scoring, labels, model confidence, player trust, or cheat-detection semantics as part of UI/UX work.
 - Use existing Next.js, React Query, Tailwind/shadcn/base-ui, Recharts, Jest, and Playwright patterns before adding new dependencies.
 - Verify keyboard focus, no color-only meaning, and responsive behavior at 320px, 768px, 1024px, and 1440px.
+
+### Phase 20 Plans (Planned)
+
+Goal: Fix inflated high review signals by calibrating the player-specific detection pipeline against real demo behavior, feature evidence, and conservative research-signal thresholds.
+
+Depends on: Phase 3 (Python Analysis Pipeline), Phase 6 (Frontend Application Interface), Phase 15 (Advanced Analytics & User Scoping), Phase 19 (Results/TRACE explainability work if executed first)
+
+Problem anchor:
+- The pipeline now attributes results to individual SteamIDs instead of a demo-wide aggregate, but current extractor outputs still produce high review signals for nearly every parsed player in some normal-looking demos.
+- Demo-wide scoring is not useful for the product goal; detection output must remain player-specific, explainable, and conservative enough for human review.
+- High scores must be supported by player-local evidence windows, not broad demo-level proxies or overly permissive thresholds.
+
+Wave 1:
+- [ ] 20-01-PLAN.md - Calibration metadata and weighted scorer guardrails
+
+Wave 2 *(blocked on Wave 1 completion)*:
+- [ ] 20-02-PLAN.md - Feature evidence gates and conservative caps
+
+Wave 3 *(blocked on Waves 1-2 completion)*:
+- [ ] 20-03-PLAN.md - Regression harness and problem demo guardrails
+
+Wave 4 *(blocked on Waves 1-3 completion)*:
+- [ ] 20-04-PLAN.md - Results UI confidence and capped evidence display
+
+Acceptance criteria:
+- Existing analyzed demos no longer produce blanket high review labels across most players without strong per-player evidence.
+- `steam_id = 0` or other demo-wide aggregate results are not used for visible player suspicion.
+- Each high feature score has stored evidence that explains the player-specific measurement causing the signal.
+- Low sample counts, parser gaps, or unavailable data reduce confidence instead of inflating scores.
+- Regression tests cover at least one normal/baseline demo fixture and the previously problematic demo ID `019e3a28-60a6-7c96-99c8-34ddd3231268`.
+
+Cross-cutting constraints:
+- Keep all outputs framed as research signals for human review, never proof or enforcement.
+- Do not use live client inspection, memory reading, live cheat behavior, or ban automation.
+- Preserve the Symfony/Python boundary: Python owns feature/scoring calibration; Symfony/Frontend only display persisted evidence and labels.
+- Prefer transparent statistical thresholds and documented formulas before introducing opaque ML model behavior.
 
 ### Backlog
 

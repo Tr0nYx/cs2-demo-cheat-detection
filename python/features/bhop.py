@@ -170,8 +170,38 @@ class BhopExtractor(AbstractFeatureExtractor):
             )
 
             # e. Score combination
-            # final_score = 0.3 * norm_cv + 0.3 * norm_perfect + 0.4 * norm_sequence
+            # Final score: 0.3 * norm_cv + 0.3 * norm_perfect + 0.4 * norm_sequence
             final_score = 0.3 * norm_cv + 0.3 * norm_perfect + 0.4 * norm_sequence
+            
+            # Apply player-specific evidence gates and score caps
+            score_cap_applied = False
+            score_cap_reason = ""
+            warnings_list = []
+            
+            jump_count = len(jump_ticks)
+            
+            if jump_count < 10:
+                final_score = min(0.49, final_score)
+                score_cap_applied = True
+                score_cap_reason = f"insufficient_jumps ({jump_count})"
+                warnings_list.append(f"Low jump count ({jump_count}), capping bhop score")
+                confidence = "low"
+                evidence_strength = "weak"
+            elif final_score >= 0.49:
+                if perfect_jumps < 3:
+                    final_score = min(0.49, final_score)
+                    score_cap_applied = True
+                    score_cap_reason = f"insufficient_perfect_jumps ({perfect_jumps})"
+                    warnings_list.append(f"Insufficient perfect jumps ({perfect_jumps}), capping bhop score")
+                    confidence = "medium"
+                    evidence_strength = "medium"
+                else:
+                    confidence = "high" if jump_count >= 20 else "medium"
+                    evidence_strength = "strong" if final_score >= 0.7 else "medium"
+            else:
+                confidence = "high" if jump_count >= 20 else "medium"
+                evidence_strength = "medium" if final_score >= 0.3 else "weak"
+
             self._validate_score(final_score)
 
             # f. Return FeatureResult
@@ -195,7 +225,11 @@ class BhopExtractor(AbstractFeatureExtractor):
             metadata = {
                 "method": "bhop_timing_sequence_sigmoid",
                 "version": "1.0",
-                "warnings": ["low_jump_count"] if len(jump_ticks) < 10 else [],
+                "warnings": warnings_list,
+                "score_cap_applied": score_cap_applied,
+                "score_cap_reason": score_cap_reason,
+                "confidence": confidence,
+                "evidence_strength": evidence_strength,
             }
 
             return FeatureResult(

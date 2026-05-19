@@ -90,16 +90,18 @@ class TriggerbotExtractor(AbstractFeatureExtractor):
             skewness = sp_stats.skew(reaction_times_ms)
             kurtosis = sp_stats.kurtosis(reaction_times_ms)
 
-            numerator = skewness ** 2 + 1.0
-            denominator_base = kurtosis + 3.0 * ((n - 1) ** 2) / (
-                (n - 2) * (n - 3)
-            )
-
-            # Avoid division by zero
-            if abs(denominator_base) < 1e-10:
+            # Avoid division by zero when n <= 3
+            if n <= 3:
                 bc_value = 0.0
             else:
-                bc_value = numerator / denominator_base
+                numerator = skewness ** 2 + 1.0
+                denominator_base = kurtosis + 3.0 * ((n - 1) ** 2) / (
+                    (n - 2) * (n - 3)
+                )
+                if abs(denominator_base) < 1e-10:
+                    bc_value = 0.0
+                else:
+                    bc_value = numerator / denominator_base
 
             # Normalize bimodality coefficient
             # BC > 0.555 is suspicious, sigmoid with inflection=0.555, scale=5.0
@@ -116,6 +118,31 @@ class TriggerbotExtractor(AbstractFeatureExtractor):
             # d. Score combination
             final_score = 0.6 * norm_bc + 0.4 * instant_kill_ratio
             self._validate_score(final_score)
+
+            # Apply player-specific evidence gates and score caps
+            independent_signals = []
+            if norm_bc >= 0.7:
+                independent_signals.append("bimodality")
+            if instant_kill_ratio >= 0.3:
+                independent_signals.append("instant_kill")
+
+            sample_count = len(reaction_times_ms)
+            score_cap_applied = False
+            score_cap_reason = ""
+
+            if final_score >= 0.49:
+                if instant_kills < 2:
+                    final_score = 0.49
+                    score_cap_applied = True
+                    score_cap_reason = f"insufficient_instant_kills ({instant_kills})"
+                    confidence = "medium" if instant_kills >= 1 else "low"
+                    evidence_strength = "medium" if instant_kills >= 1 else "weak"
+                else:
+                    confidence = "high" if sample_count >= 10 else ("medium" if sample_count >= 5 else "low")
+                    evidence_strength = "strong" if final_score >= 0.7 else "medium"
+            else:
+                confidence = "high" if sample_count >= 10 else ("medium" if sample_count >= 5 else "low")
+                evidence_strength = "medium" if final_score >= 0.3 else "weak"
 
             # e. Return FeatureResult
             raw_measurements = {
@@ -135,7 +162,7 @@ class TriggerbotExtractor(AbstractFeatureExtractor):
 
             metadata = {
                 "method": "triggerbot_bimodality_sigmoid",
-                "version": "1.0",
+                "version": "1.1",
                 "bimodality_threshold": self.BIMODALITY_THRESHOLD,
                 "instant_kill_threshold_ticks": self.INSTANT_KILL_THRESHOLD_TICKS,
                 "bc_weight": 0.6,
@@ -143,7 +170,15 @@ class TriggerbotExtractor(AbstractFeatureExtractor):
                 "warnings": (
                     ["low_sample_size"] if len(reaction_times_ms) < 5 else []
                 ),
+                "confidence": confidence,
+                "evidence_strength": evidence_strength,
+                "score_cap_applied": score_cap_applied,
+                "score_cap_reason": score_cap_reason,
+                "independent_signals": independent_signals,
+                "sample_count": sample_count,
             }
+            if score_cap_applied:
+                metadata["warnings"].append("score_capped")
 
             return FeatureResult(
                 score=final_score,

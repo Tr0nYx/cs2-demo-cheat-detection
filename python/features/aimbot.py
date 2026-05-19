@@ -77,6 +77,7 @@ class AimbotExtractor(AbstractFeatureExtractor):
             reaction_proxy_values = []
 
             # b-d. Process each kill
+            suspicious_kill_windows = 0
             for kill_tick in kill_ticks:
                 # Extract kill window
                 window_start = max(0, kill_tick - self.KILL_WINDOW_TICKS)
@@ -93,6 +94,8 @@ class AimbotExtractor(AbstractFeatureExtractor):
                 # Get yaw values
                 yaw_values = window_ticks["yaw"].values
 
+                is_window_suspicious = False
+
                 # Snap ratio: max(|Δyaw|) / mean(|Δyaw|)
                 yaw_deltas = np.abs(np.diff(yaw_values))
                 if len(yaw_deltas) > 0 and np.mean(yaw_deltas) > self.EPSILON:
@@ -100,6 +103,8 @@ class AimbotExtractor(AbstractFeatureExtractor):
                         np.mean(yaw_deltas) + self.EPSILON
                     )
                     snap_ratio_values.append(snap_ratio)
+                    if snap_ratio > 4.0:
+                        is_window_suspicious = True
 
                 # Angular velocity: (max(yaw) - min(yaw)) / window_size_ticks
                 yaw_range = np.max(yaw_values) - np.min(yaw_values)
@@ -107,6 +112,8 @@ class AimbotExtractor(AbstractFeatureExtractor):
                 if window_size > 0:
                     angular_velocity = yaw_range / window_size
                     angular_velocity_values.append(angular_velocity)
+                    if angular_velocity > self.ANGULAR_VELOCITY_THRESHOLD_DEG_PER_TICK:
+                        is_window_suspicious = True
 
                 # Angular jerk: second derivative of yaw
                 if len(yaw_deltas) > 1:
@@ -114,6 +121,8 @@ class AimbotExtractor(AbstractFeatureExtractor):
                     if len(velocity_deltas) > 0:
                         max_jerk = np.max(velocity_deltas)
                         angular_jerk_values.append(max_jerk)
+                        if max_jerk > self.ANGULAR_JERK_THRESHOLD_DEG_PER_TICK_SQ:
+                            is_window_suspicious = True
 
                 # e. Reaction proxy (time from footstep to snap detection)
                 # Find footsteps before this kill
@@ -126,6 +135,9 @@ class AimbotExtractor(AbstractFeatureExtractor):
                     reaction_ticks = kill_tick - last_footstep_tick
                     reaction_proxy_values.append(reaction_ticks)
 
+                if is_window_suspicious:
+                    suspicious_kill_windows += 1
+
             # Validate we have measurements
             if (
                 not snap_ratio_values
@@ -137,12 +149,13 @@ class AimbotExtractor(AbstractFeatureExtractor):
             # Normalize each sub-feature
             raw_measurements = {
                 "kills_detected": len(kill_ticks),
+                "suspicious_kill_windows": suspicious_kill_windows,
             }
 
             # Snap ratio normalization
             if snap_ratio_values:
                 mean_snap = np.mean(snap_ratio_values)
-                norm_snap = self._sigmoid_normalize(mean_snap, inflection_point=1.0, scale=2.0)
+                norm_snap = self._sigmoid_normalize(mean_snap, inflection_point=4.0, scale=1.0)
                 raw_measurements.update({
                     "snap_ratio_values": snap_ratio_values,
                     "mean_snap_ratio": mean_snap,
@@ -219,15 +232,50 @@ class AimbotExtractor(AbstractFeatureExtractor):
             final_score = max(norm_snap_val, norm_av_val, norm_jerk_val)
             self._validate_score(final_score)
 
-            # g. Return FeatureResult
+            # g. Apply Player-Specific Evidence Gates and score caps
+            independent_signals = []
+            if norm_snap_val >= 0.7:
+                independent_signals.append("snap")
+            if norm_av_val >= 0.7:
+                independent_signals.append("velocity")
+            if norm_jerk_val >= 0.7:
+                independent_signals.append("jerk")
+
+            sample_count = len(kill_ticks)
+            score_cap_applied = False
+            score_cap_reason = ""
+
+            if final_score >= 0.7:
+                if suspicious_kill_windows < 2 or len(independent_signals) < 2:
+                    final_score = min(0.49, final_score)
+                    score_cap_applied = True
+                    score_cap_reason = f"insufficient_kill_windows ({suspicious_kill_windows}) or independent_signals ({len(independent_signals)})"
+                    confidence = "medium" if suspicious_kill_windows >= 1 and len(independent_signals) >= 1 else "low"
+                    evidence_strength = "medium" if suspicious_kill_windows >= 1 and len(independent_signals) >= 1 else "weak"
+                else:
+                    confidence = "high"
+                    evidence_strength = "strong"
+            else:
+                confidence = "high" if sample_count >= 5 else "medium"
+                evidence_strength = "medium" if final_score >= 0.3 else "weak"
+
+            # h. Return FeatureResult
             metadata = {
                 "method": "aimbot_multifeature_sigmoid",
-                "version": "1.0",
+                "version": "1.1",
                 "kill_window_ticks": self.KILL_WINDOW_TICKS,
                 "angular_velocity_threshold_deg_per_tick": self.ANGULAR_VELOCITY_THRESHOLD_DEG_PER_TICK,
                 "angular_jerk_threshold_deg_per_tick_sq": self.ANGULAR_JERK_THRESHOLD_DEG_PER_TICK_SQ,
                 "warnings": [],
+                "confidence": confidence,
+                "evidence_strength": evidence_strength,
+                "score_cap_applied": score_cap_applied,
+                "score_cap_reason": score_cap_reason,
+                "independent_signals": independent_signals,
+                "sample_count": sample_count,
             }
+            if score_cap_applied:
+                metadata["warnings"].append("score_capped")
 
             return FeatureResult(
                 score=final_score,

@@ -104,34 +104,39 @@ def minimal_parsed_demo(
 
 @pytest.fixture
 def demo_with_kills(minimal_tick_df: pd.DataFrame) -> ParsedDemo:
-    """ParsedDemo extended with kill events for aimbot/triggerbot testing.
+    """ParsedDemo extended with kill and fire events for aimbot/triggerbot testing.
 
-    Extends the ticks to 30 rows with shooting at strategic points (ticks 9, 10, 19, 20).
-    Adds player_death events at ticks 10 and 20.
+    Extends the ticks to 40 rows with shooting at strategic points.
+    Adds player_death and weapon_fire events.
 
     Returns:
-        ParsedDemo with kills for aimbot/triggerbot feature extraction
+        ParsedDemo with kills and fires for feature extraction
     """
-    # Extend ticks to tick 30
+    # Extend ticks to tick 40
     extended_ticks = []
-    for i in range(30):
+    for i in range(40):
         row = minimal_tick_df.iloc[0].copy()
         row["tick"] = i
         row["X"] = 100.0 + i
         row["yaw"] = (i * 5.0) % 360
         # Add shooting at strategic points
-        if i in [9, 10, 19, 20]:
+        if i in [9, 10, 19, 20, 29, 30]:
             row["is_shooting"] = True
         extended_ticks.append(row)
 
     ticks_df = pd.DataFrame(extended_ticks).reset_index(drop=True)
 
-    # Create kill events: player_death at ticks 10 and 20
+    # Create events: weapon_fire followed by player_death
     events_data = {
-        "tick": [10, 20],
-        "event_type": ["player_death", "player_death"],
-        "attacker_steamid": [1, 1],
-        "victim_steamid": [2, 3],
+        "tick": [9, 10, 19, 20, 29, 30],
+        "event_type": [
+            "weapon_fire", "player_death",
+            "weapon_fire", "player_death",
+            "weapon_fire", "player_death"
+        ],
+        "steamid": [1, None, 1, None, 1, None],
+        "attacker_steamid": [None, 1, None, 1, None, 1],
+        "victim_steamid": [None, 2, None, 3, None, 4],
     }
     events_df = pd.DataFrame(events_data)
 
@@ -157,11 +162,11 @@ def demo_with_footsteps(minimal_tick_df: pd.DataFrame) -> ParsedDemo:
 
     ticks_df = pd.DataFrame(extended_ticks).reset_index(drop=True)
 
-    # Add footstep events from opponent
+    # Add footstep events from opponent, and also player_death events to satisfy MIN_PEEKS
     events_data = {
-        "tick": [5, 10, 15, 20, 25],
-        "event_type": ["player_footstep"] * 5,
-        "steamid": [2, 2, 2, 2, 2],
+        "tick": [5, 10, 15, 20, 25, 10, 20, 25],
+        "event_type": ["player_footstep"] * 5 + ["player_death"] * 3,
+        "steamid": [2, 2, 2, 2, 2, 1, 1, 1],
     }
     events_df = pd.DataFrame(events_data)
 
@@ -177,13 +182,13 @@ def demo_with_jumps(minimal_tick_df: pd.DataFrame) -> ParsedDemo:
     Returns:
         ParsedDemo with jumps for bhop feature extraction
     """
-    # Extend ticks to 40
+    # Extend ticks to 50
     extended_ticks = []
-    for i in range(40):
+    for i in range(50):
         row = minimal_tick_df.iloc[0].copy()
         row["tick"] = i
         # Set is_airborne based on jump/land events
-        if i in [5, 6, 7, 8, 10, 11, 12, 13, 15, 16, 17, 18]:
+        if i in [5, 6, 7, 8, 10, 11, 12, 13, 15, 16, 17, 18, 20, 21, 22, 25, 26, 27]:
             row["is_airborne"] = True
         extended_ticks.append(row)
 
@@ -191,8 +196,10 @@ def demo_with_jumps(minimal_tick_df: pd.DataFrame) -> ParsedDemo:
 
     # Add jump/land pairs: jump at 5, land at 8; jump at 10, land at 13, etc.
     events_data = {
-        "tick": [5, 8, 10, 13, 15, 18, 20, 23],
+        "tick": [5, 8, 10, 13, 15, 18, 20, 23, 25, 28],
         "event_type": [
+            "player_jump",
+            "player_land",
             "player_jump",
             "player_land",
             "player_jump",

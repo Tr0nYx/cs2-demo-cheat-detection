@@ -102,7 +102,7 @@ class WallhackExtractor(AbstractFeatureExtractor):
                         valid_transition_ticks = transition_ticks[valid_mask]
 
                         ticks_until_footstep = next_footstep_ticks - valid_transition_ticks
-                        suspicious_preAim_count = int(np.sum(ticks_until_footstep >= self.PRE_AIM_TICKS_BEFORE_FOOTSTEP))
+                        suspicious_preAim_count = int(np.sum((ticks_until_footstep >= self.PRE_AIM_TICKS_BEFORE_FOOTSTEP) & (ticks_until_footstep <= 128)))
 
             # Calculate pre-aim ratio
             if total_aim_transitions > 0:
@@ -152,7 +152,7 @@ class WallhackExtractor(AbstractFeatureExtractor):
 
             # Normalize crosshair delta
             # < 5 degrees = instant-on (suspicious)
-            norm_delta = self._sigmoid_normalize(
+            norm_delta = 1.0 - self._sigmoid_normalize(
                 crosshair_delta_avg, inflection_point=self.CROSSHAIR_DELTA_THRESHOLD_DEG,
                 scale=0.2
             )
@@ -177,9 +177,35 @@ class WallhackExtractor(AbstractFeatureExtractor):
                 "peeks_analyzed": len(death_events),
             }
 
+            # g. Apply Player-Specific Evidence Gates and score caps
+            independent_signals = []
+            if norm_preAim >= 0.6:
+                independent_signals.append("pre_aim")
+            if norm_sound >= 0.6:
+                independent_signals.append("sound_timeline")
+            if norm_delta >= 0.80:
+                independent_signals.append("visual_alignment")
+
+            sample_count = len(death_events)
+            score_cap_applied = False
+            score_cap_reason = ""
+
+            if "visual_alignment" not in independent_signals and ("pre_aim" in independent_signals or "sound_timeline" in independent_signals):
+                final_score = min(0.49, final_score)
+                score_cap_applied = True
+                score_cap_reason = "proxy_only_no_visual_confirmation"
+                confidence = "medium"
+                evidence_strength = "medium"
+            elif final_score >= 0.7:
+                confidence = "high" if sample_count >= 5 else "medium"
+                evidence_strength = "strong"
+            else:
+                confidence = "high" if sample_count >= 5 else "medium"
+                evidence_strength = "medium" if final_score >= 0.3 else "weak"
+
             metadata = {
                 "method": "wallhack_preAim_sound_delta_sigmoid",
-                "version": "1.0",
+                "version": "1.1",
                 "pre_aim_yaw_threshold_deg": self.PRE_AIM_YAW_DELTA_THRESHOLD_DEG,
                 "pre_aim_ticks_before_footstep": self.PRE_AIM_TICKS_BEFORE_FOOTSTEP,
                 "pre_aim_weight": 0.4,
@@ -188,7 +214,15 @@ class WallhackExtractor(AbstractFeatureExtractor):
                 "warnings": (
                     ["insufficient_peeks"] if len(death_events) < 5 else []
                 ),
+                "confidence": confidence,
+                "evidence_strength": evidence_strength,
+                "score_cap_applied": score_cap_applied,
+                "score_cap_reason": score_cap_reason,
+                "independent_signals": independent_signals,
+                "sample_count": sample_count,
             }
+            if score_cap_applied:
+                metadata["warnings"].append("score_capped")
 
             return FeatureResult(
                 score=final_score,

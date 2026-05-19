@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING, TypedDict, List
 
 import numpy as np
 from scipy import special as sp_special
@@ -24,6 +24,31 @@ class FeatureExtractionError(Exception):
     pass
 
 
+class CalibrationMetadata(TypedDict, total=False):
+    """Typed contract for calibration and evidence-gate metadata.
+
+    Attributes:
+        confidence: "low", "medium", or "high" confidence in the score.
+        evidence_strength: "weak", "medium", or "strong" evidence.
+        score_cap_applied: True if the score was capped due to weak evidence or low samples.
+        score_cap_reason: Explanation of why the score was capped.
+        independent_signals: List of independent signals found (e.g., ["snap", "jerk"]).
+        sample_count: Number of samples or events used for extraction.
+        warnings: List of warning strings/anomalies (e.g., "low_sample_count").
+        method: Name of the extraction method/algorithm.
+        version: Version of the extractor logic.
+    """
+    confidence: str
+    evidence_strength: str
+    score_cap_applied: bool
+    score_cap_reason: str
+    independent_signals: List[str]
+    sample_count: int
+    warnings: List[str]
+    method: str
+    version: str
+
+
 @dataclass
 class FeatureResult:
     """Output of a feature extractor: normalized score + raw data for explainability.
@@ -33,8 +58,8 @@ class FeatureResult:
         raw_measurements: Dictionary of intermediate computation values (snap ratio,
                          angular velocity, reaction times, etc.) for explainability
                          and debugging.
-        metadata: Extraction method name, version, and any warnings or notes
-                 (e.g., if data was bimodal, if sample size was small).
+        metadata: CalibrationMetadata or dict containing method details, confidence,
+                 warnings, independent signals, etc.
     """
 
     score: Optional[float]

@@ -21,6 +21,11 @@ type BackendFeaturePayload = {
   raw_measurements?: Record<string, unknown>
   metadata?: {
     method?: unknown
+    confidence?: unknown
+    evidence_strength?: unknown
+    score_cap_applied?: unknown
+    score_cap_reason?: unknown
+    independent_signals?: unknown
   }
 }
 
@@ -71,7 +76,16 @@ function featurePayload(featureData: BackendResult['feature_data'], extractorNam
   return featureData?.[extractorName] || {}
 }
 
-function featureEvidence(featureName: Feature['name'], featureData: BackendResult['feature_data']): { evidence: string[]; method?: string; warning?: string } {
+function featureEvidence(featureName: Feature['name'], featureData: BackendResult['feature_data']): {
+  evidence: string[]
+  method?: string
+  warning?: string
+  confidence?: Feature['confidence']
+  evidenceStrength?: Feature['evidenceStrength']
+  scoreCapApplied?: boolean
+  scoreCapReason?: string
+  independentSignals?: string[]
+} {
   const extractorByFeature: Record<string, string> = {
     aimbot: 'AimbotExtractor',
     triggerbot: 'TriggerbotExtractor',
@@ -84,75 +98,82 @@ function featureEvidence(featureName: Feature['name'], featureData: BackendResul
   const raw = payload.raw_measurements || {}
   const method = typeof payload.metadata?.method === 'string' ? payload.metadata.method : undefined
 
+  const confidence = (payload.metadata?.confidence === 'low' || payload.metadata?.confidence === 'medium' || payload.metadata?.confidence === 'high')
+    ? payload.metadata.confidence as Feature['confidence']
+    : undefined
+  const evidenceStrength = (payload.metadata?.evidence_strength === 'weak' || payload.metadata?.evidence_strength === 'medium' || payload.metadata?.evidence_strength === 'strong')
+    ? payload.metadata.evidence_strength as Feature['evidenceStrength']
+    : undefined
+  const scoreCapApplied = typeof payload.metadata?.score_cap_applied === 'boolean'
+    ? payload.metadata.score_cap_applied
+    : undefined
+  const scoreCapReason = typeof payload.metadata?.score_cap_reason === 'string'
+    ? payload.metadata.score_cap_reason
+    : undefined
+  const independentSignals = Array.isArray(payload.metadata?.independent_signals)
+    ? payload.metadata.independent_signals as string[]
+    : undefined
+
+  const baseResult = {
+    method,
+    confidence,
+    evidenceStrength,
+    scoreCapApplied,
+    scoreCapReason,
+    independentSignals,
+  }
+
   if (payload.error) {
     return {
+      ...baseResult,
       evidence: [],
-      method,
       warning: String(payload.error),
     }
   }
 
+  let evidence: string[] = []
+
   if (featureName === 'aimbot') {
-    return {
-      method,
-      evidence: [
-        `${formatMetric(raw.kills_detected, 0)} kills analyzed`,
-        `Mean snap ratio ${formatMetric(raw.mean_snap_ratio)}`,
-        `Normalized snap ${formatPercent(raw.normalized_snap)}`,
-        `Angular jerk signal ${formatPercent(raw.normalized_jerk)}`,
-      ],
-    }
+    evidence = [
+      `${formatMetric(raw.kills_detected, 0)} kills analyzed`,
+      `Mean snap ratio ${formatMetric(raw.mean_snap_ratio)}`,
+      `Normalized snap ${formatPercent(raw.normalized_snap)}`,
+      `Angular jerk signal ${formatPercent(raw.normalized_jerk)}`,
+    ]
+  } else if (featureName === 'triggerbot') {
+    evidence = [
+      `${formatMetric(raw.reactions_count, 0)} reactions analyzed`,
+      `Median reaction ${formatMetric(raw.median_reaction_ms, 0)} ms`,
+      `Bimodality coefficient ${formatMetric(raw.bimodality_coefficient, 3)}`,
+      `${formatMetric(raw.instant_kills_within_2_ticks, 0)} instant kills within 2 ticks`,
+    ]
+  } else if (featureName === 'wallhack') {
+    evidence = [
+      `${formatMetric(raw.peeks_analyzed, 0)} peeks analyzed`,
+      `Pre-aim ratio ${formatPercent(raw.pre_aim_ratio)}`,
+      `Sound-timeline suspicious ratio ${formatPercent(raw.sound_timeline_suspicious_ratio)}`,
+      `Average crosshair delta ${formatMetric(raw.crosshair_delta_avg)} deg`,
+    ]
+  } else if (featureName === 'recoil') {
+    evidence = [
+      `${formatMetric(raw.sprays_detected, 0)} sprays detected`,
+      `Mean recoil-pattern correlation ${formatMetric(raw.mean_correlation, 3)}`,
+      `Consistency signal ${formatPercent(raw.consistency_normalized)}`,
+      `Movement sensitivity available: ${typeof raw.movement_sensitivity === 'object' && raw.movement_sensitivity !== null && 'available' in raw.movement_sensitivity && raw.movement_sensitivity.available ? 'yes' : 'no'}`,
+    ]
+  } else if (featureName === 'session') {
+    evidence = [
+      `${formatMetric(raw.rounds_analyzed, 0)} rounds analyzed`,
+      `Consistency variance ${formatMetric(raw.consistency_variance, 3)}`,
+      `Consistency normalized ${formatPercent(raw.consistency_normalized)}`,
+      `Warmup trend normalized ${formatPercent(raw.warmup_trend_normalized)}`,
+    ]
   }
 
-  if (featureName === 'triggerbot') {
-    return {
-      method,
-      evidence: [
-        `${formatMetric(raw.reactions_count, 0)} reactions analyzed`,
-        `Median reaction ${formatMetric(raw.median_reaction_ms, 0)} ms`,
-        `Bimodality coefficient ${formatMetric(raw.bimodality_coefficient, 3)}`,
-        `${formatMetric(raw.instant_kills_within_2_ticks, 0)} instant kills within 2 ticks`,
-      ],
-    }
+  return {
+    ...baseResult,
+    evidence,
   }
-
-  if (featureName === 'wallhack') {
-    return {
-      method,
-      evidence: [
-        `${formatMetric(raw.peeks_analyzed, 0)} peeks analyzed`,
-        `Pre-aim ratio ${formatPercent(raw.pre_aim_ratio)}`,
-        `Sound-timeline suspicious ratio ${formatPercent(raw.sound_timeline_suspicious_ratio)}`,
-        `Average crosshair delta ${formatMetric(raw.crosshair_delta_avg)} deg`,
-      ],
-    }
-  }
-
-  if (featureName === 'recoil') {
-    return {
-      method,
-      evidence: [
-        `${formatMetric(raw.sprays_detected, 0)} sprays detected`,
-        `Mean recoil-pattern correlation ${formatMetric(raw.mean_correlation, 3)}`,
-        `Consistency signal ${formatPercent(raw.consistency_normalized)}`,
-        `Movement sensitivity available: ${typeof raw.movement_sensitivity === 'object' && raw.movement_sensitivity !== null && 'available' in raw.movement_sensitivity && raw.movement_sensitivity.available ? 'yes' : 'no'}`,
-      ],
-    }
-  }
-
-  if (featureName === 'session') {
-    return {
-      method,
-      evidence: [
-        `${formatMetric(raw.rounds_analyzed, 0)} rounds analyzed`,
-        `Consistency variance ${formatMetric(raw.consistency_variance, 3)}`,
-        `Consistency normalized ${formatPercent(raw.consistency_normalized)}`,
-        `Warmup trend normalized ${formatPercent(raw.warmup_trend_normalized)}`,
-      ],
-    }
-  }
-
-  return { method, evidence: [] }
 }
 
 // Request interceptor: add any future auth headers

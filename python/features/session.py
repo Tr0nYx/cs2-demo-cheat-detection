@@ -118,7 +118,7 @@ class SessionConsistencyExtractor(AbstractFeatureExtractor):
             consistency_variance = np.var(snap_ratio_array)
 
             # Normalize consistency variance using sigmoid
-            norm_consistency = self._sigmoid_normalize(
+            norm_consistency = 1.0 - self._sigmoid_normalize(
                 consistency_variance, inflection_point=0.05, scale=50.0
             )
 
@@ -126,7 +126,7 @@ class SessionConsistencyExtractor(AbstractFeatureExtractor):
             # Correlation of round number with snap ratio
             round_numbers = np.arange(1, len(snap_ratio_per_round) + 1, dtype=float)
 
-            if len(round_numbers) > 1:
+            if len(round_numbers) > 1 and np.std(snap_ratio_array) > 1e-9:
                 # Compute Pearson correlation
                 correlation_coef = np.corrcoef(round_numbers, snap_ratio_array)[0, 1]
 
@@ -137,19 +137,58 @@ class SessionConsistencyExtractor(AbstractFeatureExtractor):
                 correlation_coef = 0.0
 
             # Normalize warmup trend using sigmoid
-            # Absence of learning (correlation near 0) = suspicious
-            norm_warmup = self._sigmoid_normalize(
-                correlation_coef, inflection_point=0.0, scale=5.0
+            # Absence of learning (correlation near 0 or negative) = suspicious
+            norm_warmup = 1.0 - self._sigmoid_normalize(
+                correlation_coef, inflection_point=0.2, scale=5.0
             )
 
             # e. Score combination
             # final_score = 0.6 * consistency + 0.4 * warmup
             final_score = 0.6 * norm_consistency + 0.4 * norm_warmup
+            
+            # Apply player-specific evidence gates and score caps
+            score_cap_applied = False
+            score_cap_reason = ""
+            warnings_list = []
+            
+            round_count = len(rounds)
+            
+            # Count rounds with sufficient ticks
+            sufficient_ticks_rounds = 0
+            for start_tick, end_tick in rounds:
+                round_ticks = ticks_df[
+                    (ticks_df["tick"] >= start_tick) & (ticks_df["tick"] <= end_tick)
+                ]
+                if len(round_ticks) >= 2:
+                    sufficient_ticks_rounds += 1
+            
+            if round_count < 5:
+                final_score = min(0.49, final_score)
+                score_cap_applied = True
+                score_cap_reason = f"insufficient_rounds ({round_count})"
+                warnings_list.append(f"Low round count ({round_count}), capping session consistency score")
+                confidence = "low"
+                evidence_strength = "weak"
+            elif sufficient_ticks_rounds < 3:
+                final_score = min(0.49, final_score)
+                score_cap_applied = True
+                score_cap_reason = f"insufficient_round_measurements ({sufficient_ticks_rounds})"
+                warnings_list.append(f"Low valid round measurements ({sufficient_ticks_rounds}), capping session consistency score")
+                confidence = "low"
+                evidence_strength = "weak"
+            elif final_score >= 0.49:
+                confidence = "high" if round_count >= 8 else "medium"
+                evidence_strength = "strong" if final_score >= 0.7 else "medium"
+            else:
+                confidence = "high" if round_count >= 8 else "medium"
+                evidence_strength = "medium" if final_score >= 0.3 else "weak"
+
             self._validate_score(final_score)
 
             # f. Return FeatureResult
             raw_measurements = {
                 "rounds_analyzed": len(rounds),
+                "sufficient_ticks_rounds": sufficient_ticks_rounds,
                 "per_round_scores": [float(s) for s in snap_ratio_per_round],
                 "consistency_variance": float(consistency_variance),
                 "variance_threshold": self.CONSISTENCY_VARIANCE_THRESHOLD,
@@ -163,7 +202,11 @@ class SessionConsistencyExtractor(AbstractFeatureExtractor):
             metadata = {
                 "method": "session_variance_warmup_sigmoid",
                 "version": "1.0",
-                "warnings": ["low_round_count"] if len(rounds) < 5 else [],
+                "warnings": warnings_list,
+                "score_cap_applied": score_cap_applied,
+                "score_cap_reason": score_cap_reason,
+                "confidence": confidence,
+                "evidence_strength": evidence_strength,
             }
 
             return FeatureResult(

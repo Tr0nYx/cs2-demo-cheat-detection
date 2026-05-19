@@ -116,7 +116,7 @@ class WeightedScorer:
                 "All features failed; cannot compute overall score"
             )
 
-        # Step 2: Proportional weight redistribution
+        # Step 2: Conservative weight redistribution / baseline score
         # Calculate total weight of available features
         available_weight = sum(
             self.weights.get(f, 0) for f in available_scores.keys()
@@ -140,7 +140,66 @@ class WeightedScorer:
         # Ensure overall_score is in [0.0, 1.0]
         overall_score = max(0.0, min(1.0, overall_score))
 
-        # Step 4: Map to label based on thresholds (D-30)
+        # Identify strong feature families and exceptional single features
+        strong_families = []
+        for feature_name, result in feature_results.items():
+            if result is None or result.score is None:
+                continue
+            normalized_name = self.feature_aliases.get(feature_name, feature_name)
+            
+            # Check metadata if present
+            is_legacy = True
+            has_strong_metadata = False
+            if hasattr(result, "metadata") and result.metadata:
+                evidence = result.metadata.get("evidence_strength")
+                confidence = result.metadata.get("confidence")
+                if evidence is not None or confidence is not None:
+                    is_legacy = False
+                    # If explicit metadata is present, it must be strong and high confidence,
+                    # and score must be at least 0.6 to count as a strong feature family.
+                    if evidence == "strong" and confidence == "high" and result.score >= 0.6:
+                        has_strong_metadata = True
+            
+            # If no metadata (legacy/fallback) we use raw score >= 0.7.
+            # If we have metadata, we require it to be strong.
+            if (not is_legacy and has_strong_metadata) or (is_legacy and result.score >= 0.7):
+                strong_families.append(normalized_name)
+
+        exceptional_single = False
+        if len(strong_families) == 1:
+            single_family = strong_families[0]
+            for k, result in feature_results.items():
+                if result is None or result.score is None:
+                    continue
+                normalized_k = self.feature_aliases.get(k, k)
+                if normalized_k == single_family:
+                    if result.score >= 0.9:
+                        if hasattr(result, "metadata") and result.metadata:
+                            evidence = result.metadata.get("evidence_strength")
+                            confidence = result.metadata.get("confidence")
+                            if evidence == "strong" and confidence == "high":
+                                exceptional_single = True
+                        elif result.score >= 0.95:
+                            # Legacy fallback for exceptional single feature without metadata
+                            exceptional_single = True
+                    break
+
+        # Step 4: Map to label based on thresholds and apply conservative guardrails
+        # Capping guardrails: likely_cheating (>= 0.7) requires at least two independent
+        # strong feature families, unless a single feature is explicitly exceptional and high confidence.
+        is_capped = False
+        cap_reason = ""
+        
+        if overall_score >= 0.7:
+            if len(strong_families) == 0:
+                overall_score = 0.69
+                is_capped = True
+                cap_reason = "no_strong_feature_families"
+            elif len(strong_families) == 1 and not exceptional_single:
+                overall_score = 0.69
+                is_capped = True
+                cap_reason = "single_non_exceptional_feature"
+
         if overall_score < 0.3:
             label = "clean"
         elif overall_score < 0.7:
@@ -154,5 +213,5 @@ class WeightedScorer:
             label=label,
             per_feature_scores=available_scores,
             missing_features=missing_features,
-            weighting_strategy="proportional_redistribution",
+            weighting_strategy="conservative_proportional",
         )

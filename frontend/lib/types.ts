@@ -15,6 +15,11 @@ export interface Feature {
   evidence?: string[]
   method?: string
   warning?: string
+  confidence?: 'low' | 'medium' | 'high'
+  evidenceStrength?: 'weak' | 'medium' | 'strong'
+  scoreCapApplied?: boolean
+  scoreCapReason?: string
+  independentSignals?: string[]
 }
 
 // Player analysis result

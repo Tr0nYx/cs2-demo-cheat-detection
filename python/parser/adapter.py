@@ -69,6 +69,9 @@ class DemoParserAdapter:
                           empty, required columns missing, or ticks unordered
         """
         # Attempt to initialize parser
+        import os
+        if not os.path.exists(file_path) or not os.path.isfile(file_path):
+            raise DemoParseError("Demo file not found")
         try:
             parser = DemoParser(file_path)
         except FileNotFoundError as e:
@@ -88,7 +91,13 @@ class DemoParserAdapter:
         # Parse ticks with requested properties (is_shooting is synthesized later)
         try:
             tick_cols = [col for col in self.REQUIRED_TICK_COLS if col != "is_shooting"]
-            ticks_df = parser.parse_ticks(tick_cols)
+            query_cols = tick_cols.copy()
+            if "name" not in query_cols:
+                query_cols.append("name")
+            try:
+                ticks_df = parser.parse_ticks(query_cols)
+            except BaseException:
+                ticks_df = parser.parse_ticks(tick_cols)
         except BaseException as e:
             raise DemoParseError(f"Failed to parse ticks: {e}") from e
 

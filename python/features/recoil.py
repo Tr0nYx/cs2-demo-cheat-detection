@@ -108,8 +108,10 @@ class RecoilExtractor(AbstractFeatureExtractor):
                             q50.get("yaw_offset", 0.0),
                             q50.get("pitch_offset", 0.0)
                         ]]
-                        self.patterns[weapon_name] = np.array(spray_points, dtype=float)
-                        logger.info(f"Loaded recoil pattern (quantile): {weapon_name}")
+                        new_points = np.array(spray_points, dtype=float)
+                        if weapon_name not in self.patterns or len(new_points) > len(self.patterns[weapon_name]):
+                            self.patterns[weapon_name] = new_points
+                            logger.info(f"Loaded recoil pattern (quantile): {weapon_name}")
                     else:
                         logger.warning(f"Invalid pattern file {json_file.name}: missing q50 in quantiles")
                         continue
@@ -121,8 +123,10 @@ class RecoilExtractor(AbstractFeatureExtractor):
                             f"Invalid pattern file {json_file.name}: missing spray_points"
                         )
                         continue
-                    self.patterns[weapon_name] = np.array(spray_points, dtype=float)
-                    logger.info(f"Loaded recoil pattern (legacy): {weapon_name} ({len(spray_points)} points)")
+                    new_points = np.array(spray_points, dtype=float)
+                    if weapon_name not in self.patterns or len(new_points) > len(self.patterns[weapon_name]):
+                        self.patterns[weapon_name] = new_points
+                        logger.info(f"Loaded recoil pattern (legacy): {weapon_name} ({len(spray_points)} points)")
                 else:
                     logger.warning(
                         f"Invalid pattern file {json_file.name}: missing spray_points or quantiles"
@@ -229,37 +233,37 @@ class RecoilExtractor(AbstractFeatureExtractor):
                 raise FeatureExtractionError("insufficient_spray_data")
 
             # c. Pattern correlation
-            if not self.patterns:
-                raise FeatureExtractionError("no_recoil_patterns_loaded")
+            if self.patterns:
+                for spray in spray_sequences:
+                    best_correlation = 0.0
 
-            for spray in spray_sequences:
-                best_correlation = 0.0
+                    # Try correlation with each loaded pattern
+                    for weapon_name, pattern in self.patterns.items():
+                        # Normalize to same length for correlation
+                        min_len = min(len(spray), len(pattern))
+                        if min_len < 2:
+                            continue
 
-                # Try correlation with each loaded pattern
-                for weapon_name, pattern in self.patterns.items():
-                    # Normalize to same length for correlation
-                    min_len = min(len(spray), len(pattern))
-                    if min_len < 2:
-                        continue
+                        spray_normalized = spray[:min_len]
+                        pattern_normalized = pattern[:min_len]
 
-                    spray_normalized = spray[:min_len]
-                    pattern_normalized = pattern[:min_len]
+                        # Flatten for Pearson correlation
+                        spray_flat = spray_normalized.flatten()
+                        pattern_flat = pattern_normalized.flatten()
 
-                    # Flatten for Pearson correlation
-                    spray_flat = spray_normalized.flatten()
-                    pattern_flat = pattern_normalized.flatten()
+                        # Compute Pearson correlation
+                        try:
+                            corr, _ = pearsonr(spray_flat, pattern_flat)
+                            # Clamp correlation to [0, 1] range
+                            corr = np.clip(corr, 0.0, 1.0)
+                            best_correlation = max(best_correlation, corr)
+                        except Exception:
+                            # Skip if correlation computation fails
+                            continue
 
-                    # Compute Pearson correlation
-                    try:
-                        corr, _ = pearsonr(spray_flat, pattern_flat)
-                        # Clamp correlation to [0, 1] range
-                        corr = np.clip(corr, 0.0, 1.0)
-                        best_correlation = max(best_correlation, corr)
-                    except Exception:
-                        # Skip if correlation computation fails
-                        continue
-
-                correlation_values.append(best_correlation)
+                    correlation_values.append(best_correlation)
+            else:
+                correlation_values = [0.0]
 
             # d. Consistency analysis
             if len(correlation_values) < 1:
@@ -281,6 +285,51 @@ class RecoilExtractor(AbstractFeatureExtractor):
 
             # Final score: 0.6 * correlation + 0.4 * consistency
             final_score = 0.6 * correlation_sigmoid + 0.4 * consistency_score
+            
+            # Apply player-specific evidence gates and score caps
+            score_cap_applied = False
+            score_cap_reason = ""
+            warnings_list = []
+            
+            spray_count = len(spray_sequences)
+            patterns_available = len(self.patterns) > 0
+            
+            if not patterns_available:
+                final_score = 0.0
+                score_cap_applied = True
+                score_cap_reason = "no_recoil_patterns_loaded"
+                warnings_list.append("No recoil patterns loaded, scoring disabled")
+                confidence = "low"
+                evidence_strength = "weak"
+            elif any(w == "unknown" for w in weapons_used) or not weapons_used:
+                final_score = min(0.49, final_score)
+                score_cap_applied = True
+                score_cap_reason = "unknown_weapon"
+                warnings_list.append("Unknown weapon used, capping recoil score")
+                confidence = "low"
+                evidence_strength = "weak"
+            elif spray_count < 5:
+                final_score = min(0.49, final_score)
+                score_cap_applied = True
+                score_cap_reason = f"insufficient_sprays ({spray_count})"
+                warnings_list.append(f"Insufficient sprays ({spray_count}), capping recoil score")
+                confidence = "low"
+                evidence_strength = "weak"
+            elif final_score >= 0.49:
+                if spray_count < 8:  # Medium count cap
+                    final_score = min(0.49, final_score)
+                    score_cap_applied = True
+                    score_cap_reason = f"insufficient_sprays_for_high_score ({spray_count})"
+                    warnings_list.append(f"Insufficient sprays for high score ({spray_count}), capping recoil score")
+                    confidence = "medium"
+                    evidence_strength = "medium"
+                else:
+                    confidence = "high" if spray_count >= 10 else "medium"
+                    evidence_strength = "strong" if final_score >= 0.7 else "medium"
+            else:
+                confidence = "high" if spray_count >= 10 else "medium"
+                evidence_strength = "medium" if final_score >= 0.3 else "weak"
+
             self._validate_score(final_score)
 
             # f. Return FeatureResult
@@ -315,7 +364,11 @@ class RecoilExtractor(AbstractFeatureExtractor):
                 "correlation_formula": "scipy.stats.pearsonr(extracted_spray, pattern)",
                 "movement_sensitivity_enabled": True,
                 "movement_sensitivity_available": movement_sensitivity_available,
-                "warnings": [],
+                "warnings": warnings_list,
+                "score_cap_applied": score_cap_applied,
+                "score_cap_reason": score_cap_reason,
+                "confidence": confidence,
+                "evidence_strength": evidence_strength,
             }
 
             return FeatureResult(

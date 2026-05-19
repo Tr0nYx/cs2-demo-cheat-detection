@@ -30,6 +30,7 @@ final class RequeueDemosCommand extends Command
     protected function configure(): void
     {
         $this
+            ->addOption('all', 'a', InputOption::VALUE_NONE, 'Requeue all demos (including completed ones)')
             ->addOption('all-failed', 'f', InputOption::VALUE_NONE, 'Requeue all demos in error status')
             ->addOption('demo-id', 'd', InputOption::VALUE_REQUIRED, 'Requeue a specific demo by UUID');
     }
@@ -39,11 +40,12 @@ final class RequeueDemosCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->title('CS2 Demo Requeuer');
 
+        $all = $input->getOption('all');
         $allFailed = $input->getOption('all-failed');
         $demoId = $input->getOption('demo-id');
 
-        if (!$allFailed && !$demoId) {
-            $io->error('You must specify either --all-failed (-f) or --demo-id=<UUID> (-d).');
+        if (!$all && !$allFailed && !$demoId) {
+            $io->error('You must specify either --all (-a), --all-failed (-f), or --demo-id=<UUID> (-d).');
             return Command::INVALID;
         }
 
@@ -59,6 +61,8 @@ final class RequeueDemosCommand extends Command
             $demosToRequeue[] = $demo;
         } elseif ($allFailed) {
             $demosToRequeue = $this->demoRepository->findBy(['status' => DemoStatus::Error]);
+        } elseif ($all) {
+            $demosToRequeue = $this->demoRepository->findAll();
         }
 
         if (empty($demosToRequeue)) {
