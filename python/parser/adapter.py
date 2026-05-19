@@ -73,7 +73,7 @@ class DemoParserAdapter:
             parser = DemoParser(file_path)
         except FileNotFoundError as e:
             raise DemoParseError("Demo file not found") from e
-        except Exception as e:
+        except BaseException as e:
             raise DemoParseError(f"Failed to initialize parser: {e}") from e
 
         # Extract map name from header if possible
@@ -82,14 +82,14 @@ class DemoParserAdapter:
             header = parser.parse_header()
             if header and isinstance(header, dict):
                 map_name = header.get("map_name")
-        except Exception:
+        except BaseException:
             pass
 
         # Parse ticks with requested properties (is_shooting is synthesized later)
         try:
             tick_cols = [col for col in self.REQUIRED_TICK_COLS if col != "is_shooting"]
             ticks_df = parser.parse_ticks(tick_cols)
-        except Exception as e:
+        except BaseException as e:
             raise DemoParseError(f"Failed to parse ticks: {e}") from e
 
         # Validate ticks DataFrame is not empty
@@ -121,7 +121,7 @@ class DemoParserAdapter:
                     event_df = event_df.copy()
                     event_df["event_type"] = event_type
                     events_list.append(event_df)
-            except Exception:
+            except BaseException:
                 # Non-fatal: some events may not exist in a demo
                 # (e.g., if no kills, no player_death events)
                 pass
@@ -171,7 +171,7 @@ class DemoParserAdapter:
                     mapped_mask[valid_ticks_mask] = shooting_mask[player_ticks_valid]
 
                     ticks_df.loc[player_ticks_mask, "is_shooting"] = mapped_mask
-        except Exception:
+        except BaseException:
             # Fallback: keep is_shooting as False to prevent crashing
             pass
 

@@ -11,6 +11,7 @@ from typing import Dict, Optional
 
 import psycopg2
 import redis
+import pandas as pd
 
 from features.aimbot import AimbotExtractor
 from features.base import FeatureExtractionError
@@ -20,7 +21,7 @@ from features.session import SessionConsistencyExtractor
 from features.triggerbot import TriggerbotExtractor
 from features.wallhack import WallhackExtractor
 from parser.adapter import DemoParserAdapter
-from parser.types import DemoParseError
+from parser.types import DemoParseError, ParsedDemo
 from persistence.result_writer import ResultWriter
 from scoring.weighted_scorer import WeightedScorer
 
@@ -69,6 +70,73 @@ def env_int(name: str, default: int) -> int:
     value = os.getenv(name)
     if value is None:
         return default
+
+
+def _normalize_steam_id(value: object) -> str:
+    if pd.isna(value):
+        return ""
+    try:
+        numeric = float(value)
+        if numeric.is_integer():
+            return str(int(numeric))
+    except (TypeError, ValueError):
+        pass
+
+    return str(value)
+
+
+def _string_series(series: pd.Series) -> pd.Series:
+    return series.map(_normalize_steam_id)
+
+
+def _event_mask_for_player(events_df: pd.DataFrame, steam_id: str) -> pd.Series:
+    mask = pd.Series(False, index=events_df.index)
+    event_type = events_df.get("event_type")
+
+    if "attacker_steamid" in events_df.columns:
+        mask |= (
+            (event_type == "player_death")
+            & (_string_series(events_df["attacker_steamid"]) == steam_id)
+        )
+    if "user_steamid" in events_df.columns:
+        user_matches = _string_series(events_df["user_steamid"]) == steam_id
+        mask |= (
+            event_type.isin(["weapon_fire", "player_jump", "player_land"])
+            & user_matches
+        )
+        # Opponent footsteps are needed for aimbot reaction proxy and wallhack timing.
+        mask |= (event_type == "player_footstep") & ~user_matches
+
+    mask |= event_type.isin(["round_start", "round_end"])
+
+    return mask
+
+
+def _slice_demo_for_player(parsed_demo: ParsedDemo, steam_id: str) -> ParsedDemo:
+    ticks_df = parsed_demo.ticks_df[
+        _string_series(parsed_demo.ticks_df["steamid"]) == steam_id
+    ].copy()
+    events_df = parsed_demo.events_df[
+        _event_mask_for_player(parsed_demo.events_df, steam_id)
+    ].copy()
+    for column in ["user_steamid", "attacker_steamid", "victim_steamid"]:
+        if column in events_df.columns:
+            events_df[column] = _string_series(events_df[column])
+
+    return ParsedDemo(ticks_df=ticks_df, events_df=events_df, map_name=parsed_demo.map_name)
+
+
+def _player_steam_ids(parsed_demo: ParsedDemo) -> list[str]:
+    if "steamid" not in parsed_demo.ticks_df.columns:
+        return []
+
+    steam_ids = sorted(
+        steam_id
+        for steam_id in _string_series(parsed_demo.ticks_df["steamid"]).unique().tolist()
+        if steam_id and steam_id != "0"
+    )
+
+    return steam_ids
     try:
         return int(value)
     except ValueError:
@@ -122,88 +190,114 @@ def process_job(
         result_writer.write_error(demo_id, f"Parse error: {e}")
         return
 
-    # Phase 2: Extract features (D-19: per-feature resilience)
-    feature_results = {}
-    for extractor in extractors:
-        feature_name = extractor.__class__.__name__
-        try:
-            result = extractor.extract(parsed_demo)
-            feature_results[feature_name] = result
-            log(
-                "feature_extracted",
-                demo_id=demo_id,
-                feature=feature_name,
-                score=result.score,
-            )
-        except FeatureExtractionError as e:
-            log(
-                "feature_error",
-                demo_id=demo_id,
-                feature=feature_name,
-                error=str(e),
-                level="warning",
-            )
-            feature_results[feature_name] = None
-        except Exception as e:
-            log(
-                "feature_error",
-                demo_id=demo_id,
-                feature=feature_name,
-                error=str(e),
-                level="warning",
-            )
-            feature_results[feature_name] = None
-
-    # Collect valid results (exclude None)
-    valid_results = {
-        k: v for k, v in feature_results.items() if v is not None
-    }
-
-    # D-20: If all features failed, mark as error
-    if not valid_results:
-        log("all_features_failed", demo_id=demo_id, level="error")
-        result_writer.write_error(demo_id, "All feature extractors failed")
+    player_steam_ids = _player_steam_ids(parsed_demo)
+    if not player_steam_ids:
+        log("no_players_found", demo_id=demo_id, level="error")
+        result_writer.write_error(demo_id, "No player Steam IDs found in parsed ticks")
         return
 
-    # Phase 3: Score (D-27 through D-31) with retry backoff
-    max_retries = 3
-    backoff_times = [1, 2, 4]
-    scoring_summary = None
-
-    for attempt in range(max_retries):
-        try:
-            scoring_summary = scorer.score(valid_results)
-            log(
-                "scoring_complete",
-                demo_id=demo_id,
-                overall_score=scoring_summary.overall_score,
-                label=scoring_summary.label,
-                attempt=attempt + 1,
-            )
-            break
-        except Exception as e:
-            if attempt < max_retries - 1:
-                wait_time = backoff_times[attempt]
-                log(
-                    "scoring_retry",
-                    demo_id=demo_id,
-                    attempt=attempt + 1,
-                    wait_seconds=wait_time,
-                    error=str(e),
-                )
-                time.sleep(wait_time)
-            else:
-                log("scoring_error", demo_id=demo_id, error=str(e), level="error")
-                result_writer.write_error(demo_id, f"Scoring failed after {max_retries} retries: {e}")
-                return
-
-    # Phase 4: Persist results (D-14 through D-17)
+    results_written = 0
     try:
-        result_writer.write_result(demo_id, feature_results, scoring_summary, model_version, map_name=parsed_demo.map_name)
-        log("result_persisted", demo_id=demo_id, model_version=model_version)
+        result_writer.delete_demo_level_result(demo_id)
+
+        for steam_id in player_steam_ids:
+            player_demo = _slice_demo_for_player(parsed_demo, steam_id)
+            if player_demo.ticks_df.empty:
+                continue
+
+            # Phase 2: Extract features (D-19: per-feature resilience)
+            feature_results = {}
+            for extractor in extractors:
+                feature_name = extractor.__class__.__name__
+                try:
+                    result = extractor.extract(player_demo)
+                    feature_results[feature_name] = result
+                    log(
+                        "feature_extracted",
+                        demo_id=demo_id,
+                        player_steam_id=steam_id,
+                        feature=feature_name,
+                        score=result.score,
+                    )
+                except FeatureExtractionError as e:
+                    log(
+                        "feature_error",
+                        demo_id=demo_id,
+                        player_steam_id=steam_id,
+                        feature=feature_name,
+                        error=str(e),
+                        level="warning",
+                    )
+                    feature_results[feature_name] = None
+                except Exception as e:
+                    log(
+                        "feature_error",
+                        demo_id=demo_id,
+                        player_steam_id=steam_id,
+                        feature=feature_name,
+                        error=str(e),
+                        level="warning",
+                    )
+                    feature_results[feature_name] = None
+
+            valid_results = {
+                k: v for k, v in feature_results.items() if v is not None
+            }
+            if not valid_results:
+                log("player_features_failed", demo_id=demo_id, player_steam_id=steam_id, level="warning")
+                continue
+
+            max_retries = 3
+            backoff_times = [1, 2, 4]
+            scoring_summary = None
+
+            for attempt in range(max_retries):
+                try:
+                    scoring_summary = scorer.score(valid_results)
+                    log(
+                        "scoring_complete",
+                        demo_id=demo_id,
+                        player_steam_id=steam_id,
+                        overall_score=scoring_summary.overall_score,
+                        label=scoring_summary.label,
+                        attempt=attempt + 1,
+                    )
+                    break
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        wait_time = backoff_times[attempt]
+                        log(
+                            "scoring_retry",
+                            demo_id=demo_id,
+                            player_steam_id=steam_id,
+                            attempt=attempt + 1,
+                            wait_seconds=wait_time,
+                            error=str(e),
+                        )
+                        time.sleep(wait_time)
+                    else:
+                        log("scoring_error", demo_id=demo_id, player_steam_id=steam_id, error=str(e), level="error")
+
+            if scoring_summary is None:
+                continue
+
+            result_writer.write_result(
+                demo_id,
+                feature_results,
+                scoring_summary,
+                model_version,
+                player_steam_id=steam_id,
+                player_display_name=steam_id,
+                map_name=parsed_demo.map_name,
+            )
+            results_written += 1
+            log("result_persisted", demo_id=demo_id, player_steam_id=steam_id, model_version=model_version)
+
+        if results_written == 0:
+            log("all_player_features_failed", demo_id=demo_id, level="error")
+            result_writer.write_error(demo_id, "No per-player feature results could be scored")
     except Exception as e:
         log("persistence_error", demo_id=demo_id, error=str(e), level="error")
-        # D-21: Worker exits on persistence errors
         raise
     finally:
         with in_flight_lock:

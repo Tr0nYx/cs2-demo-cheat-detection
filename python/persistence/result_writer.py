@@ -136,6 +136,48 @@ class ResultWriter:
             if cursor is not None:
                 cursor.close()
 
+    def delete_demo_level_result(self, demo_id: str) -> None:
+        """Remove the legacy demo-wide dummy player result for a demo."""
+        cursor = None
+        try:
+            cursor = self.db_conn.cursor()
+            cursor.execute(
+                """
+                DELETE FROM analysis_result
+                WHERE demo_id = %s
+                  AND player_id = '00000000-0000-0000-0000-000000000000'
+                """,
+                (demo_id,),
+            )
+            self.db_conn.commit()
+        except psycopg2.Error:
+            self.db_conn.rollback()
+            raise
+        finally:
+            if cursor is not None:
+                cursor.close()
+
+    def _find_or_create_player(
+        self,
+        cursor: psycopg2.extensions.cursor,
+        steam_id: str,
+        display_name: Optional[str],
+    ) -> str:
+        cursor.execute("SELECT id FROM player WHERE steam_id = %s", (steam_id,))
+        row = cursor.fetchone()
+        if row:
+            return str(row[0])
+
+        import uuid
+
+        player_id = str(uuid.uuid4())
+        cursor.execute(
+            "INSERT INTO player (id, steam_id, display_name) VALUES (%s, %s, %s)",
+            (player_id, steam_id, display_name or steam_id),
+        )
+
+        return player_id
+
     def write_result(
         self,
         demo_id: str,
@@ -144,6 +186,8 @@ class ResultWriter:
         model_version: Optional[str] = None,
         trace_components: Optional[TraceComponents] = None,
         player_id: Optional[str] = None,
+        player_steam_id: Optional[str] = None,
+        player_display_name: Optional[str] = None,
         round_count: Optional[int] = None,
         raw_trace_values: Optional[dict[str, Any]] = None,
         map_name: Optional[str] = None,
@@ -174,6 +218,7 @@ class ResultWriter:
             model_version: Optional semantic version or git SHA of the model
             trace_components: Optional TraceComponents from component extraction (eKILL, AIM, KAST, UTIL, CLUTCH)
             player_id: Optional player identifier (required if trace_components provided)
+            player_steam_id: Optional Steam ID; when provided, the player row is found or created
             round_count: Optional number of rounds in demo (required if trace_components provided)
             raw_trace_values: Optional dict with raw component values for debugging
 
@@ -252,7 +297,10 @@ class ResultWriter:
 
             import uuid
 
-            # Create a dummy player for demo-level results if player_id is missing
+            if player_steam_id:
+                player_id = self._find_or_create_player(cursor, player_steam_id, player_display_name)
+
+            # Create a dummy player for demo-level results if player identity is missing
             if not player_id:
                 player_id = "00000000-0000-0000-0000-000000000000"
                 cursor.execute("SELECT id FROM player WHERE id = %s", (player_id,))

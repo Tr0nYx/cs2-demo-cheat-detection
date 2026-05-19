@@ -156,6 +156,7 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://php/api}"
+      INTERNAL_API_URL: "${INTERNAL_API_URL:-http://nginx}"
       NODE_ENV: "production"
       NEXT_PUBLIC_SENTRY_DSN: "${NEXT_PUBLIC_SENTRY_DSN:-}"
       SENTRY_ORG: "${SENTRY_ORG:-}"

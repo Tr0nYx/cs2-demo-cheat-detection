@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type {
   Demo,
+  Feature,
   AnalysisResult,
   DemoEventsResponseDto,
   DemoRoundsResponseDto,
@@ -14,6 +15,145 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
 })
+
+type BackendFeaturePayload = {
+  error?: unknown
+  raw_measurements?: Record<string, unknown>
+  metadata?: {
+    method?: unknown
+  }
+}
+
+type BackendResult = {
+  player?: {
+    steam_id?: string
+    display_name?: string | null
+  }
+  scores?: Partial<Record<'aimbot' | 'triggerbot' | 'wallhack' | 'recoil' | 'bhop' | 'session_consistency' | 'overall', number>>
+  label?: 'clean' | 'suspicious' | 'likely_cheating'
+  model_version?: string
+  feature_data?: Record<string, BackendFeaturePayload>
+}
+
+type BackendDemo = {
+  demo_id?: string
+  id?: string
+  status?: Demo['status']
+  results?: BackendResult[]
+  metadata?: Record<string, string | null | undefined>
+  error_message?: string
+  updated_at?: string
+  created_at?: string
+  file_path?: string
+  original_filename?: string
+  map?: string | null
+}
+
+type SentryWindow = Window & {
+  Sentry?: {
+    captureException: (error: unknown, context?: Record<string, unknown>) => void
+  }
+}
+
+function formatMetric(value: unknown, digits = 2): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a'
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits: digits,
+  })
+}
+
+function formatPercent(value: unknown): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a'
+  return `${Math.round(value * 100)}%`
+}
+
+function featurePayload(featureData: BackendResult['feature_data'], extractorName: string): BackendFeaturePayload {
+  return featureData?.[extractorName] || {}
+}
+
+function featureEvidence(featureName: Feature['name'], featureData: BackendResult['feature_data']): { evidence: string[]; method?: string; warning?: string } {
+  const extractorByFeature: Record<string, string> = {
+    aimbot: 'AimbotExtractor',
+    triggerbot: 'TriggerbotExtractor',
+    wallhack: 'WallhackExtractor',
+    recoil: 'RecoilExtractor',
+    bhop: 'BhopExtractor',
+    session: 'SessionConsistencyExtractor',
+  }
+  const payload = featurePayload(featureData, extractorByFeature[featureName])
+  const raw = payload.raw_measurements || {}
+  const method = typeof payload.metadata?.method === 'string' ? payload.metadata.method : undefined
+
+  if (payload.error) {
+    return {
+      evidence: [],
+      method,
+      warning: String(payload.error),
+    }
+  }
+
+  if (featureName === 'aimbot') {
+    return {
+      method,
+      evidence: [
+        `${formatMetric(raw.kills_detected, 0)} kills analyzed`,
+        `Mean snap ratio ${formatMetric(raw.mean_snap_ratio)}`,
+        `Normalized snap ${formatPercent(raw.normalized_snap)}`,
+        `Angular jerk signal ${formatPercent(raw.normalized_jerk)}`,
+      ],
+    }
+  }
+
+  if (featureName === 'triggerbot') {
+    return {
+      method,
+      evidence: [
+        `${formatMetric(raw.reactions_count, 0)} reactions analyzed`,
+        `Median reaction ${formatMetric(raw.median_reaction_ms, 0)} ms`,
+        `Bimodality coefficient ${formatMetric(raw.bimodality_coefficient, 3)}`,
+        `${formatMetric(raw.instant_kills_within_2_ticks, 0)} instant kills within 2 ticks`,
+      ],
+    }
+  }
+
+  if (featureName === 'wallhack') {
+    return {
+      method,
+      evidence: [
+        `${formatMetric(raw.peeks_analyzed, 0)} peeks analyzed`,
+        `Pre-aim ratio ${formatPercent(raw.pre_aim_ratio)}`,
+        `Sound-timeline suspicious ratio ${formatPercent(raw.sound_timeline_suspicious_ratio)}`,
+        `Average crosshair delta ${formatMetric(raw.crosshair_delta_avg)} deg`,
+      ],
+    }
+  }
+
+  if (featureName === 'recoil') {
+    return {
+      method,
+      evidence: [
+        `${formatMetric(raw.sprays_detected, 0)} sprays detected`,
+        `Mean recoil-pattern correlation ${formatMetric(raw.mean_correlation, 3)}`,
+        `Consistency signal ${formatPercent(raw.consistency_normalized)}`,
+        `Movement sensitivity available: ${typeof raw.movement_sensitivity === 'object' && raw.movement_sensitivity !== null && 'available' in raw.movement_sensitivity && raw.movement_sensitivity.available ? 'yes' : 'no'}`,
+      ],
+    }
+  }
+
+  if (featureName === 'session') {
+    return {
+      method,
+      evidence: [
+        `${formatMetric(raw.rounds_analyzed, 0)} rounds analyzed`,
+        `Consistency variance ${formatMetric(raw.consistency_variance, 3)}`,
+        `Consistency normalized ${formatPercent(raw.consistency_normalized)}`,
+        `Warmup trend normalized ${formatPercent(raw.warmup_trend_normalized)}`,
+      ],
+    }
+  }
+
+  return { method, evidence: [] }
+}
 
 // Request interceptor: add any future auth headers
 api.interceptors.request.use((config) => {
@@ -31,8 +171,9 @@ api.interceptors.response.use(
     const status = error.response?.status
 
     // Log to Sentry if available
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error, {
+    const sentry = typeof window !== 'undefined' ? (window as SentryWindow).Sentry : undefined
+    if (sentry) {
+      sentry.captureException(error, {
         level: 'error',
         tags: {
           api: true,
@@ -68,7 +209,7 @@ api.interceptors.response.use(
   }
 )
 
-export function mapBackendDemoToFrontend(backendDemo: any): Demo {
+export function mapBackendDemoToFrontend(backendDemo: BackendDemo): Demo {
   if (!backendDemo) return backendDemo
 
   const metadata = backendDemo.metadata || {}
@@ -79,7 +220,7 @@ export function mapBackendDemoToFrontend(backendDemo: any): Demo {
   let overallVerdict: 'clean' | 'suspicious' | 'likely_cheating' = 'clean'
   let modelVersion: string | undefined = undefined
 
-  const players = backendResults.map((res: any) => {
+  const players = backendResults.map((res: BackendResult) => {
     const rawOverall = res.scores?.overall ?? 0
     if (rawOverall > maxOverallScore) {
       maxOverallScore = rawOverall
@@ -89,7 +230,7 @@ export function mapBackendDemoToFrontend(backendDemo: any): Demo {
       modelVersion = res.model_version
     }
 
-    const features: any[] = []
+    const features: Feature[] = []
     if (res.scores) {
       const getInterpretation = (score: number) => {
         if (score > 75) return 'Highly suspicious activity detected'
@@ -97,12 +238,21 @@ export function mapBackendDemoToFrontend(backendDemo: any): Demo {
         return 'Clean behavioral pattern'
       }
 
-      features.push({ name: 'aimbot', score: res.scores.aimbot, interpretation: getInterpretation(res.scores.aimbot) })
-      features.push({ name: 'triggerbot', score: res.scores.triggerbot, interpretation: getInterpretation(res.scores.triggerbot) })
-      features.push({ name: 'wallhack', score: res.scores.wallhack, interpretation: getInterpretation(res.scores.wallhack) })
-      features.push({ name: 'recoil', score: res.scores.recoil, interpretation: getInterpretation(res.scores.recoil) })
-      features.push({ name: 'bhop', score: res.scores.bhop, interpretation: getInterpretation(res.scores.bhop) })
-      features.push({ name: 'session', score: res.scores.session_consistency, interpretation: getInterpretation(res.scores.session_consistency) })
+      const addFeature = (name: Feature['name'], score: number) => {
+        features.push({
+          name,
+          score,
+          interpretation: getInterpretation(score),
+          ...featureEvidence(name, res.feature_data),
+        })
+      }
+
+      addFeature('aimbot', res.scores.aimbot ?? 0)
+      addFeature('triggerbot', res.scores.triggerbot ?? 0)
+      addFeature('wallhack', res.scores.wallhack ?? 0)
+      addFeature('recoil', res.scores.recoil ?? 0)
+      addFeature('bhop', res.scores.bhop ?? 0)
+      addFeature('session', res.scores.session_consistency ?? 0)
     }
 
     return {

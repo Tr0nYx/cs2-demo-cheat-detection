@@ -12,6 +12,9 @@ export interface Feature {
     | 'session'
   score: number
   interpretation: string
+  evidence?: string[]
+  method?: string
+  warning?: string
 }
 
 // Player analysis result

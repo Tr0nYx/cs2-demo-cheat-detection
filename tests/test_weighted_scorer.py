@@ -109,8 +109,8 @@ class TestWeightedScorer:
         result = scorer.score(feature_results)
 
         assert len(result.missing_features) == 2
-        assert "TriggerbotExtractor" in result.missing_features
-        assert "RecoilExtractor" in result.missing_features
+        assert "triggerbot" in result.missing_features
+        assert "recoil" in result.missing_features
         assert 0.0 <= result.overall_score <= 1.0
 
     def test_scoring_per_feature_breakdown(self, scorer):
@@ -135,7 +135,27 @@ class TestWeightedScorer:
 
         # Verify per_feature_scores matches input
         for name, score in scores.items():
-            assert result.per_feature_scores[name] == score
+            normalized_name = scorer.feature_aliases[name]
+            assert result.per_feature_scores[normalized_name] == score
+
+    def test_scoring_accepts_extractor_class_names(self, scorer):
+        """Worker feature keys are extractor class names; weights still apply."""
+        feature_results = {
+            "AimbotExtractor": FeatureResult(score=1.0),
+            "TriggerbotExtractor": FeatureResult(score=0.51),
+            "WallhackExtractor": FeatureResult(score=0.97),
+            "RecoilExtractor": FeatureResult(score=0.56),
+            "BhopExtractor": None,
+            "SessionConsistencyExtractor": FeatureResult(score=0.24),
+        }
+
+        result = scorer.score(feature_results)
+
+        assert result.overall_score > 0.7
+        assert result.label == "likely_cheating"
+        assert result.per_feature_scores["aimbot"] == 1.0
+        assert result.per_feature_scores["wallhack"] == 0.97
+        assert result.missing_features == ["bhop"]
 
     def test_scoring_all_features_failed(self, scorer):
         """Test that ValueError is raised if all features failed.

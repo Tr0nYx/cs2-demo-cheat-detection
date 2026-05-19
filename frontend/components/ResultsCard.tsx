@@ -14,7 +14,7 @@ interface ResultsCardProps {
   onDownload?: (demoId: string) => void
 }
 
-export function ResultsCard({ demo, onDownload }: ResultsCardProps) {
+export function ResultsCard({ demo }: ResultsCardProps) {
   // Handle pending state
   if (demo.status === 'pending') {
     return (
@@ -63,6 +63,7 @@ export function ResultsCard({ demo, onDownload }: ResultsCardProps) {
   if (demo.status === 'done' && demo.results) {
     const players = demo.results.players || []
     const overallScore = demo.results.overall_score ?? 0
+    const hasOnlyDemoLevelResults = players.length > 0 && players.every((player) => player.steamId === '0')
 
     const overallStatusVariant = overallScore <= 33 ? 'suspicion-clean' : overallScore <= 66 ? 'suspicion-review' : 'suspicion-high'
     const overallStatusLabel = overallScore <= 33 ? 'Low review signal' : overallScore <= 66 ? 'Review signal' : 'High review signal'
@@ -106,17 +107,30 @@ export function ResultsCard({ demo, onDownload }: ResultsCardProps) {
               </div>
             </div>
             <div className="text-xs text-muted-foreground max-w-md sm:text-right leading-relaxed">
-              This score aggregates gameplay anomaly signals across all parsed players. Check individual player profiles below for detailed feature verification.
+              {hasOnlyDemoLevelResults
+                ? 'This analysis produced demo-level aggregate signals only. The current result is not attributed to a specific player.'
+                : 'This score aggregates gameplay anomaly signals across all parsed players. Check individual player profiles below for detailed feature verification.'}
             </div>
           </div>
         </ConsolePanel>
 
+        {hasOnlyDemoLevelResults && (
+          <Alert className="border-trace-primary/30 bg-trace-primary/5">
+            <AlertCircle className="h-4 w-4 text-trace-primary" />
+            <AlertTitle>Demo-level result only</AlertTitle>
+            <AlertDescription>
+              The stored result uses Steam ID 0, so these feature scores are not tied to a real player. Treat them as match-wide research signals until per-player extraction writes individual results.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Per-player results */}
         <div className="space-y-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-            Player Analysis Reports
+            {hasOnlyDemoLevelResults ? 'Demo Analysis Report' : 'Player Analysis Reports'}
           </h3>
           {players.map((player: Player) => {
+            const isDemoLevelResult = player.steamId === '0'
             const playerStatusVariant = player.overallScore <= 33 ? 'suspicion-clean' : player.overallScore <= 66 ? 'suspicion-review' : 'suspicion-high'
             const playerStatusLabel = player.overallScore <= 33 ? 'Low review signal' : player.overallScore <= 66 ? 'Review signal' : 'High review signal'
 
@@ -126,9 +140,11 @@ export function ResultsCard({ demo, onDownload }: ResultsCardProps) {
                 title={
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-heading font-semibold text-foreground text-lg">
-                      {player.name || 'Unknown Player'}
+                      {isDemoLevelResult ? 'Demo-wide aggregate' : player.name || 'Unknown Player'}
                     </span>
-                    <DataValue className="text-xs">{player.steamId}</DataValue>
+                    <DataValue className="text-xs">
+                      {isDemoLevelResult ? 'No player attribution' : player.steamId}
+                    </DataValue>
                   </div>
                 }
                 action={
@@ -140,6 +156,12 @@ export function ResultsCard({ demo, onDownload }: ResultsCardProps) {
                   </div>
                 }
               >
+                {isDemoLevelResult && (
+                  <p className="mb-3 rounded border border-border-subtle bg-surface-raised px-3 py-2 text-sm text-muted-foreground">
+                    These scores were persisted as a demo-level result, not as an individual player&apos;s analysis.
+                  </p>
+                )}
+
                 {/* Features table */}
                 {player.features && player.features.length > 0 ? (
                   <div className="rounded-lg border border-border-subtle bg-surface-panel overflow-hidden">

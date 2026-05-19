@@ -63,6 +63,15 @@ class WeightedScorer:
         total = sum(self.weights.values())
         assert abs(total - 1.0) < 0.001, f"Weights sum to {total}, not 1.0"
 
+        self.feature_aliases = {
+            "AimbotExtractor": "aimbot",
+            "WallhackExtractor": "wallhack",
+            "TriggerbotExtractor": "triggerbot",
+            "RecoilExtractor": "recoil",
+            "BhopExtractor": "bhop",
+            "SessionConsistencyExtractor": "session",
+        }
+
     def score(
         self, feature_results: Dict[str, Optional[FeatureResult]]
     ) -> ScoringSummary:
@@ -90,15 +99,16 @@ class WeightedScorer:
         missing_features = []
 
         for feature_name, result in feature_results.items():
+            normalized_feature_name = self.feature_aliases.get(feature_name, feature_name)
             if result is None or result.score is None:
-                missing_features.append(feature_name)
+                missing_features.append(normalized_feature_name)
             else:
                 # Validate score is in [0.0, 1.0]
                 if not (0.0 <= result.score <= 1.0):
                     raise ValueError(
                         f"Feature {feature_name} score {result.score} not in [0.0, 1.0]"
                     )
-                available_scores[feature_name] = result.score
+                available_scores[normalized_feature_name] = result.score
 
         # If no features succeeded, raise error
         if not available_scores:

@@ -153,6 +153,8 @@ services:
     environment:
       # For browser clients, use the host-accessible nginx proxy. Override with env if needed.
       NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://localhost:8080/api}"
+      # For server-side NextAuth callbacks running inside Docker, use the service DNS name.
+      INTERNAL_API_URL: "${INTERNAL_API_URL:-http://nginx}"
       NODE_ENV: "${NODE_ENV:-development}"
       NEXT_PUBLIC_SENTRY_DSN: "${NEXT_PUBLIC_SENTRY_DSN:-}"
       SENTRY_ORG: "${SENTRY_ORG:-}"

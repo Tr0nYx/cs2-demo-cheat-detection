@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ResultsCard } from '@/components/ResultsCard'
 import { Demo } from '@/lib/types'
 
@@ -18,12 +19,12 @@ describe('ResultsCard', () => {
           overallScore: 45,
           overallVerdict: 'suspicious',
           features: [
-            { name: 'Aimbot', score: 50, interpretation: 'Suspicious' },
-            { name: 'Triggerbot', score: 30, interpretation: 'Clean' },
-            { name: 'Wallhack', score: 40, interpretation: 'Suspicious' },
-            { name: 'Recoil', score: 45, interpretation: 'Suspicious' },
-            { name: 'Bhop', score: 50, interpretation: 'Suspicious' },
-            { name: 'Session Consistency', score: 55, interpretation: 'Suspicious' },
+            { name: 'aimbot', score: 50, interpretation: 'Suspicious' },
+            { name: 'triggerbot', score: 30, interpretation: 'Clean' },
+            { name: 'wallhack', score: 40, interpretation: 'Suspicious' },
+            { name: 'recoil', score: 45, interpretation: 'Suspicious' },
+            { name: 'bhop', score: 50, interpretation: 'Suspicious' },
+            { name: 'session', score: 55, interpretation: 'Suspicious' },
           ],
         },
       ],
@@ -64,18 +65,77 @@ describe('ResultsCard', () => {
 
   it('displays all features in table', () => {
     render(<ResultsCard demo={mockDemo} />)
-    expect(screen.getByText('Aimbot')).toBeInTheDocument()
-    expect(screen.getByText('Triggerbot')).toBeInTheDocument()
-    expect(screen.getByText('Wallhack')).toBeInTheDocument()
-    expect(screen.getByText('Recoil')).toBeInTheDocument()
-    expect(screen.getByText('Bhop')).toBeInTheDocument()
-    expect(screen.getByText('Session Consistency')).toBeInTheDocument()
+    expect(screen.getByText('aimbot')).toBeInTheDocument()
+    expect(screen.getByText('triggerbot')).toBeInTheDocument()
+    expect(screen.getByText('wallhack')).toBeInTheDocument()
+    expect(screen.getByText('recoil')).toBeInTheDocument()
+    expect(screen.getByText('bhop')).toBeInTheDocument()
+    expect(screen.getByText('session')).toBeInTheDocument()
   })
 
   it('displays player name and Steam ID', () => {
     render(<ResultsCard demo={mockDemo} />)
     expect(screen.getByText('Player One')).toBeInTheDocument()
     expect(screen.getByText(/76561198000000001/)).toBeInTheDocument()
+  })
+
+  it('expands feature evidence when measurements are available', async () => {
+    const demoWithEvidence: Demo = {
+      ...mockDemo,
+      results: {
+        ...mockDemo.results!,
+        players: [
+          {
+            ...mockDemo.results!.players[0],
+            features: [
+              {
+                name: 'aimbot',
+                score: 100,
+                interpretation: 'Highly suspicious activity detected',
+                method: 'aimbot_multifeature_sigmoid',
+                evidence: ['218 kills analyzed', 'Mean snap ratio 2.03'],
+              },
+            ],
+          },
+        ],
+      },
+    }
+
+    render(<ResultsCard demo={demoWithEvidence} />)
+
+    await userEvent.click(screen.getByRole('button', { name: /toggle aimbot details/i }))
+
+    expect(screen.getByText('aimbot_multifeature_sigmoid')).toBeInTheDocument()
+    expect(screen.getByText('218 kills analyzed')).toBeInTheDocument()
+    expect(screen.getByText('Mean snap ratio 2.03')).toBeInTheDocument()
+  })
+
+  it('labels Steam ID 0 results as demo-level aggregates', () => {
+    const aggregateDemo: Demo = {
+      ...mockDemo,
+      results: {
+        overall_score: 100,
+        overall_verdict: 'likely_cheating',
+        players: [
+          {
+            steamId: '0',
+            name: 'Demo Level Result',
+            overallScore: 100,
+            overallVerdict: 'likely_cheating',
+            features: [
+              { name: 'aimbot', score: 100, interpretation: 'Highly suspicious activity detected' },
+            ],
+          },
+        ],
+      },
+    }
+
+    render(<ResultsCard demo={aggregateDemo} />)
+
+    expect(screen.getByText('Demo-level result only')).toBeInTheDocument()
+    expect(screen.getByText('Demo-wide aggregate')).toBeInTheDocument()
+    expect(screen.getByText('No player attribution')).toBeInTheDocument()
+    expect(screen.queryByText('Demo Level Result')).not.toBeInTheDocument()
   })
 
   it('shows download button for completed demo', () => {
