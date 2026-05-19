@@ -5,18 +5,21 @@
 See: .planning/PROJECT.md (updated 2026-05-15)
 
 **Core value:** Users can upload or point to a CS2 demo and receive a reproducible, explainable, player-level cheat suspicion analysis based only on post-game demo data.
-**Current focus:** Phase 19: Frontend UI/UX Analysis Console Redesign (Planned)
+**Current focus:** Phase 22: Apply AntiCheatPT Best Practices to Python Pipeline (Context gathered, ready for planning)
 
 ## Current Position
 
-Phase: 18 (Sharecode Import and Automatic Match History Tracking) - IMPLEMENTED
-Status: Phase 18 implemented across 4 waves: encrypted match-history connection state, strict seed parser, Valve next-code client, user-scoped API, bounded scheduler/handler, import dispatch, and dashboard setup/status UI.
-- Plans completed: 18-01 tracking foundation/secret storage/client, 18-02 connect/status/disconnect API, 18-03 bounded tracking/import dispatch, 18-04 dashboard UI and safety tests.
-- Verification: Symfony focused PHPUnit passed (21 tests, 42 assertions), frontend SteamMatchHistory Jest suite passed (2 suites, 7 tests), container lint passed, Doctrine mapping validation passed.
-- Remaining verification debt: `app:steam:track-match-history --dry-run --limit=10` needs a Docker PHP/PostgreSQL context; host shell lacked a usable PDO database driver/container DB.
-- Safety boundary: match-history metadata remains import provenance only and does not affect suspicion, TRACE, labels, confidence, or player trust.
-Last activity: 2026-05-18 - Phase 18 implemented and host-verified with Docker DB dry-run follow-up noted.
-Phase 19 planning status: ready to execute across 5 waves covering console foundations, dashboard workflow, results/TRACE explainability, viewer/heatmap UX, and analytics/table/accessibility verification.
+Phase: 22 (Apply AntiCheatPT Best Practices to Python Pipeline) - CONTEXT GATHERED
+Status: Phase 22 context discussion completed. Key decisions locked:
+- Research-first focus on signal quality over production speed
+- Extend existing extractors with first/second/third-order derivatives
+- Integrate transformer as a weighted-scorer feature
+- Modular result structure exposing all pipeline stages (conversion → augmentation → analysis)
+- Adaptive calibration: new signals can inform Phase 20 recalibration
+- Parser-based tick-aligned positional encoding for transformer
+- Stratified sampling only (no synthetic data augmentation)
+Last activity: 2026-05-19 - Phase 22 context gathered with detailed implementation decisions.
+Phase 22 planning status: ready to execute across expected waves (research-backed feature implementation, transformer sequence model, results schema, and pipeline modularization).
 
 Progress: [##############] v2 Core Complete -> [##############] Phase 13 Complete -> [##############] Phase 14 Complete -> [##############] Phase 15 Complete -> [##############] Phase 16 Complete -> [############] Phase 17 Implemented -> [ ] Phase 17 Verification
 
@@ -98,6 +101,13 @@ None yet.
 - Phase 18 planned: 4 waves covering tracking schema/secret cipher/Valve client, user-scoped connect/status/disconnect API, bounded scheduler/handler import dispatch, and dashboard tracking UI with secret-safety tests.
 - Phase 17 context gathered: tiered Steam profile/inventory checks for demo players, Market-price inventory valuation, research-maximum public snapshots, versioned snapshot audit history, automatic User/Player Steam ID linking, dashboard/player-page display, and research/shadow-mode gate before scoring use
 - Phase 17 implemented: 5 plans in 4 waves covering snapshot schema, Steam API clients, refresh pipeline, player UI/API enrichment, and research/shadow-mode gate; DB-backed Symfony verification remains pending
+- Phase 20 added: Calibrate High Review Signals and Reduce False Positives in Player Analysis
+- Phase 20 context gathered: conservative calibration posture, strong player-specific evidence gates, capped uncertain feature scores with warnings/confidence, and overall high review requiring multiple strong feature families.
+- Phase 20 planned: 4 waves covering calibration metadata/scorer guardrails, extractor evidence gates, conservative regression coverage, and results UI confidence/capped evidence display.
+- Phase 21 added: AntiCheatPT Research and Python Pipeline Guidance
+- Phase 21 goal: Review AntiCheatPT dataset and code patterns to align parser, feature extraction, and scoring pipeline with proven CS2 cheat-detection data conventions and defensible research-only guardrails.
+- Phase 22 added: Apply AntiCheatPT Best Practices to Python Pipeline
+- Phase 22 goal: Implement feature engineering patterns (first/second/third derivatives of angles, cumulative displacement, statistical summaries), data augmentation for class imbalance, transformer-based sequence patterns with positional encoding, and modular pipeline architecture (extraction → conversion → augmentation → analysis).
 
 ## Deferred Items
 
@@ -109,10 +119,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-17
+Last session: 2026-05-19
 Completed: Phase 16 executed
-Current status: Phase 17 implemented; migration-chain verification passing; older handler test harness cleanup remains optional
-Next work: Continue with Phase 17 human review or repair older handler test service access
+Current status: Phase 20 planned; high review signal calibration is ready for execution
+Next work: Execute Phase 20 with `$gsd-execute-phase 20`
 
 **PROJECT EXECUTION STATUS: PHASE 16 COMPLETE; PHASE 17 IMPLEMENTED, PARTIALLY VERIFIED**
 - Phase 3: Python Analysis Pipeline complete (analysis engine complete)
