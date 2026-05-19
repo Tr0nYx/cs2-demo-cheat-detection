@@ -38,7 +38,8 @@
       "Skill(gsd-docs-update:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:ieeexplore.ieee.org)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git push *)"
     ]
   }
 }

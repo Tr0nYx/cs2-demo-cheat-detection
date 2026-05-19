@@ -76,6 +76,15 @@
 
 - **UI-01**: User can inspect uploads, analysis status, and result explanations through a web UI.
 
+### Phase 22: AntiCheatPT Best Practices
+
+- **PHASE-22-01**: All feature extractors (aimbot, wallhack, triggerbot, recoil, bhop) compute first, second, and third-order derivatives of angles and velocities within their context windows (D-01 through D-04).
+- **PHASE-22-02**: Worker orchestrates four modular pipeline stages (extraction, conversion, augmentation, analysis) with clear input/output contracts matching AntiCheatPT structure (D-12 through D-14).
+- **PHASE-22-03**: TransformerSequenceExtractor inherits from AbstractFeatureExtractor and implements 300-tick context windows with tick-aligned positional encoding (D-15 through D-18).
+- **PHASE-22-04**: Augmentation pipeline applies SMOTE-like oversampling, temporal shifts, and realistic measurement noise only during model training (is_training flag gates augmentation to training path only) (D-08 through D-11, D-05 through D-07).
+- **PHASE-22-05**: Modular results expose all pipeline stages (extraction, conversion, augmentation, analysis) with evidence metadata for research transparency (D-18 through D-20).
+- **PHASE-22-06**: Phase 20 evidence gates remain in effect; transformer score is one weighted feature, not an override mechanism (Phase 20 CONTEXT constraint).
+
 ### Demo Viewer and Heatmaps
 
 - **VIEWER-PYTHON-FOUNDATION**: Python can transform CS2 world coordinates to radar pixels, render static heatmaps, export tick chunks to Redis, and find similar grenade throws.
@@ -142,12 +151,20 @@
 | VIEWER-TICK-STREAMING | Phase 13 | Complete |
 | VIEWER-CANVAS-UI | Phase 13 | Complete |
 | VIEWER-SUSPICION-GRENADE-REVIEW | Phase 13 | Complete |
+| PHASE-22-01 | Phase 22 | Pending |
+| PHASE-22-02 | Phase 22 | Pending |
+| PHASE-22-03 | Phase 22 | Pending |
+| PHASE-22-04 | Phase 22 | Pending |
+| PHASE-22-05 | Phase 22 | Pending |
+| PHASE-22-06 | Phase 22 | Pending |
 
 **Coverage:**
 - v1 requirements: 37 total
 - Mapped to phases: 37
+- Phase 22 requirements: 6 total
+- Total mapped: 43
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-15*
-*Last updated: 2026-05-17 after Phase 13 completion*
+*Last updated: 2026-05-19 after Phase 22 planning*
