@@ -14,12 +14,14 @@ import redis
 import pandas as pd
 
 from features.aimbot import AimbotExtractor
-from features.base import FeatureExtractionError
+from features.base import FeatureExtractionError, FeatureResult
 from features.bhop import BhopExtractor
 from features.recoil import RecoilExtractor
 from features.session import SessionConsistencyExtractor
 from features.triggerbot import TriggerbotExtractor
 from features.wallhack import WallhackExtractor
+from ml.augmentation import AugmentationPipeline
+from ml.config import load_config
 from parser.adapter import DemoParserAdapter
 from parser.types import DemoParseError, ParsedDemo
 from persistence.result_writer import ResultWriter
@@ -189,27 +191,76 @@ def _conversion_stage(feature_results: Dict[str, Optional]) -> Dict[str, Optiona
 
 
 def _augmentation_stage(
-    converted_results: Dict[str, Optional], is_training: bool = False
-) -> Dict[str, Optional]:
-    """Apply augmentation for training (identity for production) per D-12, D-13.
+    converted_results: Dict[str, Optional[FeatureResult]],
+    is_training: bool = False
+) -> Dict[str, Optional[FeatureResult]]:
+    """Stage 3: Apply augmentation for training only (IDENTITY for production).
 
-    Per D-07: production uses authentic data only. Per D-08: augmentation
-    (SMOTE, noise, temporal shifts) applies only to training set.
+    Per D-05, D-06, D-07: Production uses authentic data only. Augmentation is
+    training-only to address class imbalance and test model robustness per D-08 through D-11.
+
+    Per Pitfall 2 mitigation: This function enforces production-only authenticity.
+    CRITICAL: is_training=False MUST return unchanged results (no augmentation).
 
     Args:
-        converted_results: Dict from conversion stage.
-        is_training: If True, apply augmentation. If False, return unchanged.
+        converted_results: Dict of FeatureResult from _conversion_stage
+        is_training: If True, apply augmentation; if False, return unchanged (production)
 
     Returns:
-        Same structure (modified if is_training, else identity).
+        Same structure as input (augmented if is_training=True, else identity)
     """
-    if is_training:
-        # Wave 3 adds augmentation logic here
-        log("augmentation_applied")
+    # CRITICAL: Production pipeline must NOT apply augmentation (Pitfall 2 mitigation)
+    if not is_training:
+        log("augmentation_stage", is_training=False, action="skipped", reason="production_pipeline")
         return converted_results
-    else:
-        # Production: no augmentation (authentic data per D-07)
-        return converted_results
+
+    # Training path only: apply augmentation per D-08 through D-11
+    log("augmentation_stage", is_training=True, action="apply")
+
+    cfg = load_config()
+    augmentation = AugmentationPipeline(seed=cfg.AUGMENTATION_SEED)
+    augmented = {}
+
+    for name, result in converted_results.items():
+        if result is None:
+            augmented[name] = None
+            continue
+
+        try:
+            # Augment raw_measurements only (not score or metadata)
+            # Per D-08: SMOTE, noise, temporal shifts, feature scaling
+            augmented_measurements = augmentation.augment_feature_measurements(
+                result.raw_measurements.copy(),
+                method="all"
+            )
+
+            # Preserve original score and metadata; augment only raw_measurements
+            augmented[name] = FeatureResult(
+                score=result.score,
+                raw_measurements=augmented_measurements,
+                metadata={
+                    **result.metadata,
+                    "augmentation_applied": True
+                }
+            )
+        except Exception as e:
+            # Fail-safe: if augmentation fails, return original result
+            log(
+                "augmentation_error",
+                extractor=name,
+                error=str(e),
+                level="warning"
+            )
+            augmented[name] = result
+
+    # Record augmentation metadata for reproducibility per D-10
+    log(
+        "augmentation_metadata",
+        is_training=True,
+        metadata=augmentation.augmentation_metadata()
+    )
+
+    return augmented
 
 
 def _analysis_stage(

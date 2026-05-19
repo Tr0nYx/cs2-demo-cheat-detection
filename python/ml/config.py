@@ -38,6 +38,13 @@ class Config:
     NUM_ENCODER_LAYERS: int
     DROPOUT: float
 
+    # Augmentation (training only, per D-08, D-10)
+    AUGMENTATION_SEED: int
+    SMOTE_RATIO: float
+    NOISE_SCALE: float
+    TEMPORAL_SHIFT_BOUNDS: tuple[int, int]
+    FEATURE_SCALING_VARIANCE: float
+
 
 def load_config() -> Config:
     """Load configuration from .env and defaults.
@@ -72,6 +79,12 @@ def load_config() -> Config:
         NHEAD=int(os.getenv("NHEAD", "8")),
         NUM_ENCODER_LAYERS=int(os.getenv("NUM_ENCODER_LAYERS", "4")),
         DROPOUT=float(os.getenv("DROPOUT", "0.1")),
+        # Augmentation (training only, per D-08, D-10)
+        AUGMENTATION_SEED=int(os.getenv("AUGMENTATION_SEED", "42")),
+        SMOTE_RATIO=float(os.getenv("SMOTE_RATIO", "1.0")),
+        NOISE_SCALE=float(os.getenv("NOISE_SCALE", "0.002")),
+        TEMPORAL_SHIFT_BOUNDS=(int(os.getenv("TEMPORAL_SHIFT_MIN", "-5")), int(os.getenv("TEMPORAL_SHIFT_MAX", "5"))),
+        FEATURE_SCALING_VARIANCE=float(os.getenv("FEATURE_SCALING_VARIANCE", "0.10")),
     )
 
     return config
