@@ -1,4 +1,7 @@
 export { MatchEmptyState } from './MatchEmptyState'
 export { MatchHeader } from './MatchHeader'
 export { MatchParticipantTable } from './MatchParticipantTable'
+export { MatchEventsSection } from './MatchEventsSection'
+export { MatchRoundsSection } from './MatchRoundsSection'
 export { MatchSectionTabs, type MatchSectionId } from './MatchSectionTabs'
+export { MatchViewerSection } from './MatchViewerSection'

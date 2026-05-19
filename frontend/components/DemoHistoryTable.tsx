@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { fetchUserDemos } from '@/lib/api'
 import { Demo } from '@/lib/types'
 import { ConsolePanel, DataValue, StatusBadge, type StatusBadgeVariant } from '@/components/Console'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertCircle, ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowUp, ChevronLeft, ChevronRight, FileSearch, Loader2 } from 'lucide-react'
 
 interface SortState {
   sortBy: 'date' | 'suspicion'
@@ -124,6 +125,7 @@ export function DemoHistoryTable({ refreshKey = 0 }: DemoHistoryTableProps) {
                         Review signal
                       </SortButton>
                     </th>
+                    <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Match</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -158,6 +160,20 @@ export function DemoHistoryTable({ refreshKey = 0 }: DemoHistoryTableProps) {
                             <StatusBadge variant="trace-unavailable" label="Pending" />
                           )}
                         </td>
+                        <td className="px-4 py-3 text-right">
+                          {demo.status === 'done' ? (
+                            <Link
+                              href={`/matches/${demo.id}`}
+                              onClick={(event) => event.stopPropagation()}
+                              className="inline-flex items-center gap-1 rounded border border-border-subtle bg-surface-raised px-2 py-1 text-xs font-medium text-foreground hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trace-primary"
+                            >
+                              <FileSearch className="size-3.5" aria-hidden />
+                              Report
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Unavailable</span>
+                          )}
+                        </td>
                       </tr>
                     )
                   })}
@@ -169,10 +185,17 @@ export function DemoHistoryTable({ refreshKey = 0 }: DemoHistoryTableProps) {
               {demos.map((demo) => {
                 const suspicionScore = getSuspicionScore(demo)
                 return (
-                  <button
+                  <div
                     key={demo.id}
-                    type="button"
                     onClick={() => handleDemoClick(demo.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        handleDemoClick(demo.id)
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                     className="w-full cursor-pointer rounded-lg border border-border-subtle bg-surface-raised p-4 text-left transition-colors hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trace-primary"
                   >
                     <div className="mb-2 flex items-start justify-between gap-3">
@@ -190,7 +213,17 @@ export function DemoHistoryTable({ refreshKey = 0 }: DemoHistoryTableProps) {
                         <StatusBadge variant="trace-unavailable" label="Pending" />
                       )}
                     </div>
-                  </button>
+                    {demo.status === 'done' && (
+                      <Link
+                        href={`/matches/${demo.id}`}
+                        onClick={(event) => event.stopPropagation()}
+                        className="mt-3 inline-flex items-center gap-1 rounded border border-border-subtle bg-surface-panel px-2 py-1 text-xs font-medium text-foreground"
+                      >
+                        <FileSearch className="size-3.5" aria-hidden />
+                        Match report
+                      </Link>
+                    )}
+                  </div>
                 )
               })}
             </div>

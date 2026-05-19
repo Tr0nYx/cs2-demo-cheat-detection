@@ -7,11 +7,10 @@ import { ResultsCard } from '@/components/ResultsCard'
 import { SensitivityTuner } from '@/components/Analytics/SensitivityTuner'
 import { TraceCard } from '@/components/DemoDetail/TraceCard'
 import { DemoViewer } from '@/components/DemoViewer/DemoViewer'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react'
+import { AlertCircle, ArrowLeft, FileSearch, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { ConsoleHeader, ConsolePage, ResearchSignalNotice, StatusBadge } from '@/components/Console'
 
@@ -135,6 +134,15 @@ export default function ResultsPage() {
         />
 
         <div className="space-y-6 mt-4">
+          <div className="flex justify-end">
+            <Link href={`/matches/${demoId}`}>
+              <Button variant="outline" size="sm">
+                <FileSearch className="mr-2 size-4" aria-hidden />
+                Open match report
+              </Button>
+            </Link>
+          </div>
+
           <ResultsCard demo={demo} />
 
           <div className="mt-6 grid w-full gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
@@ -149,7 +157,7 @@ export default function ResultsPage() {
           <div className="w-full">
             <DemoViewer
               demoId={demoId}
-              mapName={demoDetail?.metadata?.map ?? (demo as any).metadata?.map ?? (demo as any).map ?? 'de_dust2'}
+              mapName={demoDetail?.metadata?.map ?? demo.map ?? 'de_dust2'}
               analyzed={demo.status === 'done'}
             />
           </div>
