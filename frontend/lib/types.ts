@@ -283,8 +283,64 @@ export interface DemoDetailDto extends Demo {
     map?: string | null
     outcome?: DemoOutcome | null
     uploaded_at?: string
+    processed_at?: string | null
     original_filename?: string | null
+    steam_match_id?: string | null
+    hltv_match_url?: string | null
+    sharecode?: string | null
+    source_platform?: string | null
+    score?: unknown
   }
+}
+
+export interface MatchScoreDto {
+  teamA: number
+  teamB: number
+  teamAName?: string | null
+  teamBName?: string | null
+}
+
+export interface MatchParticipantDto {
+  steamId: string
+  name: string
+  team: string | null
+  overallScore: number | null
+  overallVerdict: Player['overallVerdict'] | null
+  features: Feature[]
+  profileHref: string | null
+}
+
+export interface MatchSummaryDto {
+  demoId: string
+  map: string | null
+  outcome: DemoOutcome | null
+  status: DemoStatus
+  uploadedAt: string | null
+  processedAt: string | null
+  originalFilename: string | null
+  steamMatchId: string | null
+  hltvMatchUrl: string | null
+  sharecode: string | null
+  sourcePlatform: string | null
+  score: MatchScoreDto | null
+  scoreUnavailableReason: string | null
+}
+
+export interface MatchDetailDataAvailability {
+  hasScore: boolean
+  hasParticipants: boolean
+  hasRounds: boolean
+  hasEvents: boolean
+  hasFlaggedKills: boolean
+}
+
+export interface MatchDetailViewModel {
+  summary: MatchSummaryDto
+  participants: MatchParticipantDto[]
+  rounds: DemoRoundDto[]
+  events: DemoEventsResponseDto
+  flaggedKills: DemoKillEventDto[]
+  dataAvailability: MatchDetailDataAvailability
 }
 
 export type TrendMetric = 'consistency' | 'arc' | 'weapons'
