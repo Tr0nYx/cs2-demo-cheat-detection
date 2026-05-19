@@ -41,7 +41,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(git push *)",
       "PowerShell(gsd-sdk query init.execute-phase 22)",
-      "Bash(python -m py_compile tests/test_derivative_computation.py)"
+      "Bash(python -m py_compile tests/test_derivative_computation.py)",
+      "Bash(REDIS_URL=\"redis://redis:6379\" DATABASE_URL=\"postgresql://cs2_app:cs2_app_password@postgres:5432/cs2_detection\" php bin/console app:demo:requeue -a)"
     ]
   }
 }

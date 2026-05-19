@@ -57,6 +57,92 @@ services:
     networks:
       - cs2
 
+  php-steam-scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        APP_UID: "${APP_UID:-1000}"
+        APP_GID: "${APP_GID:-1000}"
+    container_name: cs2-php-steam-scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: sh -lc 'while true; do php bin/console app:steam:track-match-history --limit=100 --per-user-limit=10; sleep 300; done'
+    environment:
+      APP_ENV: "${APP_ENV:-dev}"
+      APP_DEBUG: "${APP_DEBUG:-1}"
+      APP_SECRET: "${APP_SECRET:-change-me-in-local-env}"
+      APP_URL: "${APP_URL:-http://localhost:8080}"
+      CORS_ALLOW_ORIGIN: "${CORS_ALLOW_ORIGIN:-^https?://(localhost|127\\.0\\.1)(:[0-9]+)?$}"
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      MESSENGER_TRANSPORT_DSN: "${MESSENGER_TRANSPORT_DSN:-redis://redis:6379/messages}"
+      MESSENGER_FAILED_TRANSPORT_DSN: "${MESSENGER_FAILED_TRANSPORT_DSN:-redis://redis:6379/failed}"
+      DEMO_STORAGE_DISK: "${DEMO_STORAGE_DISK:-local}"
+      DEMO_STORAGE_PATH: "${DEMO_STORAGE_PATH:-/storage/demos}"
+      SYMFONY_ANALYSIS_QUEUE: "${SYMFONY_ANALYSIS_QUEUE:-cs2.analysis.dispatch}"
+      PYTHON_WORKER_QUEUE: "${PYTHON_WORKER_QUEUE:-cs2.analysis}"
+      RESULT_INGEST_QUEUE: "${RESULT_INGEST_QUEUE:-cs2.results}"
+      RESULT_INGEST_TOKEN: "${RESULT_INGEST_TOKEN:-change-me-in-local-env}"
+      STEAM_API_KEY: "${STEAM_API_KEY:-}"
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-local-env}"
+      STEAM_MATCH_HISTORY_ENCRYPTION_KEY: "${STEAM_MATCH_HISTORY_ENCRYPTION_KEY:-some-secure-dev-encryption-key-123456}"
+    volumes:
+      - ./symfony:/var/www/html
+      - ./tasks:/var/www/html/tasks
+      - demo_storage:${DEMO_STORAGE_PATH:-/storage/demos}
+      - composer_cache:/tmp/composer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2
+
+  php-steam-consumer:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        APP_UID: "${APP_UID:-1000}"
+        APP_GID: "${APP_GID:-1000}"
+    container_name: cs2-php-steam-consumer
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: sh -lc 'php bin/console messenger:consume steam_match_history_tracking --time-limit=3600 --memory-limit=256M --sleep=5 --verbose'
+    environment:
+      APP_ENV: "${APP_ENV:-dev}"
+      APP_DEBUG: "${APP_DEBUG:-1}"
+      APP_SECRET: "${APP_SECRET:-change-me-in-local-env}"
+      APP_URL: "${APP_URL:-http://localhost:8080}"
+      CORS_ALLOW_ORIGIN: "${CORS_ALLOW_ORIGIN:-^https?://(localhost|127\\.0\\.1)(:[0-9]+)?$}"
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      MESSENGER_TRANSPORT_DSN: "${MESSENGER_TRANSPORT_DSN:-redis://redis:6379/messages}"
+      MESSENGER_FAILED_TRANSPORT_DSN: "${MESSENGER_FAILED_TRANSPORT_DSN:-redis://redis:6379/failed}"
+      DEMO_STORAGE_DISK: "${DEMO_STORAGE_DISK:-local}"
+      DEMO_STORAGE_PATH: "${DEMO_STORAGE_PATH:-/storage/demos}"
+      SYMFONY_ANALYSIS_QUEUE: "${SYMFONY_ANALYSIS_QUEUE:-cs2.analysis.dispatch}"
+      PYTHON_WORKER_QUEUE: "${PYTHON_WORKER_QUEUE:-cs2.analysis}"
+      RESULT_INGEST_QUEUE: "${RESULT_INGEST_QUEUE:-cs2.results}"
+      RESULT_INGEST_TOKEN: "${RESULT_INGEST_TOKEN:-change-me-in-local-env}"
+      STEAM_API_KEY: "${STEAM_API_KEY:-}"
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-local-env}"
+      STEAM_MATCH_HISTORY_ENCRYPTION_KEY: "${STEAM_MATCH_HISTORY_ENCRYPTION_KEY:-some-secure-dev-encryption-key-123456}"
+    volumes:
+      - ./symfony:/var/www/html
+      - ./tasks:/var/www/html/tasks
+      - demo_storage:${DEMO_STORAGE_PATH:-/storage/demos}
+      - composer_cache:/tmp/composer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2
+
   python:
     build:
       context: .

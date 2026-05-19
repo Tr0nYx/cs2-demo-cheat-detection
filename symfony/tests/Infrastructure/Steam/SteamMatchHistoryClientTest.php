@@ -42,6 +42,21 @@ final class SteamMatchHistoryClientTest extends TestCase
         self::assertSame($expectedStatus, $client->getNextCode('steam', 'secret', 'known')->status);
     }
 
+    public function testParsesRetryAfterHeaderForRateLimitedResponses(): void
+    {
+        $client = new SteamMatchHistoryClient(new MockHttpClient([
+            new MockResponse('{}', [
+                'http_code' => 429,
+                'response_headers' => ['retry-after' => '120'],
+            ]),
+        ]), 'mock-key');
+
+        $result = $client->getNextCode('steam', 'secret', 'known');
+
+        self::assertSame('rate_limited', $result->status);
+        self::assertSame(120, $result->retryAfterSeconds);
+    }
+
     /** @return iterable<array{int, string}> */
     public static function statusProvider(): iterable
     {

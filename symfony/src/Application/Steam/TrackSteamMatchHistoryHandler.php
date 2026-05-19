@@ -15,6 +15,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 #[AsMessageHandler]
 final readonly class TrackSteamMatchHistoryHandler
 {
+    private const RATE_LIMIT_BACKOFF = '+15 minutes';
+    private const STEAM_UNAVAILABLE_BACKOFF = '+30 minutes';
+
     public function __construct(
         private SteamMatchHistoryConnectionRepository $connections,
         private SteamMatchHistorySecretCipher $cipher,
@@ -65,8 +68,24 @@ final readonly class TrackSteamMatchHistoryHandler
                 'caught_up' => $connection->markCaughtUp($now->modify('+30 minutes'), $now),
                 'auth_failed' => $connection->markFailed(SteamMatchHistoryConnection::STATUS_AUTH_FAILED, 'auth_failed', 'Steam rejected the game authentication code.', null, $now),
                 'invalid_seed' => $connection->markFailed(SteamMatchHistoryConnection::STATUS_INVALID_SEED, 'invalid_seed', 'Steam rejected the seed or known sharecode.', null, $now),
-                'rate_limited' => $connection->markFailed(SteamMatchHistoryConnection::STATUS_RATE_LIMITED, 'rate_limited', 'Valve rate limit reached.', $now->modify('+2 hours'), $now),
-                default => $connection->markFailed(SteamMatchHistoryConnection::STATUS_STEAM_UNAVAILABLE, $result->errorCode ?? 'steam_unavailable', $result->errorMessage, $now->modify('+30 minutes'), $now),
+                    'rate_limited' => $connection->markFailed(
+                    SteamMatchHistoryConnection::STATUS_RATE_LIMITED,
+                    'rate_limited',
+                    'Valve rate limit reached.',
+                    $result->retryAfterSeconds !== null
+                        ? $now->modify(sprintf('+%d seconds', $result->retryAfterSeconds))
+                        : $now->modify(self::RATE_LIMIT_BACKOFF),
+                    $now,
+                ),
+                default => $connection->markFailed(
+                    SteamMatchHistoryConnection::STATUS_STEAM_UNAVAILABLE,
+                    $result->errorCode ?? 'steam_unavailable',
+                    $result->errorMessage,
+                    $result->retryAfterSeconds !== null
+                        ? $now->modify(sprintf('+%d seconds', $result->retryAfterSeconds))
+                        : $now->modify(self::STEAM_UNAVAILABLE_BACKOFF),
+                    $now,
+                ),
             };
             $this->entityManager->flush();
 

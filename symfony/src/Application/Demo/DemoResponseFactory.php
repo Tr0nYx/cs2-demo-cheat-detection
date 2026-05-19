@@ -64,6 +64,12 @@ final readonly class DemoResponseFactory
             'feature_data' => $result->getFeatureData(),
             'support_data' => $result->getSupportData(),
             'analyzed_at' => $result->getAnalyzedAt()->format(\DateTimeInterface::ATOM),
+            'demo' => [
+                'map' => $result->getDemo()->getMap(),
+                'outcome' => $result->getDemo()->getOutcome(),
+                'uploaded_at' => $result->getDemo()->getUploadedAt()->format(\DateTimeInterface::ATOM),
+                'processed_at' => $result->getDemo()->getProcessedAt()?->format(\DateTimeInterface::ATOM),
+            ],
         ];
     }
 }

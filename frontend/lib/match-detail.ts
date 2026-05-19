@@ -22,9 +22,10 @@ type UnknownRecord = Record<string, unknown>
 const SCORE_UNAVAILABLE_REASON = 'Score unavailable from current analysis payload'
 
 export function isLinkableSteamId(steamId: string | null | undefined): boolean {
-  const normalized = steamId?.trim()
+  const normalized = steamId?.trim() ?? ''
+  const steamIdPattern = /^[0-9]{16,20}$/
 
-  return Boolean(normalized && normalized !== '0')
+  return steamIdPattern.test(normalized) && normalized !== '0'
 }
 
 export function buildMatchSummary(

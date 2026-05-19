@@ -86,4 +86,41 @@ final class TrackSteamMatchHistoryHandlerTest extends TestCase
         self::assertSame('auth_failed', $connection->getStatus());
         self::assertNull($connection->getNextCheckAt());
     }
+
+    public function testRateLimitBackoffFallsBackToFifteenMinutes(): void
+    {
+        $cipher = new SteamMatchHistorySecretCipher('test-secret');
+        $connection = new SteamMatchHistoryConnection(
+            Uuid::v7(),
+            '76561198000000000',
+            $cipher->encrypt('steam-key'),
+            $cipher->fingerprint('steam-key'),
+            'CSGO-AAAAA-BBBBB-CCCCC-DDDDD-EEEEE'
+        );
+        $repository = $this->createMock(SteamMatchHistoryConnectionRepository::class);
+        $repository->method('findById')->willReturn($connection);
+        $client = $this->createMock(SteamMatchHistoryClient::class);
+        $client->method('getNextCode')->willReturn(SteamMatchHistoryResult::rateLimited());
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects($this->atLeastOnce())->method('flush');
+
+        $handler = new TrackSteamMatchHistoryHandler(
+            $repository,
+            $cipher,
+            $client,
+            $this->createMock(ImportSharecodeService::class),
+            $entityManager,
+            new NullLogger()
+        );
+        $handler(new TrackSteamMatchHistoryMessage($connection->getId()->toRfc4122()));
+
+        self::assertSame('rate_limited', $connection->getStatus());
+        self::assertNotNull($connection->getNextCheckAt());
+        self::assertNotNull($connection->getLastCheckAt());
+
+        $difference = $connection->getNextCheckAt()->getTimestamp() - $connection->getLastCheckAt()->getTimestamp();
+        self::assertGreaterThanOrEqual(14 * 60, $difference);
+        self::assertLessThanOrEqual(16 * 60, $difference);
+    }
 }

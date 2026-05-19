@@ -39,6 +39,8 @@ describe('match detail normalizers', () => {
     expect(isLinkableSteamId('0')).toBe(false)
     expect(isLinkableSteamId('')).toBe(false)
     expect(isLinkableSteamId(null)).toBe(false)
+    expect(isLinkableSteamId('p1')).toBe(false)
+    expect(isLinkableSteamId('019e3a1d-7c65-78e6-894b-4e0eaadd62ed')).toBe(false)
   })
 
   it('keeps score unavailable when current payload lacks score data', () => {

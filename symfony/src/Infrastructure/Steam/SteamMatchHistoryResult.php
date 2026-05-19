@@ -11,6 +11,7 @@ final readonly class SteamMatchHistoryResult
         public ?string $nextCode = null,
         public ?string $errorCode = null,
         public ?string $errorMessage = null,
+        public ?int $retryAfterSeconds = null,
     ) {
     }
 
@@ -34,14 +35,14 @@ final readonly class SteamMatchHistoryResult
         return new self('invalid_seed', errorCode: 'invalid_seed');
     }
 
-    public static function rateLimited(): self
+    public static function rateLimited(?int $retryAfterSeconds = null): self
     {
-        return new self('rate_limited', errorCode: 'rate_limited');
+        return new self('rate_limited', errorCode: 'rate_limited', retryAfterSeconds: $retryAfterSeconds);
     }
 
-    public static function steamUnavailable(string $code = 'steam_unavailable', ?string $message = null): self
+    public static function steamUnavailable(string $code = 'steam_unavailable', ?string $message = null, ?int $retryAfterSeconds = null): self
     {
-        return new self('steam_unavailable', errorCode: $code, errorMessage: $message);
+        return new self('steam_unavailable', errorCode: $code, errorMessage: $message, retryAfterSeconds: $retryAfterSeconds);
     }
 
     public static function malformedResponse(?string $message = null): self

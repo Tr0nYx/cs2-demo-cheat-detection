@@ -64,6 +64,84 @@ services:
       timeout: 5s
       retries: 3
 
+  php-steam-scheduler:
+    image: ${DOCKER_USERNAME}/cs2-php:latest
+    container_name: cs2-php-steam-scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: sh -lc 'while true; do php bin/console app:steam:track-match-history --limit=100 --per-user-limit=10; sleep 300; done'
+    environment:
+      APP_ENV: "prod"
+      APP_DEBUG: "0"
+      APP_SECRET: "${APP_SECRET}"
+      APP_URL: "${APP_URL}"
+      CORS_ALLOW_ORIGIN: "${CORS_ALLOW_ORIGIN}"
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      MESSENGER_TRANSPORT_DSN: "${MESSENGER_TRANSPORT_DSN:-redis://redis:6379/messages}"
+      MESSENGER_FAILED_TRANSPORT_DSN: "${MESSENGER_FAILED_TRANSPORT_DSN:-redis://redis:6379/failed}"
+      DEMO_STORAGE_DISK: "${DEMO_STORAGE_DISK:-local}"
+      DEMO_STORAGE_PATH: "${DEMO_STORAGE_PATH:-/storage/demos}"
+      SYMFONY_ANALYSIS_QUEUE: "${SYMFONY_ANALYSIS_QUEUE:-cs2.analysis.dispatch}"
+      PYTHON_WORKER_QUEUE: "${PYTHON_WORKER_QUEUE:-cs2.analysis}"
+      RESULT_INGEST_QUEUE: "${RESULT_INGEST_QUEUE:-cs2.results}"
+      RESULT_INGEST_TOKEN: "${RESULT_INGEST_TOKEN}"
+    volumes:
+      - ./symfony:/var/www/html
+      - demo_storage:/storage/demos
+      - composer_cache:/tmp/composer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  php-steam-consumer:
+    image: ${DOCKER_USERNAME}/cs2-php:latest
+    container_name: cs2-php-steam-consumer
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: sh -lc 'php bin/console messenger:consume steam_match_history_tracking --time-limit=3600 --memory-limit=256M --sleep=5 --verbose'
+    environment:
+      APP_ENV: "prod"
+      APP_DEBUG: "0"
+      APP_SECRET: "${APP_SECRET}"
+      APP_URL: "${APP_URL}"
+      CORS_ALLOW_ORIGIN: "${CORS_ALLOW_ORIGIN}"
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      MESSENGER_TRANSPORT_DSN: "${MESSENGER_TRANSPORT_DSN:-redis://redis:6379/messages}"
+      MESSENGER_FAILED_TRANSPORT_DSN: "${MESSENGER_FAILED_TRANSPORT_DSN:-redis://redis:6379/failed}"
+      DEMO_STORAGE_DISK: "${DEMO_STORAGE_DISK:-local}"
+      DEMO_STORAGE_PATH: "${DEMO_STORAGE_PATH:-/storage/demos}"
+      SYMFONY_ANALYSIS_QUEUE: "${SYMFONY_ANALYSIS_QUEUE:-cs2.analysis.dispatch}"
+      PYTHON_WORKER_QUEUE: "${PYTHON_WORKER_QUEUE:-cs2.analysis}"
+      RESULT_INGEST_QUEUE: "${RESULT_INGEST_QUEUE:-cs2.results}"
+      RESULT_INGEST_TOKEN: "${RESULT_INGEST_TOKEN}"
+    volumes:
+      - ./symfony:/var/www/html
+      - demo_storage:/storage/demos
+      - composer_cache:/tmp/composer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cs2
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
   python:
     image: ${DOCKER_USERNAME}/cs2-python:latest
     container_name: cs2-python

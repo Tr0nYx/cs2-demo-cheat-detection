@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { PlayerComparisonCard } from '@/components/Comparison/PlayerComparisonCard'
@@ -23,8 +23,8 @@ import { usePlayerComparison } from '@/lib/hooks/usePlayerComparison'
  */
 function PlayerComparisonPageContent({ playerId }: { playerId: string }) {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const compareWithId = searchParams.get('with')
+  const { data, isLoading, error } = usePlayerComparison(playerId, compareWithId)
 
   // Redirect if missing compareWithId
   if (!compareWithId) {
@@ -49,9 +49,6 @@ function PlayerComparisonPageContent({ playerId }: { playerId: string }) {
       </div>
     )
   }
-
-  // Fetch comparison data
-  const { data, isLoading, error } = usePlayerComparison(playerId, compareWithId)
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -85,13 +82,9 @@ function PlayerComparisonPageContent({ playerId }: { playerId: string }) {
   )
 }
 
-interface PageProps {
-  params: {
-    playerId: string
-  }
-}
+export default function PlayerComparisonPage() {
+  const params = useParams<{ playerId: string }>()
 
-export default function PlayerComparisonPage({ params }: PageProps) {
   return (
     <Suspense
       fallback={

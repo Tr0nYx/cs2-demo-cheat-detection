@@ -90,7 +90,7 @@ export default function LeaderboardsPage() {
                       <td className="px-4 py-3 font-mono text-gray-900 dark:text-gray-100">#{player.rank}</td>
                       <td className="px-4 py-3">
                         <Link
-                          href={`/players/${player.playerId}/compare`}
+                          href={`/players/${player.playerId}`}
                           className="font-medium text-gray-950 underline-offset-4 hover:underline dark:text-white"
                         >
                           {player.username}
