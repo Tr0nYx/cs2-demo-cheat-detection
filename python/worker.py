@@ -139,6 +139,129 @@ def _player_steam_ids(parsed_demo: ParsedDemo) -> list[str]:
     return steam_ids
 
 
+def _extraction_stage(
+    player_demo: ParsedDemo, extractors: list
+) -> Dict[str, Optional]:
+    """Extract all features from player demo per D-12, D-13.
+
+    Runs all traditional feature extractors (aimbot, wallhack, triggerbot,
+    recoil, bhop, session) with per-feature error resilience.
+
+    Args:
+        player_demo: Parsed demo sliced for a single player.
+        extractors: List of feature extractor instances.
+
+    Returns:
+        Dict mapping extractor class name to FeatureResult or None if extraction failed.
+    """
+    feature_results = {}
+    for extractor in extractors:
+        feature_name = extractor.__class__.__name__
+        try:
+            result = extractor.extract(player_demo)
+            feature_results[feature_name] = result
+        except FeatureExtractionError as e:
+            log("feature_error", feature=feature_name, error=str(e), level="warning")
+            feature_results[feature_name] = None
+        except Exception as e:
+            log("feature_error", feature=feature_name, error=str(e), level="warning")
+            feature_results[feature_name] = None
+
+    return feature_results
+
+
+def _conversion_stage(feature_results: Dict[str, Optional]) -> Dict[str, Optional]:
+    """Normalize and prepare features for analysis per D-12, D-13.
+
+    Per D-12: conversion stage normalizes to tensor format. Extractors have
+    already computed derivatives in Wave 1. This stage is a pass-through for
+    now; future extensions can add statistical summaries.
+
+    Args:
+        feature_results: Dict from extraction stage.
+
+    Returns:
+        Same structure (pass-through for now).
+    """
+    # Wave 1 already computes derivatives in extractors.
+    # Conversion stage is identity for now; Wave 3 can add tensor normalization.
+    return feature_results
+
+
+def _augmentation_stage(
+    converted_results: Dict[str, Optional], is_training: bool = False
+) -> Dict[str, Optional]:
+    """Apply augmentation for training (identity for production) per D-12, D-13.
+
+    Per D-07: production uses authentic data only. Per D-08: augmentation
+    (SMOTE, noise, temporal shifts) applies only to training set.
+
+    Args:
+        converted_results: Dict from conversion stage.
+        is_training: If True, apply augmentation. If False, return unchanged.
+
+    Returns:
+        Same structure (modified if is_training, else identity).
+    """
+    if is_training:
+        # Wave 3 adds augmentation logic here
+        log("augmentation_applied")
+        return converted_results
+    else:
+        # Production: no augmentation (authentic data per D-07)
+        return converted_results
+
+
+def _analysis_stage(
+    augmented_results: Dict[str, Optional],
+    parsed_demo: ParsedDemo,
+    scorer: WeightedScorer,
+) -> Optional:
+    """Run transformer and compute final score per D-12, D-13, D-15, D-16.
+
+    Per D-15: TransformerSequenceExtractor is an additional feature extractor.
+    Per D-16: Transformer runs after traditional extractors and feeds into
+    WeightedScorer as one feature input. Phase 20 gates remain baseline.
+
+    Args:
+        augmented_results: Dict from augmentation stage.
+        parsed_demo: Parsed demo for transformer context windowing.
+        scorer: WeightedScorer instance.
+
+    Returns:
+        ScoringSummary from scorer.score() or None if scoring failed.
+    """
+    # Add transformer as a feature input
+    try:
+        from features.transformer_sequence import TransformerSequenceExtractor
+
+        transformer = TransformerSequenceExtractor()
+        transformer_result = transformer.extract(parsed_demo)
+        augmented_results["TransformerSequenceExtractor"] = transformer_result
+        log("transformer_extraction_complete", score=transformer_result.score)
+    except FeatureExtractionError as e:
+        log("transformer_error", error=str(e), level="warning")
+        # Continue without transformer if extraction fails
+    except Exception as e:
+        log("transformer_error", error=str(e), level="warning")
+
+    # Score all features (transformer + traditional)
+    valid_results = {
+        k: v for k, v in augmented_results.items() if v is not None
+    }
+
+    if not valid_results:
+        log("no_valid_features", level="warning")
+        return None
+
+    try:
+        scoring_summary = scorer.score(valid_results)
+        return scoring_summary
+    except Exception as e:
+        log("scoring_error", error=str(e), level="error")
+        return None
+
+
 def process_job(
     demo_id: str,
     file_path: str,
@@ -201,80 +324,27 @@ def process_job(
             if player_demo.ticks_df.empty:
                 continue
 
-            # Phase 2: Extract features (D-19: per-feature resilience)
-            feature_results = {}
-            for extractor in extractors:
-                feature_name = extractor.__class__.__name__
-                try:
-                    result = extractor.extract(player_demo)
-                    feature_results[feature_name] = result
-                    log(
-                        "feature_extracted",
-                        demo_id=demo_id,
-                        player_steam_id=steam_id,
-                        feature=feature_name,
-                        score=result.score,
-                    )
-                except FeatureExtractionError as e:
-                    log(
-                        "feature_error",
-                        demo_id=demo_id,
-                        player_steam_id=steam_id,
-                        feature=feature_name,
-                        error=str(e),
-                        level="warning",
-                    )
-                    feature_results[feature_name] = None
-                except Exception as e:
-                    log(
-                        "feature_error",
-                        demo_id=demo_id,
-                        player_steam_id=steam_id,
-                        feature=feature_name,
-                        error=str(e),
-                        level="warning",
-                    )
-                    feature_results[feature_name] = None
+            # Modular pipeline stages per D-12, D-13, D-15, D-16
+            # Stage 1: Extract all traditional features
+            feature_results = _extraction_stage(player_demo, extractors)
+            log(
+                "extraction_stage_complete",
+                demo_id=demo_id,
+                player_steam_id=steam_id,
+                extracted_count=sum(1 for v in feature_results.values() if v is not None),
+            )
 
-            valid_results = {
-                k: v for k, v in feature_results.items() if v is not None
-            }
-            if not valid_results:
-                log("player_features_failed", demo_id=demo_id, player_steam_id=steam_id, level="warning")
-                continue
+            # Stage 2: Convert (normalize and prepare tensors)
+            converted_results = _conversion_stage(feature_results)
 
-            max_retries = 3
-            backoff_times = [1, 2, 4]
-            scoring_summary = None
+            # Stage 3: Augment (identity for production, augmentation for training)
+            augmented_results = _augmentation_stage(converted_results, is_training=False)
 
-            for attempt in range(max_retries):
-                try:
-                    scoring_summary = scorer.score(valid_results)
-                    log(
-                        "scoring_complete",
-                        demo_id=demo_id,
-                        player_steam_id=steam_id,
-                        overall_score=scoring_summary.overall_score,
-                        label=scoring_summary.label,
-                        attempt=attempt + 1,
-                    )
-                    break
-                except Exception as e:
-                    if attempt < max_retries - 1:
-                        wait_time = backoff_times[attempt]
-                        log(
-                            "scoring_retry",
-                            demo_id=demo_id,
-                            player_steam_id=steam_id,
-                            attempt=attempt + 1,
-                            wait_seconds=wait_time,
-                            error=str(e),
-                        )
-                        time.sleep(wait_time)
-                    else:
-                        log("scoring_error", demo_id=demo_id, player_steam_id=steam_id, error=str(e), level="error")
+            # Stage 4: Analyze (transformer + scoring)
+            scoring_summary = _analysis_stage(augmented_results, player_demo, scorer)
 
             if scoring_summary is None:
+                log("player_scoring_failed", demo_id=demo_id, player_steam_id=steam_id, level="warning")
                 continue
 
             # Extract the player's Steam profile name from the demo if available

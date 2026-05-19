@@ -72,18 +72,18 @@ def load_cs2cd_dataset(split: str = "train") -> Dataset:
 
 def convert_demo_to_matrix(
     demo_ticks: list[dict],
-    n_ticks: int = 256,
+    n_ticks: int = 300,
     n_features: int = 44,
 ) -> np.ndarray:
     """Convert sequential demo ticks to fixed-size matrix.
 
     Args:
         demo_ticks: List of tick dictionaries with feature keys
-        n_ticks: Fixed number of ticks (default 256, per D-06)
+        n_ticks: Fixed number of ticks (default 300, per D-18: kill ± 150 ticks)
         n_features: Fixed number of features (default 44, per D-06)
 
     Returns:
-        Matrix of shape (256, 44) as float32
+        Matrix of shape (300, 44) as float32
     """
     ticks = demo_ticks
 
@@ -121,7 +121,7 @@ def convert_demo_to_matrix(
 class CS2CDDataset(torch_data.Dataset):
     """PyTorch Dataset wrapper for CS2CD data.
 
-    Converts HuggingFace dataset rows to 256x44 matrices on-the-fly.
+    Converts HuggingFace dataset rows to 300x44 matrices on-the-fly (per D-18).
     """
 
     def __init__(
@@ -149,7 +149,7 @@ class CS2CDDataset(torch_data.Dataset):
             idx: Index into self.indices
 
         Returns:
-            (matrix, label) where matrix is (256, 44) and label is scalar
+            (matrix, label) where matrix is (300, 44) and label is scalar
         """
         sample_idx = self.indices[idx]
         sample = self.hf_dataset[sample_idx]
@@ -254,7 +254,7 @@ class GaussianAugmentation:
         """Apply Gaussian noise with probability p (training only).
 
         Args:
-            matrix: (256, 44) array
+            matrix: (300, 44) array per D-18
             p: probability of augmentation (default 0.5)
 
         Returns:
@@ -264,21 +264,22 @@ class GaussianAugmentation:
             return matrix.copy()
 
         augmented = matrix.copy()
+        n_ticks = matrix.shape[0]
 
         # Per-feature Gaussian noise
         for feat_idx in range(44):
-            noise = np.random.normal(0, self.noise_std[feat_idx], size=256)
+            noise = np.random.normal(0, self.noise_std[feat_idx], size=n_ticks)
             augmented[:, feat_idx] += noise
 
         # Preserve relative distance: apply same position noise to attacker and opponent
         # Indices 0-2 are attacker position, 15-17 are opponent position (per FEATURE_SCHEMA)
-        position_noise = np.random.normal(0, self.noise_std[0], size=256)
+        position_noise = np.random.normal(0, self.noise_std[0], size=n_ticks)
         augmented[:, 0] += position_noise
         augmented[:, 15] += position_noise
 
         # Similar for Y and Z positions
         for offset in [1, 2]:
-            position_noise = np.random.normal(0, self.noise_std[offset], size=256)
+            position_noise = np.random.normal(0, self.noise_std[offset], size=n_ticks)
             augmented[:, offset] += position_noise
             augmented[:, 15 + offset] += position_noise
 

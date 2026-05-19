@@ -25,7 +25,7 @@ from ml.config import load_config
 class AntiCheatTransformer(nn.Module):
     """Transformer-based cheat detection model for CS2CD data.
 
-    Input: (batch_size, 256, 44) - sequence of 256 ticks with 44 features each
+    Input: (batch_size, 300, 44) - sequence of 300 ticks with 44 features each (per D-18)
     Output: (batch_size, 1) - continuous suspicion score in [0.0, 1.0]
 
     Architecture:
@@ -145,7 +145,7 @@ class AntiCheatTransformer(nn.Module):
         """Forward pass through transformer.
 
         Args:
-            x: (batch_size, 256, 44) - raw tick matrices
+            x: (batch_size, 300, 44) - raw tick matrices per D-18
 
         Returns:
             (batch_size, 1) - suspicion scores in [0.0, 1.0]
