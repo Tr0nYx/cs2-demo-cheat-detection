@@ -147,7 +147,7 @@
 
 ## Deferred to Future Phases
 
-- Synthetic data augmentation
+- Synthetic data augmentation (production-side only; ML training uses augmentation)
 - LSTM/GRU alternatives to transformer
 - Online/live model retraining
 - External AntiCheatPT model weight integration
@@ -155,4 +155,88 @@
 
 ---
 
-*Discussion completed: 2026-05-19*
+## Session 2: AntiCheatPT Compliance Audit (2026-05-19)
+
+**User Request:** "Kannst du die pläne auf einhaltung der bestpractises prüfen?" 
+(Can you check the plans for compliance with best practices?)
+
+**Audit Sources:**
+- arXiv 2508.06348: "AntiCheatPT: A Transformer-Based Approach to Cheat Detection in Competitive Computer Games"
+- GitHub: itubrainlab/AntiCheatPT (official implementation)
+- HuggingFace: CS2CD.Counter-Strike_2_Cheat_Detection dataset (795 labeled matches, 90,707 context windows)
+
+### Audit Results
+
+#### ✅ Aligned Decisions
+| Aspect | Phase 22 | AntiCheatPT | Status |
+|--------|---------|------------|--------|
+| Transformer architecture | ✅ Integrated feature | Vaswani-style encoder | Aligned |
+| Feature engineering | ✅ 1st/2nd/3rd derivatives | Context-window behavioral analysis | Aligned |
+| Positional encoding | ✅ Tick-aligned | Event-based windows | Aligned |
+| Modular pipeline | ✅ 4 explicit stages | DataExtraction → DataConversion → DataAugmentation → Transformer | Aligned |
+| Open-source approach | ✅ Reproducible, documented | Open model weights + reproducibility | Aligned |
+| Player-local attribution | ✅ Per-player evidence | Context-window per player behavior | Aligned |
+
+#### ⚠️ Critical Gap Identified (Now Resolved)
+**Original Phase 22 Decision:**
+```
+"Stratified sampling only (no synthetic data augmentation)"
+```
+
+**AntiCheatPT Best Practice:**
+```
+"90,707 context windows augmented to address class imbalance"
+- Synthetic minority oversampling (SMOTE-like)
+- Temporal shifting
+- Noise injection
+- Feature scaling variants
+Achieved: 89.17% accuracy with augmentation
+```
+
+**Resolution (Phase 22 Refined):**
+- **Production Pipeline:** Authentic data only (Phase 20 constraint) ✅
+- **ML Training Pipeline:** Use augmentation (SMOTE, noise, temporal shifts) ✅
+- **Clear Boundary:** Augmentation for training only, never touches production suspicion scoring ✅
+
+#### ❌ Gaps Closed by Updates
+
+| Gap | Resolution |
+|-----|-----------|
+| Context window size not locked | Added: 300-tick per kill event (kill ± 150 ticks) |
+| Transformer hyperparameters vague | Added: d_model=256, heads=8, layers=6, d_ff=1024 (with test ranges) |
+| Augmentation techniques not specified | Added: SMOTE ratio, noise magnitude, temporal shift bounds |
+| Training strategy undefined | Added: researcher/planner discretion for optimizer, loss, batch size, learning rate |
+| No baseline accuracy target | Added: ≥89% target (matching AntiCheatPT unaugmented test set) |
+| Reproducibility unclear | Added: seed management, config hashing, model weight documentation |
+
+### Summary of Compliance Updates
+
+**CONTEXT.md Updated:**
+- Phase Boundary: Clarified dual-path (production vs. ML training) architecture
+- Data Handling: Explicit Production vs. Training pipeline with augmentation techniques detailed
+- Pipeline Architecture: Four explicit stages matching AntiCheatPT structure
+- Transformer Architecture: Locked baselines (d_model=256, heads=8, layers=6) with test ranges
+- Claude's Discretion: Specific researcher flexibility areas documented
+- Canonical Refs: Added arXiv 2508.06348, GitHub, HuggingFace dataset links
+- Deferred: Clarified production-side augmentation remains out of scope
+
+**SUMMARY.md Fully Rewritten:**
+- Dual-path architecture diagram (production authentic → training augmented)
+- Feature engineering details (derivatives + statistical summaries)
+- Complete data handling section with augmentation techniques for training
+- Transformer architecture table with baselines and test ranges
+- Pipeline modularization with Worker stage methods and result schema
+- Calibration & evidence gates section
+- Data sources with DOI and paper references
+- Expected impact and research-only boundary reaffirmed
+
+**DISCUSSION-LOG.md Extended:**
+- Added Session 2 audit results
+- Documented compliance alignment
+- Listed critical gaps closed
+- Included resolution rationale
+
+---
+
+*Discussion completed and compliance audited: 2026-05-19*
+*Next step: /gsd-plan-phase 22*
