@@ -24,6 +24,7 @@ class AimbotExtractor(AbstractFeatureExtractor):
     - Angular Velocity: Rate of aim change. Humans are limited to ~90 deg/sec.
     - Angular Jerk: Acceleration of aim changes. Mechanical systems show > 2 deg/sec².
     - Reaction Proxy: Time from auditory stimulus to aim adjustment.
+    - Angle Derivatives: First, second, and third-order derivatives of yaw angles (D-02, D-03).
 
     All measurements are normalized to [0.0, 1.0] using sigmoid functions,
     and the final score is the maximum of the normalized sub-scores.
@@ -75,6 +76,7 @@ class AimbotExtractor(AbstractFeatureExtractor):
             angular_velocity_values = []
             angular_jerk_values = []
             reaction_proxy_values = []
+            raw_measurements = {}
 
             # b-d. Process each kill
             suspicious_kill_windows = 0
@@ -124,6 +126,12 @@ class AimbotExtractor(AbstractFeatureExtractor):
                         if max_jerk > self.ANGULAR_JERK_THRESHOLD_DEG_PER_TICK_SQ:
                             is_window_suspicious = True
 
+                # Angle derivatives: per D-02, D-03 (first/second/third-order temporal patterns)
+                deriv_measurements = self._compute_derivatives(yaw_values)
+                raw_measurements.update({
+                    f"kill_angle_{k}": v for k, v in deriv_measurements.items()
+                })
+
                 # e. Reaction proxy (time from footstep to snap detection)
                 # Find footsteps before this kill
                 footstep_events = events_df[
@@ -147,10 +155,10 @@ class AimbotExtractor(AbstractFeatureExtractor):
                 raise FeatureExtractionError("insufficient_measurements")
 
             # Normalize each sub-feature
-            raw_measurements = {
+            raw_measurements.update({
                 "kills_detected": len(kill_ticks),
                 "suspicious_kill_windows": suspicious_kill_windows,
-            }
+            })
 
             # Snap ratio normalization
             if snap_ratio_values:

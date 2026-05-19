@@ -26,6 +26,7 @@ class BhopExtractor(AbstractFeatureExtractor):
       (ratio > 0.7 = suspicious)
     - Sequence Length: Detects long uninterrupted bunnyhopping sequences
       (length > 10 = suspicious)
+    - Jump Timing Derivatives: First, second, and third-order derivatives (D-02, D-03)
     - Final Score: Combines CV (30%), perfect ratio (30%), and sequence (40%)
 
     All measurements are normalized to [0.0, 1.0] using sigmoid functions.
@@ -91,6 +92,9 @@ class BhopExtractor(AbstractFeatureExtractor):
                 raise FeatureExtractionError("insufficient_jump_pairs")
 
             flight_times = np.array(flight_times)
+
+            # Jump timing derivatives: per D-02, D-03 (temporal consistency patterns)
+            jump_timing_deriv = self._compute_derivatives(flight_times)
 
             # b. Jump-land timing analysis (CV = std / mean)
             mean_flight = np.mean(flight_times)
@@ -221,6 +225,9 @@ class BhopExtractor(AbstractFeatureExtractor):
                 "normalized_perfect": float(norm_perfect),
                 "normalized_sequence": float(norm_sequence),
             }
+            raw_measurements.update({
+                f"jump_timing_{k}": v for k, v in jump_timing_deriv.items()
+            })
 
             metadata = {
                 "method": "bhop_timing_sequence_sigmoid",

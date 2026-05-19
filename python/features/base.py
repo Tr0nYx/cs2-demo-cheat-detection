@@ -160,3 +160,39 @@ class AbstractFeatureExtractor(ABC):
             raise ValueError(
                 f"Feature score must be in [0.0, 1.0], got {score}"
             )
+
+    @staticmethod
+    def _compute_derivatives(values: np.ndarray) -> dict:
+        """Compute first, second, third-order derivatives of a value sequence.
+
+        Per D-02 and D-03: captures rate of change, acceleration, and jerk.
+        Used by temporal extractors (aimbot, wallhack, triggerbot, recoil, bhop).
+
+        Args:
+            values: Array of measurements over time (e.g., angles, velocities).
+
+        Returns:
+            Dictionary with first/second/third-order derivative statistics.
+        """
+        if len(values) < 3:
+            return {
+                "first_order_max": 0.0,
+                "first_order_mean": 0.0,
+                "second_order_max": 0.0,
+                "second_order_mean": 0.0,
+                "third_order_max": 0.0,
+                "third_order_mean": 0.0,
+            }
+
+        first = np.gradient(values)
+        second = np.gradient(first)
+        third = np.gradient(second)
+
+        return {
+            "first_order_max": float(np.max(np.abs(first))),
+            "first_order_mean": float(np.mean(np.abs(first))),
+            "second_order_max": float(np.max(np.abs(second))),
+            "second_order_mean": float(np.mean(np.abs(second))),
+            "third_order_max": float(np.max(np.abs(third))),
+            "third_order_mean": float(np.mean(np.abs(third))),
+        }

@@ -32,6 +32,7 @@ class RecoilExtractor(AbstractFeatureExtractor):
       (threshold > 0.7 = suspicious)
     - Consistency Variance: Measures variance of correlations across multiple sprays
       (variance < 0.1 = mechanically consistent bot-like behavior)
+    - Spray Velocity Derivatives: First, second, and third-order derivatives (D-02, D-03)
     - Final Score: Combines correlation strength (60%) and consistency (40%)
 
     All measurements are normalized to [0.0, 1.0] using sigmoid functions.
@@ -220,12 +221,21 @@ class RecoilExtractor(AbstractFeatureExtractor):
                 spray_adjusted = apply_movement_sensitivity(spray, velocity_vector)
 
                 spray_sequences.append(spray_adjusted)
+
+                # Spray velocity derivatives: per D-02, D-03 (temporal spray compensation patterns)
+                spray_magnitudes = np.linalg.norm(spray_adjusted, axis=1) if len(spray_adjusted) > 0 else np.array([])
+                if len(spray_magnitudes) > 0:
+                    spray_deriv = self._compute_derivatives(spray_magnitudes)
+                else:
+                    spray_deriv = self._compute_derivatives(np.array([0.0]))
+
                 movement_sensitivity_data.append({
                     "velocity_x": velocity_x,
                     "velocity_y": velocity_y,
                     "velocity_magnitude": velocity_magnitude,
                     "jitter_factor": min(velocity_magnitude / 400.0, 1.0),
                     "available": movement_sensitivity_available,
+                    **{f"spray_velocity_{k}": v for k, v in spray_deriv.items()},
                 })
 
             # Validate we have sprays to analyze

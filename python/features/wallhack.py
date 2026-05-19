@@ -25,6 +25,7 @@ class WallhackExtractor(AbstractFeatureExtractor):
       a footstep event indicates aiming without auditory confirmation.
     - Crosshair Delta: Average angle offset between aim and opponent at peek.
       < 5 degrees indicates instant-on alignment (wallhack characteristic).
+    - Yaw Velocity Derivatives: First, second, and third-order derivatives in peek windows (D-02, D-03).
 
     Final score combines: 0.4 * norm_preAim + 0.3 * norm_sound + 0.3 * norm_delta
     """
@@ -126,6 +127,7 @@ class WallhackExtractor(AbstractFeatureExtractor):
             # c. Crosshair-on-peek delta analysis
             # For each death (peek), measure crosshair alignment
             crosshair_deltas = []
+            raw_measurements = {}
 
             for _, death_row in death_events.iterrows():
                 death_tick = death_row["tick"]
@@ -145,6 +147,13 @@ class WallhackExtractor(AbstractFeatureExtractor):
                     crosshair_delta = abs(yaw_at_death - expected_yaw)
                     crosshair_deltas.append(crosshair_delta)
 
+                    # Yaw velocity derivatives: per D-02, D-03 (peek window analysis)
+                    peek_yaw_velocities = np.abs(np.diff(prior_ticks["yaw"].values))
+                    deriv_measurements = self._compute_derivatives(peek_yaw_velocities)
+                    raw_measurements.update({
+                        f"peek_yaw_{k}": v for k, v in deriv_measurements.items()
+                    })
+
             if len(crosshair_deltas) > 0:
                 crosshair_delta_avg = np.mean(crosshair_deltas)
             else:
@@ -162,7 +171,7 @@ class WallhackExtractor(AbstractFeatureExtractor):
             self._validate_score(final_score)
 
             # e. Return FeatureResult
-            raw_measurements = {
+            raw_measurements.update({
                 "pre_aim_count": int(suspicious_preAim_count),
                 "total_aim_transitions": int(total_aim_transitions),
                 "pre_aim_ratio": float(preAim_ratio),
@@ -175,7 +184,7 @@ class WallhackExtractor(AbstractFeatureExtractor):
                 "crosshair_delta_threshold_deg": self.CROSSHAIR_DELTA_THRESHOLD_DEG,
                 "crosshair_delta_normalized": norm_delta,
                 "peeks_analyzed": len(death_events),
-            }
+            })
 
             # g. Apply Player-Specific Evidence Gates and score caps
             independent_signals = []

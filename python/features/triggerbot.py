@@ -25,6 +25,7 @@ class TriggerbotExtractor(AbstractFeatureExtractor):
       Formula: (skewness² + 1) / (kurtosis + 3 * (n-1)² / ((n-2)(n-3)))
       BC > 0.555 indicates bimodal distribution.
     - Instant-Kill Ratio: Percentage of kills within 2 ticks (human-impossible timing).
+    - Reaction Time Derivatives: First, second, and third-order derivatives (D-02, D-03).
 
     Final score combines bimodality (60%) and instant-kill ratio (40%).
     """
@@ -83,6 +84,9 @@ class TriggerbotExtractor(AbstractFeatureExtractor):
             # Convert to milliseconds
             reaction_times_ticks_array = np.array(reaction_times_ticks)
             reaction_times_ms = reaction_times_ticks_array * (1000.0 / self.TICKS_PER_SECOND)
+
+            # Reaction time derivatives: per D-02, D-03 (temporal consistency patterns)
+            reaction_deriv = self._compute_derivatives(reaction_times_ticks_array)
 
             # b. Bimodality coefficient calculation
             # Formula: BC = (skewness² + 1) / (kurtosis + 3 * (n-1)² / ((n-2)(n-3)))
@@ -159,6 +163,9 @@ class TriggerbotExtractor(AbstractFeatureExtractor):
                 "skewness": float(skewness),
                 "kurtosis": float(kurtosis),
             }
+            raw_measurements.update({
+                f"reaction_{k}": v for k, v in reaction_deriv.items()
+            })
 
             metadata = {
                 "method": "triggerbot_bimodality_sigmoid",

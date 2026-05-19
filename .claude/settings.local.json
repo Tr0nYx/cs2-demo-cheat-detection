@@ -39,7 +39,9 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:ieeexplore.ieee.org)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "PowerShell(gsd-sdk query init.execute-phase 22)",
+      "Bash(python -m py_compile tests/test_derivative_computation.py)"
     ]
   }
 }
