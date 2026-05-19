@@ -44,19 +44,22 @@ class WeightedScorer:
     """
 
     def __init__(self) -> None:
-        """Initialize WeightedScorer with configurable weights.
+        """Initialize WeightedScorer with configurable weights per D-28 and Phase 22.
 
-        Weights are defined per D-28 and must sum to 1.0.
+        Weights are defined per D-28 (traditional features) with transformer added per D-16.
+        Weights must sum to 1.0.
         Raises AssertionError if weights do not sum to approximately 1.0.
         """
-        # Locked weights per D-28
+        # Weights per D-28 with transformer addition per D-16
+        # Transformer is a weighted feature input (not override), weight discretion per D-87
         self.weights = {
-            "aimbot": 0.30,
-            "wallhack": 0.25,
-            "triggerbot": 0.20,
-            "recoil": 0.15,
-            "bhop": 0.05,
-            "session": 0.05,
+            "aimbot": 0.28,          # 0.30 → 0.28 (slight reduction to accommodate transformer)
+            "wallhack": 0.24,        # 0.25 → 0.24
+            "triggerbot": 0.19,      # 0.20 → 0.19
+            "recoil": 0.14,          # 0.15 → 0.14
+            "bhop": 0.05,            # unchanged
+            "session": 0.05,         # unchanged
+            "transformer": 0.05,     # Phase 22 addition (per D-87: discretion on transformer weight)
         }
 
         # Validate weights sum to 1.0
@@ -70,6 +73,7 @@ class WeightedScorer:
             "RecoilExtractor": "recoil",
             "BhopExtractor": "bhop",
             "SessionConsistencyExtractor": "session",
+            "TransformerSequenceExtractor": "transformer",  # Phase 22: transformer integration
         }
 
     def score(
@@ -207,7 +211,15 @@ class WeightedScorer:
         else:
             label = "likely_cheating"
 
-        # Step 5: Return ScoringSummary
+        # Step 5: Apply Phase 20 evidence gates (Pitfall 3 mitigation)
+        # Per D-15, D-16, D-17: Verify multiple strong signals for High review, or one exceptional signal
+        gates_passed = self._passes_evidence_gates(feature_results)
+        if overall_score >= 0.7 and not gates_passed:
+            # Cap to Review signal (0.69) if gates not passed
+            overall_score = 0.69
+            label = "suspicious"
+
+        # Step 6: Return ScoringSummary
         return ScoringSummary(
             overall_score=overall_score,
             label=label,
@@ -215,3 +227,50 @@ class WeightedScorer:
             missing_features=missing_features,
             weighting_strategy="conservative_proportional",
         )
+
+    def _passes_evidence_gates(self, feature_results: Dict[str, Optional[FeatureResult]]) -> bool:
+        """Apply Phase 20 evidence gates per D-15, D-16, D-17.
+
+        Per Pitfall 3 mitigation: High review signal normally requires multiple
+        independent feature families with strong evidence, not a single high score.
+
+        Rules:
+        - D-15: High review normally requires multiple feature families with strong evidence
+        - D-16: A single high feature should usually produce at most Review signal
+        - D-17: Prevent one over-sensitive extractor from creating blanket labels
+
+        Implementation: Permit High review signal (overall_score >= 0.7) only if:
+        1. At least 2 independent features have strong evidence (score > 0.65, confidence medium/high), OR
+        2. One exceptional feature (score > 0.85, confidence high, 10+ supporting samples)
+
+        Args:
+            feature_results: Dict of FeatureResult from all extractors
+
+        Returns:
+            True if evidence gates satisfied (permit High review signal)
+            False if evidence insufficient (cap to Review signal or lower)
+        """
+        strong_signals = 0
+
+        for name, result in feature_results.items():
+            if result is None or result.score is None:
+                continue
+
+            # Define "strong signal": score > 0.65 with medium/high confidence
+            confidence = "low"
+            sample_count = 0
+            if hasattr(result, "metadata") and result.metadata:
+                confidence = result.metadata.get("confidence", "low")
+                sample_count = result.metadata.get("sample_count", 0)
+
+            # Count strong signals
+            if result.score > 0.65 and confidence in ("high", "medium"):
+                strong_signals += 1
+
+            # Check for exceptional single signal (score > 0.85 with high confidence + samples)
+            if result.score > 0.85 and confidence == "high" and sample_count >= 10:
+                # Single exceptional signal can pass gates alone per D-16 exception
+                return True
+
+        # Require at least 2 strong independent signals for High review (D-15, D-17)
+        return strong_signals >= 2
