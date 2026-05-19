@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ArrowLeft, Download, Loader2, RotateCw } from 'lucide-react'
 
@@ -76,13 +75,13 @@ export default function MatchDetailPage() {
   return (
     <ConsolePage width="wide">
       <ResearchDisclaimerBanner />
-      <Link
+      <a
         href="/history"
         className="inline-flex w-fit items-center gap-1.5 rounded text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-trace-primary"
       >
         <ArrowLeft className="size-4" aria-hidden />
         Back to history
-      </Link>
+      </a>
 
       <ConsoleHeader
         title="Match detail"
@@ -113,9 +112,9 @@ export default function MatchDetailPage() {
           summary={data.summary}
           actions={
             <div className="flex flex-wrap gap-2">
-              <Link href={`/results/${demoId}`}>
+              <a href={`/results/${demoId}`}>
                 <Button variant="outline" size="sm">Analysis results</Button>
-              </Link>
+              </a>
               {analyzed && (
                 <a href={downloadDemoUrl(demoId)} target="_blank" rel="noreferrer" download>
                   <Button variant="outline" size="sm">
@@ -153,12 +152,12 @@ export default function MatchDetailPage() {
 function BackLinks({ demoId }: { demoId: string }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <Link href={`/results/${demoId}`}>
+      <a href={`/results/${demoId}`}>
         <Button variant="outline" size="sm">Open analysis</Button>
-      </Link>
-      <Link href="/history">
+      </a>
+      <a href="/history">
         <Button variant="outline" size="sm">History</Button>
-      </Link>
+      </a>
     </div>
   )
 }

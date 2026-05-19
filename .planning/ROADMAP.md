@@ -6,9 +6,11 @@
 
 The repository supports a post-game CS2 demo research workflow: upload/import demos, parse and score player behavior, show explainable suspicion signals, visualize TRACE impact, review demo events, and explore authenticated advanced analytics.
 
-## Next Milestone: v2 (Python Analysis Pipeline)
+## Next Milestone: v2 (Python Analysis Pipeline & Player Profiling)
 
-Build the core detection engine that consumes queued demos, parses CS2 data, computes feature scores, and labels suspicion levels.
+Build the core detection engine with feature engineering and advanced modeling, establish player profile surfaces for comprehensive analysis, and refine UI/UX for research-safe explainability.
+
+**Current Focus:** Phase 24 (Match Detail Page) - COMPLETE
 
 ### Completed Phases
 
@@ -25,6 +27,7 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 - [x] **Phase 15: Advanced Analytics & User Scoping** - User-scoped demo filters, sensitivity tuner and validation, trend metrics, and filtered TRACE leaderboards (Complete 2026-05-17)
 - [x] **Phase 16: HLTV Demo Scrape** - Node.js Playwright scraper, Async Symfony handler, manual triggers, and Cron auto-ingestion (Complete 2026-05-17)
 - [x] **Phase 18: Sharecode Import and Automatic Match History Tracking** - User-authorized Valve match-history tracking with encrypted credentials, bounded discovery, import dispatch, and dashboard setup/status UI. (Complete 2026-05-18)
+- [x] **Phase 24: Match Detail Page** - Comprehensive match-level report at `/matches/{demoId}` with metadata, participants, rounds/events, viewer/heatmap access, result/history navigation, and research-safe verification. (Complete 2026-05-19)
 
 ### Upcoming Phases
 
@@ -33,6 +36,42 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 - [ ] **Phase 20: Calibrate High Review Signals and Reduce False Positives in Player Analysis** - Audit and recalibrate player-specific aimbot, wallhack, triggerbot, recoil, bhop, session, and weighted scoring so normal demos do not produce blanket high review signals, while preserving explainable research-only output.
 - [ ] **Phase 21: AntiCheatPT Research and Python Pipeline Guidance** - Review AntiCheatPT dataset and code patterns to align our parser, feature extraction, and scoring pipeline with proven CS2 cheat-detection data conventions and defensible research-only guardrails.
 - [ ] **Phase 22: Apply AntiCheatPT Best Practices to Python Pipeline** - Implement feature engineering patterns (derivatives, cumulative displacement, statistical summaries), data augmentation for class imbalance, transformer-based sequence patterns with positional encoding, and modular pipeline structure (extraction → conversion → augmentation → analysis).
+- [x] **Phase 23: Player Profile Detail** - Add comprehensive player profile views and analysis detail pages with main profile at `/players/{playerId}`, sub-routes for detailed demos/stats exploration, TRACE components, demo history, and optional Steam profile enrichment. (Complete 2026-05-19)
+- [x] **Phase 24: Match Detail Page** - Add a comprehensive match-level detail page for analyzed demos, including match summary, participants, round/event navigation, TRACE and suspicion research signals, heatmap/viewer entry points, and links into player profiles. (Complete 2026-05-19)
+
+### Phase 24 Plans (Complete)
+
+Goal: Build a match detail page that lets users inspect one analyzed CS2 match/demo as a coherent research review surface, with match metadata, teams/participants, round timeline, notable events, player-level TRACE and suspicion signals, demo viewer/heatmap access, and safe navigation to player profile detail pages.
+
+Depends on: Phase 13 (2D Demo Viewer + Heatmap Module), Phase 20 (calibration guardrails if executed first), Phase 23 (Player Profile Detail), existing demo result/detail APIs.
+
+Planning anchors:
+- Treat the page as a post-game match review surface, not a live anti-cheat or enforcement workflow.
+- Preserve the Symfony/Python split: backend exposes persisted match/demo summaries and links; Python parsing/scoring semantics remain unchanged.
+- Keep all suspicion, TRACE, Steam, match-history, and player-profile links framed as research signals or provenance, never proof.
+- Reuse existing demo detail, viewer, heatmap, TRACE, and player profile APIs where possible before adding new contracts.
+- Ensure match page navigation connects naturally to `/players/{playerId}`, `/results/{demoId}`, and viewer/heatmap routes without duplicating scoring logic.
+
+Wave 1:
+- [x] 24-01-PLAN.md - Match detail data foundation, frontend view model, and `useMatchDetail`
+- [x] 24-02-PLAN.md - Match report components: header, participant table, section tabs, empty states
+
+Wave 2 *(blocked on Wave 1 completion)*:
+- [x] 24-03-PLAN.md - `/matches/{demoId}` route, rounds/events sections, viewer integration, and existing-surface links
+
+Wave 3 *(blocked on Wave 2 completion)*:
+- [x] 24-04-PLAN.md - Integration tests, research-language guard, Playwright smoke, and verification report
+
+Cross-cutting constraints:
+- Treat the page as a post-game match review surface, not a live anti-cheat or enforcement workflow.
+- Reuse existing demo detail, round/event, viewer, heatmap, TRACE, and player profile APIs before adding new contracts.
+- Do not fabricate score, team, economy, weapons, or duel data when current payloads do not provide them; show graceful unavailable states.
+- Keep all suspicion, TRACE, and event outputs framed as research signals or review signals, never proof.
+- Preserve the existing `/results/{demoId}` analysis page and add clear navigation to `/matches/{demoId}`.
+
+Context: `.planning/phases/24-match-detail-page/24-CONTEXT.md`
+Research: `.planning/phases/24-match-detail-page/24-RESEARCH.md`
+Plan verification: `.planning/phases/24-match-detail-page/24-PLAN-VERIFICATION.md`
 
 ### Phase 8 Plans (All Complete)
 

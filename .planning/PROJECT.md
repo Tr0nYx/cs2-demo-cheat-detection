@@ -18,6 +18,7 @@ Users can upload or point to a CS2 demo and receive a reproducible, explainable,
 - [x] Symfony 7 backend exposes demo upload, demo status/result, and player history API endpoints. Validated in Phase 2: Symfony API and Domain.
 - [x] Symfony dispatches demo analysis work to Redis without waiting for long-running Python analysis. Validated in Phase 2: Symfony API and Domain.
 - [x] Backend persists Demo, Player, and AnalysisResult records and ingests player-level results or errors. Validated in Phase 2: Symfony API and Domain.
+- [x] Frontend exposes a research-safe match report at `/matches/{demoId}` with metadata, participants, rounds/events, existing viewer/heatmap access, and player/result navigation. Validated in Phase 24: Match Detail Page.
 
 ### Active
 
@@ -92,7 +93,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-05-18 after Phase 18 Sharecode Match History Tracking implementation*
+*Last updated: 2026-05-19 after Phase 24 Match Detail Page execution*
 
 ## Current Status
-**Phase 18: Sharecode Import and Automatic Match History Tracking** (Implemented 2026-05-18) - Authenticated users can connect Valve match-history tracking with encrypted Steam game authentication code storage, strict sharecode/link seed parsing, bounded background discovery, existing sharecode import dispatch, and a dashboard setup/status UI. Tracking metadata remains import provenance only and does not influence suspicion, TRACE, labels, model confidence, or player trust.
+**Phase 24: Match Detail Page** (Complete 2026-05-19) - Delivered `/matches/{demoId}` as a match report page with metadata, participants, rounds/events, viewer/heatmap access, player-profile links, result/history navigation, and research-safe copy. All outputs remain post-game research signals, not proof or enforcement.

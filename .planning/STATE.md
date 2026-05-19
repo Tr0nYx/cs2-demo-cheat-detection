@@ -5,21 +5,15 @@
 See: .planning/PROJECT.md (updated 2026-05-15)
 
 **Core value:** Users can upload or point to a CS2 demo and receive a reproducible, explainable, player-level cheat suspicion analysis based only on post-game demo data.
-**Current focus:** Phase 22: Apply AntiCheatPT Best Practices to Python Pipeline (Context gathered, ready for planning)
+**Current focus:** Phase 24: Match Detail Page (Complete)
 
 ## Current Position
 
-Phase: 22 (Apply AntiCheatPT Best Practices to Python Pipeline) - CONTEXT GATHERED
-Status: Phase 22 context discussion completed. Key decisions locked:
-- Research-first focus on signal quality over production speed
-- Extend existing extractors with first/second/third-order derivatives
-- Integrate transformer as a weighted-scorer feature
-- Modular result structure exposing all pipeline stages (conversion → augmentation → analysis)
-- Adaptive calibration: new signals can inform Phase 20 recalibration
-- Parser-based tick-aligned positional encoding for transformer
-- Stratified sampling only (no synthetic data augmentation)
-Last activity: 2026-05-19 - Phase 22 context gathered with detailed implementation decisions.
-Phase 22 planning status: ready to execute across expected waves (research-backed feature implementation, transformer sequence model, results schema, and pipeline modularization).
+Phase: 24 (Match Detail Page) - COMPLETE
+Status: Phase 24 completed in 4 executable plans across 3 waves. Delivered `/matches/{demoId}` with a normalized match-detail view model, reusable report components, rounds/events/viewer sections, result/history navigation, Jest coverage, research-language guard, and Playwright smoke coverage.
+Last activity: 2026-05-19 - Phase 24 execution completed and verified. Targeted Jest, lint, Next build, and Playwright smoke checks passed; standalone `npx tsc --noEmit --pretty false` remains blocked by pre-existing e2e type issues outside Phase 24.
+Phase 23 status: complete.
+Phase 24 status: complete.
 
 Progress: [##############] v2 Core Complete -> [##############] Phase 13 Complete -> [##############] Phase 14 Complete -> [##############] Phase 15 Complete -> [##############] Phase 16 Complete -> [############] Phase 17 Implemented -> [ ] Phase 17 Verification
 
@@ -108,6 +102,10 @@ None yet.
 - Phase 21 goal: Review AntiCheatPT dataset and code patterns to align parser, feature extraction, and scoring pipeline with proven CS2 cheat-detection data conventions and defensible research-only guardrails.
 - Phase 22 added: Apply AntiCheatPT Best Practices to Python Pipeline
 - Phase 22 goal: Implement feature engineering patterns (first/second/third derivatives of angles, cumulative displacement, statistical summaries), data augmentation for class imbalance, transformer-based sequence patterns with positional encoding, and modular pipeline architecture (extraction → conversion → augmentation → analysis).
+- Phase 23 completed: Player Profile Detail with overview, demo history, stats route, backend stats endpoint, and research-safe profile framing.
+- Phase 24 added: Match Detail Page
+- Phase 24 context gathered: csstats-inspired match report route at `/matches/{demoId}`, existing API reuse first, overview/scoreboard/rounds/events/viewer sections, player profile links, graceful missing-data states, and research-signal framing.
+- Phase 24 completed: 4 plans across 3 waves delivered frontend data normalization, match report components, `/matches/{demoId}` route assembly, viewer/heatmap integration, navigation from existing result/history surfaces, and research-safe verification.
 
 ## Deferred Items
 
@@ -120,9 +118,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-05-19
-Completed: Phase 16 executed
-Current status: Phase 20 planned; high review signal calibration is ready for execution
-Next work: Execute Phase 20 with `$gsd-execute-phase 20`
+Completed: Phase 24 executed and verified
+Current status: Phase 24 complete; match detail page is available at `/matches/{demoId}`
+Next work: Choose the next roadmap phase to execute or close remaining verification debt.
 
 **PROJECT EXECUTION STATUS: PHASE 16 COMPLETE; PHASE 17 IMPLEMENTED, PARTIALLY VERIFIED**
 - Phase 3: Python Analysis Pipeline complete (analysis engine complete)

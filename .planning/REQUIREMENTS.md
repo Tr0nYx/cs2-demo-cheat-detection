@@ -94,6 +94,15 @@
 - **VIEWER-CANVAS-UI**: User can inspect an analyzed demo in an interactive 2D Canvas radar viewer with timeline, player filters, and heatmap mode.
 - **VIEWER-SUSPICION-GRENADE-REVIEW**: User can review flagged kills and grenade trajectories as explainable post-game research signals.
 
+### Phase 24: Match Detail Page
+
+- **PHASE-24-01**: User can open `/matches/{demoId}` for a match-level detail page keyed by internal demo UUID, with match metadata, provenance, status, and score-unavailable handling when the payload lacks score data.
+- **PHASE-24-02**: Match participants are shown in a responsive table with research-signal score labels and safe links to `/players/{playerId}` only for real Steam IDs.
+- **PHASE-24-03**: Match page includes round and event review sections using existing `/api/demos/{id}/rounds` and `/api/demos/{id}/events` data, including flagged kill review signals.
+- **PHASE-24-04**: Match page integrates existing viewer/heatmap access without persisting raw tick data in PostgreSQL or duplicating playback/scoring logic.
+- **PHASE-24-05**: Match page displays prominent research-only framing and avoids enforcement/proof language such as cheater, proof, ban, or conviction.
+- **PHASE-24-06**: Match detail implementation has automated coverage for data normalization, component rendering, research-safe language, and desktop/mobile browser smoke behavior.
+
 ## Out of Scope
 
 | Feature | Reason |
@@ -157,14 +166,21 @@
 | PHASE-22-04 | Phase 22 | Pending |
 | PHASE-22-05 | Phase 22 | Pending |
 | PHASE-22-06 | Phase 22 | Pending |
+| PHASE-24-01 | Phase 24 | Complete |
+| PHASE-24-02 | Phase 24 | Complete |
+| PHASE-24-03 | Phase 24 | Complete |
+| PHASE-24-04 | Phase 24 | Complete |
+| PHASE-24-05 | Phase 24 | Complete |
+| PHASE-24-06 | Phase 24 | Complete |
 
 **Coverage:**
 - v1 requirements: 37 total
 - Mapped to phases: 37
 - Phase 22 requirements: 6 total
-- Total mapped: 43
+- Phase 24 requirements: 6 total
+- Total mapped: 49
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-15*
-*Last updated: 2026-05-19 after Phase 22 planning*
+*Last updated: 2026-05-19 after Phase 24 execution*
