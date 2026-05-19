@@ -13,7 +13,7 @@ def _get_parsed_demo():
 @pytest.fixture
 def sample_ticks_df():
     """Create sample tick data with player position, aim angles, and shooting state."""
-    num_ticks = 500
+    num_ticks = 2500
     ticks = []
 
     for tick in range(num_ticks):
@@ -53,7 +53,7 @@ def sample_events_df():
     events = []
 
     # Weapon fire events
-    for i in range(5):
+    for i in range(12):
         events.append({
             "tick": 105 + i * 200,
             "event_type": "weapon_fire",

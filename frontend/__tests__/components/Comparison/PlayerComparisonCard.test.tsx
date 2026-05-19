@@ -177,7 +177,7 @@ describe('PlayerComparisonCard', () => {
       />
     )
 
-    expect(screen.getByText('ID: player1')).toBeInTheDocument()
-    expect(screen.getByText('ID: player2')).toBeInTheDocument()
+    expect(screen.getByText('Steam ID: player1')).toBeInTheDocument()
+    expect(screen.getByText('Steam ID: player2')).toBeInTheDocument()
   })
 })

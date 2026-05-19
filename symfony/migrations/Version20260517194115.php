@@ -20,16 +20,16 @@ final class Version20260517194115 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE demo ADD hltv_match_url VARCHAR(1024) DEFAULT NULL');
-        $this->addSql('ALTER TABLE player ADD hltv_rating DOUBLE PRECISION DEFAULT NULL');
-        $this->addSql('ALTER TABLE player ADD hltv_team VARCHAR(255) DEFAULT NULL');
+        $this->addSql('ALTER TABLE demo ADD COLUMN IF NOT EXISTS hltv_match_url VARCHAR(1024) DEFAULT NULL');
+        $this->addSql('ALTER TABLE player ADD COLUMN IF NOT EXISTS hltv_rating DOUBLE PRECISION DEFAULT NULL');
+        $this->addSql('ALTER TABLE player ADD COLUMN IF NOT EXISTS hltv_team VARCHAR(255) DEFAULT NULL');
     }
 
     public function down(Schema $schema): void
     {
         // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE demo DROP hltv_match_url');
-        $this->addSql('ALTER TABLE player DROP hltv_rating');
-        $this->addSql('ALTER TABLE player DROP hltv_team');
+        $this->addSql('ALTER TABLE demo DROP COLUMN IF EXISTS hltv_match_url');
+        $this->addSql('ALTER TABLE player DROP COLUMN IF EXISTS hltv_rating');
+        $this->addSql('ALTER TABLE player DROP COLUMN IF EXISTS hltv_team');
     }
 }

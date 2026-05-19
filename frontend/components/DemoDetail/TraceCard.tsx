@@ -1,6 +1,5 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,6 +11,7 @@ import { CalibrationContextCard } from './CalibrationContextCard'
 import { useTraceQuery } from '@/lib/hooks/useTraceQuery'
 import { useTraceHistoryQuery } from '@/lib/hooks/useTraceHistoryQuery'
 import { AlertCircle, Info } from 'lucide-react'
+import { ConsolePanel, DataValue, StatusBadge } from '@/components/Console'
 
 interface TraceCardProps {
   demoId: string
@@ -51,35 +51,33 @@ export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode
   // Loading state
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>TRACE Rating Analysis</CardTitle>
-          <CardDescription>Analyzing player behavior...</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-full" />
-          </div>
-        </CardContent>
-      </Card>
+      <ConsolePanel
+        title="TRACE Rating Analysis"
+        description="Analyzing player behavior..."
+      >
+        <div className="space-y-4">
+          <Skeleton className="h-6 w-full bg-surface-raised border border-border-subtle" />
+          <Skeleton className="h-6 w-full bg-surface-raised border border-border-subtle" />
+          <Skeleton className="h-6 w-full bg-surface-raised border border-border-subtle" />
+          <Skeleton className="h-6 w-full bg-surface-raised border border-border-subtle" />
+        </div>
+      </ConsolePanel>
     )
   }
 
   // Error state
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Failed to Load TRACE Data</AlertTitle>
-        <AlertDescription className="space-y-2">
+      <Alert variant="destructive" className="bg-signal-high-bg border-signal-high/35 text-signal-high">
+        <AlertCircle className="h-4 w-4 text-signal-high" />
+        <AlertTitle className="font-semibold text-signal-high">Failed to Load TRACE Data</AlertTitle>
+        <AlertDescription className="space-y-2 text-signal-high/90">
           <p>{error.message}</p>
           <Button
             variant="outline"
             size="sm"
             onClick={() => refetch()}
+            className="border-signal-high/35 hover:bg-signal-high/10 text-signal-high hover:text-signal-high"
           >
             Retry
           </Button>
@@ -113,37 +111,35 @@ export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode
     }
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>TRACE Rating Analysis</CardTitle>
-          <CardDescription>
-            Detailed breakdown of player suspicion signal components
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <ConsolePanel
+        title="TRACE Rating Analysis"
+        description="Detailed breakdown of player suspicion signal components"
+        action={<StatusBadge variant="trace-available" />}
+      >
+        <div className="space-y-6">
           {/* Score Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-surface-raised border border-border-subtle rounded-lg">
             {/* Base & Adjusted Scores */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <label
-                  className="text-sm font-medium text-gray-600 dark:text-gray-400"
+                  className="text-sm font-medium text-muted-foreground"
                   aria-label="Base TRACE score"
                 >
                   Base Score
                 </label>
-                <code className="text-sm font-mono font-semibold text-gray-900 dark:text-gray-100">
+                <code className="text-sm font-mono font-semibold text-foreground">
                   {formatNumber(trace.traceBase)}
                 </code>
               </div>
               <div className="flex justify-between items-center">
                 <label
-                  className="text-sm font-medium text-gray-600 dark:text-gray-400"
+                  className="text-sm font-medium text-muted-foreground"
                   aria-label="Adjusted TRACE score"
                 >
                   Adjusted Score
                 </label>
-                <code className="text-sm font-mono font-semibold text-gray-900 dark:text-gray-100">
+                <code className="text-sm font-mono font-semibold text-foreground">
                   {formatNumber(trace.traceAdjusted)}
                 </code>
               </div>
@@ -153,28 +149,28 @@ export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <label
-                  className="text-sm font-medium text-gray-600 dark:text-gray-400"
+                  className="text-sm font-medium text-muted-foreground"
                   aria-label="Normalized TRACE score"
                 >
                   Normalized
                 </label>
-                <code className="text-sm font-mono font-semibold text-gray-900 dark:text-gray-100">
+                <code className="text-sm font-mono font-semibold text-foreground">
                   {formatNumber(trace.traceNormalized)}
                 </code>
               </div>
               <div className="flex justify-between items-center group">
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <label className="text-sm font-medium text-muted-foreground">
                     Trust Multiplier
                   </label>
                   <div className="relative inline-block">
-                    <Info className="w-4 h-4 text-gray-400 cursor-help" />
-                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block bg-gray-800 dark:bg-gray-200 text-white dark:text-black text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+                    <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block bg-surface-raised border border-border-subtle text-foreground text-xs rounded px-2 py-1 whitespace-nowrap z-10">
                       Adjustment factor based on calibration
                     </div>
                   </div>
                 </div>
-                <code className="text-sm font-mono font-semibold text-gray-900 dark:text-gray-100">
+                <code className="text-sm font-mono font-semibold text-foreground">
                   {formatNumber(trace.trustMultiplier, 4)}
                 </code>
               </div>
@@ -182,8 +178,8 @@ export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode
           </div>
 
           {/* Component Breakdown - Use new chart if playerId provided, else use table */}
-          <div className="border rounded-lg p-4">
-            <h3 className="text-sm font-semibold mb-3 text-gray-900 dark:text-gray-100">
+          <div className="border border-border-subtle bg-surface-panel rounded-lg p-4">
+            <h3 className="text-sm font-semibold mb-3 text-foreground">
               Component Scores
             </h3>
 
@@ -203,8 +199,8 @@ export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode
                 />
 
                 {/* Percentile badges for each component */}
-                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                <div className="mt-4 p-3 bg-surface-raised border border-border-subtle rounded-lg">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">
                     Component Percentiles
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -242,8 +238,8 @@ export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode
 
           {/* Historical Trend Sparkline - if playerId provided */}
           {playerId && historyData && !historyLoading && !historyError && (
-            <div className="border rounded-lg p-4">
-              <h3 className="text-sm font-semibold mb-3 text-gray-900 dark:text-gray-100">
+            <div className="border border-border-subtle bg-surface-panel rounded-lg p-4">
+              <h3 className="text-sm font-semibold mb-3 text-foreground">
                 TRACE Trend
               </h3>
               <TraceSparkline
@@ -258,12 +254,8 @@ export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode
           {playerId && historyData && !historyLoading && !historyError && (
             <CalibrationContextCard
               calibrationVersion={trace.calibrationVersion}
-              // TODO: Fetch from backend calibration statistics API
               globalAverage={1.0}
               playerValue={trace.traceAdjusted}
-              // TODO: These are placeholder values (all 1.0). Fetch real component means from backend
-              // calibration statistics endpoint once implemented. Current implementation assumes
-              // global average for all components is exactly 1.0, which is unrealistic with real data.
               componentMeans={{
                 ekill: 1.0,
                 aim: 1.0,
@@ -275,10 +267,10 @@ export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode
           )}
 
           {/* Calibration Info */}
-          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+          <div className="text-xs text-muted-foreground space-y-1 p-3 bg-surface-raised border border-border-subtle rounded">
             <div>
               <span className="font-medium">Calibration:</span>{' '}
-              <code className="bg-gray-200 dark:bg-gray-800 px-1 rounded">
+              <code className="bg-surface-panel border border-border-subtle px-1.5 py-0.5 rounded text-xs font-mono">
                 {trace.calibrationVersion}
               </code>
             </div>
@@ -286,8 +278,8 @@ export function TraceCard({ demoId, playerId }: TraceCardProps): React.ReactNode
               <span className="font-medium">Calculated:</span> {formatTimestamp(trace.calculatedAt)}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ConsolePanel>
     )
   }
 

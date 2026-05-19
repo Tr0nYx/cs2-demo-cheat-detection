@@ -2,24 +2,11 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { fetchUserDemos, DemoListResponse } from '@/lib/api'
+import { fetchUserDemos } from '@/lib/api'
 import { Demo } from '@/lib/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, Loader2, AlertCircle } from 'lucide-react'
+import { ConsolePanel, DataValue, StatusBadge, type StatusBadgeVariant } from '@/components/Console'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-yellow-500/20 text-yellow-300',
-  done: 'bg-green-500/20 text-green-300',
-  error: 'bg-red-500/20 text-red-300',
-}
-
-const SUSPICION_COLORS: Record<string, string> = {
-  clean: 'text-green-400',
-  suspicious: 'text-yellow-400',
-  likely_cheating: 'text-red-400',
-}
+import { AlertCircle, ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 
 interface SortState {
   sortBy: 'date' | 'suspicion'
@@ -59,7 +46,10 @@ export function DemoHistoryTable({ refreshKey = 0 }: DemoHistoryTableProps) {
   }
 
   useEffect(() => {
+    // Existing history API is loaded imperatively so refreshKey can force a page-one reload.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDemos(1, sort.sortBy, sort.sortOrder)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey])
 
   const handleSort = (column: 'date' | 'suspicion') => {
@@ -92,36 +82,12 @@ export function DemoHistoryTable({ refreshKey = 0 }: DemoHistoryTableProps) {
     router.push(`/results/${demoId}`)
   }
 
-  const getSuspicionScore = (demo: Demo): number => {
-    return demo.results?.overall_score ?? 0
-  }
-
-  const getSuspicionLabel = (score: number): string => {
-    if (score < 0.33) return 'clean'
-    if (score < 0.67) return 'suspicious'
-    return 'likely_cheating'
-  }
-
-  const formatDate = (dateString?: string): string => {
-    if (!dateString) return 'Unknown'
-    try {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-    } catch {
-      return 'Invalid date'
-    }
-  }
-
-  const formatSuspicionScore = (score: number): string => {
-    return (score * 100).toFixed(0) + '%'
-  }
-
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Demo History</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <ConsolePanel
+      title="Demo history"
+      description="Secondary context for recent uploads, parser state, and review signal summaries."
+    >
+      <div className="space-y-4">
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -131,52 +97,66 @@ export function DemoHistoryTable({ refreshKey = 0 }: DemoHistoryTableProps) {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-            <span className="ml-2 text-gray-400">Loading demos...</span>
+            <Loader2 className="h-6 w-6 animate-spin text-trace-primary" />
+            <span className="ml-2 text-muted-foreground">Loading demo history...</span>
           </div>
         ) : demos.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-400">No demos uploaded yet.</p>
-            <p className="text-sm text-gray-500 mt-2">Upload your first demo to get started with analysis.</p>
+          <div className="rounded-lg border border-dashed border-border-strong bg-surface-raised py-8 text-center">
+            <p className="text-foreground">No demos uploaded yet.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Upload or import a demo to start post-game analysis.</p>
           </div>
         ) : (
           <>
-            {/* Desktop Table */}
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-300">Demo File</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-300">Map</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-300">Status</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-300 cursor-pointer hover:text-white" onClick={() => handleSort('date')}>
-                      Upload Date {sort.sortBy === 'date' && (sort.sortOrder === 'desc' ? '↓' : '↑')}
+                  <tr className="border-b border-border-subtle">
+                    <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Demo File</th>
+                    <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Map</th>
+                    <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Status</th>
+                    <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
+                      <SortButton active={sort.sortBy === 'date'} order={sort.sortOrder} onClick={() => handleSort('date')}>
+                        Upload Date
+                      </SortButton>
                     </th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-300 cursor-pointer hover:text-white" onClick={() => handleSort('suspicion')}>
-                      Suspicion {sort.sortBy === 'suspicion' && (sort.sortOrder === 'desc' ? '↓' : '↑')}
+                    <th className="px-4 py-3 text-right font-semibold text-muted-foreground">
+                      <SortButton active={sort.sortBy === 'suspicion'} order={sort.sortOrder} onClick={() => handleSort('suspicion')} align="right">
+                        Review signal
+                      </SortButton>
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {demos.map((demo) => {
                     const suspicionScore = getSuspicionScore(demo)
-                    const suspicionLabel = getSuspicionLabel(suspicionScore)
                     return (
                       <tr
                         key={demo.id}
                         onClick={() => handleDemoClick(demo.id)}
-                        className="border-b border-gray-700 hover:bg-gray-800 cursor-pointer transition-colors"
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            handleDemoClick(demo.id)
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        className="cursor-pointer border-b border-border-subtle transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-trace-primary"
                       >
-                        <td className="py-3 px-4 text-white truncate max-w-xs">{demo.id}</td>
-                        <td className="py-3 px-4 text-gray-300">Unknown</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${STATUS_COLORS[demo.status] || 'bg-gray-700 text-gray-300'}`}>
-                            {demo.status}
-                          </span>
+                        <td className="max-w-xs truncate px-4 py-3 text-foreground">
+                          <DataValue truncate>{demo.original_filename || demo.file_path?.split(/[\\/]/).pop() || demo.id}</DataValue>
                         </td>
-                        <td className="py-3 px-4 text-gray-300">{formatDate(demo.created_at)}</td>
-                        <td className={`py-3 px-4 text-right font-semibold ${SUSPICION_COLORS[suspicionLabel]}`}>
-                          {demo.status === 'done' ? formatSuspicionScore(suspicionScore) : 'Pending'}
+                        <td className="px-4 py-3 text-muted-foreground">{demo.map || 'Unknown'}</td>
+                        <td className="px-4 py-3">
+                          <StatusBadge variant={statusVariant(demo.status)} />
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{formatDate(demo.created_at)}</td>
+                        <td className="px-4 py-3 text-right font-semibold">
+                          {demo.status === 'done' ? (
+                            <StatusBadge variant={suspicionVariant(suspicionScore)} label={formatSuspicionScore(suspicionScore)} />
+                          ) : (
+                            <StatusBadge variant="trace-unavailable" label="Pending" />
+                          )}
                         </td>
                       </tr>
                     )
@@ -185,66 +165,127 @@ export function DemoHistoryTable({ refreshKey = 0 }: DemoHistoryTableProps) {
               </table>
             </div>
 
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-3">
+            <div className="space-y-3 md:hidden">
               {demos.map((demo) => {
                 const suspicionScore = getSuspicionScore(demo)
-                const suspicionLabel = getSuspicionLabel(suspicionScore)
                 return (
-                  <div
+                  <button
                     key={demo.id}
+                    type="button"
                     onClick={() => handleDemoClick(demo.id)}
-                    className="bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition-colors border border-gray-700"
+                    className="w-full cursor-pointer rounded-lg border border-border-subtle bg-surface-raised p-4 text-left transition-colors hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trace-primary"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <p className="font-semibold text-white truncate">{demo.id}</p>
-                        <p className="text-sm text-gray-400">{formatDate(demo.created_at)}</p>
+                    <div className="mb-2 flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <DataValue truncate>{demo.original_filename || demo.file_path?.split(/[\\/]/).pop() || demo.id}</DataValue>
+                        <p className="mt-2 text-sm text-muted-foreground">{formatDate(demo.created_at)}</p>
                       </div>
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${STATUS_COLORS[demo.status] || 'bg-gray-700 text-gray-300'}`}>
-                        {demo.status}
-                      </span>
+                      <StatusBadge variant={statusVariant(demo.status)} />
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-400">Map: Unknown</span>
-                      <span className={`font-semibold ${SUSPICION_COLORS[suspicionLabel]}`}>
-                        {demo.status === 'done' ? formatSuspicionScore(suspicionScore) : 'Pending'}
-                      </span>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-muted-foreground">Map: {demo.map || 'Unknown'}</span>
+                      {demo.status === 'done' ? (
+                        <StatusBadge variant={suspicionVariant(suspicionScore)} label={formatSuspicionScore(suspicionScore)} />
+                      ) : (
+                        <StatusBadge variant="trace-unavailable" label="Pending" />
+                      )}
                     </div>
-                  </div>
+                  </button>
                 )
               })}
             </div>
 
-            {/* Pagination */}
             {pagination.total > pagination.limit && (
-              <div className="flex items-center justify-between pt-4 border-t border-gray-700">
+              <div className="flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
                 <button
+                  type="button"
                   onClick={handlePrevious}
                   disabled={pagination.page === 1}
-                  className="flex items-center gap-1 px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-300 rounded transition-colors"
+                  className="flex items-center gap-1 rounded border border-border-subtle bg-surface-raised px-3 py-2 text-foreground transition-colors hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trace-primary disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="h-4 w-4" />
                   Previous
                 </button>
 
-                <span className="text-sm text-gray-400">
+                <span className="text-center text-sm text-muted-foreground">
                   Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit)} ({pagination.total} total)
                 </span>
 
                 <button
+                  type="button"
                   onClick={handleNext}
                   disabled={!pagination.hasMore}
-                  className="flex items-center gap-1 px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-300 rounded transition-colors"
+                  className="flex items-center gap-1 rounded border border-border-subtle bg-surface-raised px-3 py-2 text-foreground transition-colors hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trace-primary disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Next
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             )}
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </ConsolePanel>
+  )
+}
+
+function getSuspicionScore(demo: Demo): number {
+  return demo.results?.overall_score ?? 0
+}
+
+function suspicionVariant(score: number): StatusBadgeVariant {
+  const normalized = score > 1 ? score / 100 : score
+  if (normalized < 0.33) return 'suspicion-clean'
+  if (normalized < 0.67) return 'suspicion-review'
+  return 'suspicion-high'
+}
+
+function statusVariant(status: Demo['status']): StatusBadgeVariant {
+  if (status === 'done') return 'demo-done'
+  if (status === 'error') return 'demo-error'
+  return 'demo-pending'
+}
+
+function formatDate(dateString?: string): string {
+  if (!dateString) return 'Unknown'
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  } catch {
+    return 'Invalid date'
+  }
+}
+
+function formatSuspicionScore(score: number): string {
+  const normalized = score > 1 ? score : score * 100
+  return normalized.toFixed(0) + '%'
+}
+
+function SortButton({
+  active,
+  order,
+  onClick,
+  children,
+  align = 'left',
+}: {
+  active: boolean
+  order: SortState['sortOrder']
+  onClick: () => void
+  children: React.ReactNode
+  align?: 'left' | 'right'
+}) {
+  const Icon = order === 'desc' ? ArrowDown : ArrowUp
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trace-primary ${
+        align === 'right' ? 'justify-end' : ''
+      }`}
+    >
+      <span>{children}</span>
+      {active && <Icon className="size-3.5" aria-hidden />}
+    </button>
   )
 }

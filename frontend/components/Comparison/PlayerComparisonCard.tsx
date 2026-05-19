@@ -4,6 +4,7 @@ import { ComponentBreakdownCard } from './ComponentBreakdownCard'
 import { MapAffinityCard } from './MapAffinityCard'
 import { MatchHistoryCard } from './MatchHistoryCard'
 import { TrendCard } from './TrendCard'
+import { PlayerSteamProfileBadge } from '@/components/PlayerSteamProfileBadge'
 import type { PlayerComparisonData } from '@/lib/hooks/usePlayerComparison'
 
 /**
@@ -72,16 +73,18 @@ export function PlayerComparisonCard({
 
   return (
     <div className="w-full space-y-6">
-      {/* Header with player names */}
+      {/* Header with player profile badges */}
       <div className="grid grid-cols-2 gap-6 mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">{data.playerAName}</h2>
-          <p className="text-sm text-gray-500 mt-1">ID: {data.playerAId}</p>
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">{data.playerBName}</h2>
-          <p className="text-sm text-gray-500 mt-1">ID: {data.playerBId}</p>
-        </div>
+        <PlayerSteamProfileBadge
+          playerName={data.playerAName}
+          steamId={data.playerAId}
+          profile={data.playerASteamProfile}
+        />
+        <PlayerSteamProfileBadge
+          playerName={data.playerBName}
+          steamId={data.playerBId}
+          profile={data.playerBSteamProfile}
+        />
       </div>
 
       {/* 4 Metric Cards in 2x2 Grid */}

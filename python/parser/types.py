@@ -18,10 +18,12 @@ class ParsedDemo:
                   is_airborne, active_weapon_name, ping
         events_df: DataFrame containing gameplay events with columns:
                    tick, event_type, and event-specific fields
+        map_name: Optional name of the map parsed from the demo header
     """
 
     ticks_df: pd.DataFrame
     events_df: pd.DataFrame
+    map_name: str | None = None
 
 
 class DemoParseError(Exception):

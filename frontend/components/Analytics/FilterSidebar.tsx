@@ -2,6 +2,7 @@
 
 import type { FilterCriteria, FilterTimeframe, RatingBand, DemoOutcome } from '@/lib/types'
 import { Button } from '@/components/ui/button'
+import { DataValue } from '@/components/Console'
 import { RotateCcw } from 'lucide-react'
 
 const MAPS = ['Mirage', 'Inferno', 'Nuke', 'Ancient', 'Vertigo', 'Dust2', 'Anubis']
@@ -33,10 +34,10 @@ interface FilterSidebarProps {
 
 function optionClass(selected: boolean) {
   return [
-    'w-full rounded-md border px-3 py-2 text-left text-sm transition-colors',
+    'w-full cursor-pointer rounded-md border px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trace-primary disabled:cursor-not-allowed disabled:opacity-50',
     selected
-      ? 'border-blue-500 bg-blue-500/15 text-blue-100'
-      : 'border-gray-700 bg-gray-900 text-gray-300 hover:border-gray-500 hover:bg-gray-800',
+      ? 'border-trace-primary/60 bg-provenance-bg text-trace-primary'
+      : 'border-border-subtle bg-surface-raised text-foreground hover:border-border-strong hover:bg-surface-panel',
   ].join(' ')
 }
 
@@ -60,10 +61,10 @@ export function FilterSidebar({
   const disabled = isLoading
 
   return (
-    <aside className="w-full lg:w-[280px] lg:sticky lg:top-6 self-start" aria-label="Demo filters">
-      <div className="rounded-lg border border-gray-800 bg-gray-950/80 p-4">
+    <aside className="w-full self-start lg:sticky lg:top-6" aria-label="Demo filters">
+      <div className="rounded-lg border border-border-subtle bg-surface-panel p-4">
         <div className="mb-5 flex items-center justify-between gap-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Filters</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">Analysis scope</h2>
           <Button
             type="button"
             variant="ghost"
@@ -78,7 +79,7 @@ export function FilterSidebar({
         </div>
 
         <fieldset className="space-y-2" disabled={disabled}>
-          <legend className="mb-2 text-sm font-medium text-gray-200">Map</legend>
+          <legend className="mb-2 text-sm font-medium text-foreground">Map</legend>
           <button type="button" className={optionClass(!filters.map)} onClick={() => onUpdateFilters({ map: null })}>
             All maps
           </button>
@@ -92,9 +93,9 @@ export function FilterSidebar({
         </fieldset>
 
         <fieldset className="mt-6 space-y-2" disabled={disabled}>
-          <legend className="mb-2 text-sm font-medium text-gray-200">Rating Band</legend>
+          <legend className="mb-2 text-sm font-medium text-foreground">Rating Band</legend>
           {RATING_BANDS.map((option) => (
-            <label key={option.label} className="flex items-center gap-2 rounded-md border border-gray-800 px-3 py-2 text-sm text-gray-300">
+            <label key={option.label} className="flex items-center gap-2 rounded-md border border-border-subtle bg-surface-raised px-3 py-2 text-sm text-foreground transition focus-within:ring-2 focus-within:ring-trace-primary has-disabled:opacity-50">
               <input
                 type="radio"
                 name="ratingBand"
@@ -108,9 +109,9 @@ export function FilterSidebar({
         </fieldset>
 
         <fieldset className="mt-6 space-y-2" disabled={disabled}>
-          <legend className="mb-2 text-sm font-medium text-gray-200">Outcome</legend>
+          <legend className="mb-2 text-sm font-medium text-foreground">Outcome</legend>
           {OUTCOMES.map((option) => (
-            <label key={option.label} className="flex items-center gap-2 rounded-md border border-gray-800 px-3 py-2 text-sm text-gray-300">
+            <label key={option.label} className="flex items-center gap-2 rounded-md border border-border-subtle bg-surface-raised px-3 py-2 text-sm text-foreground transition focus-within:ring-2 focus-within:ring-trace-primary has-disabled:opacity-50">
               <input
                 type="radio"
                 name="outcome"
@@ -124,9 +125,9 @@ export function FilterSidebar({
         </fieldset>
 
         <fieldset className="mt-6 space-y-2" disabled={disabled}>
-          <legend className="mb-2 text-sm font-medium text-gray-200">Timeframe</legend>
+          <legend className="mb-2 text-sm font-medium text-foreground">Timeframe</legend>
           {TIMEFRAMES.map((option) => (
-            <label key={option.label} className="flex items-center gap-2 rounded-md border border-gray-800 px-3 py-2 text-sm text-gray-300">
+            <label key={option.label} className="flex items-center gap-2 rounded-md border border-border-subtle bg-surface-raised px-3 py-2 text-sm text-foreground transition focus-within:ring-2 focus-within:ring-trace-primary has-disabled:opacity-50">
               <input
                 type="radio"
                 name="daysBack"
@@ -140,8 +141,8 @@ export function FilterSidebar({
         </fieldset>
 
         {filterHistory.length > 0 && (
-          <div className="mt-6 border-t border-gray-800 pt-4">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Recent</h3>
+          <div className="mt-6 border-t border-border-subtle pt-4">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">Recent</h3>
             <div className="space-y-2">
               {filterHistory.slice(0, 3).map((item, index) => (
                 <button
@@ -149,9 +150,9 @@ export function FilterSidebar({
                   type="button"
                   disabled={disabled}
                   onClick={() => onUpdateFilters(item)}
-                  className="w-full rounded-md bg-gray-900 px-3 py-2 text-left text-xs text-gray-300 hover:bg-gray-800 disabled:opacity-50"
+                  className="w-full cursor-pointer rounded-md border border-border-subtle bg-surface-raised px-3 py-2 text-left text-xs text-foreground hover:bg-surface-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trace-primary disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {describeFilters(item)}
+                  <DataValue truncate>{describeFilters(item)}</DataValue>
                 </button>
               ))}
             </div>

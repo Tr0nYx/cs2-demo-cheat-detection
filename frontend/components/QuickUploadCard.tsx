@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react'
 import { UploadForm } from '@/components/UploadForm'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CheckCircle } from 'lucide-react'
+import { StatusBadge } from '@/components/Console'
+import { CheckCircle, UploadCloud } from 'lucide-react'
 
 interface QuickUploadCardProps {
   onUploadSuccess?: () => void
@@ -20,20 +20,27 @@ export function QuickUploadCard({ onUploadSuccess }: QuickUploadCardProps) {
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Quick Upload</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <section className="rounded-lg border border-border-subtle bg-surface-raised p-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="inline-flex items-center gap-2 font-heading text-base font-semibold text-foreground">
+            <UploadCloud className="size-4 text-trace-primary" aria-hidden />
+            Upload demo file
+          </h3>
+          <p className="mt-1 text-sm text-muted-foreground">Queue a local .dem file for post-game parser analysis.</p>
+        </div>
+        <StatusBadge variant="import-queued" label="Manual" />
+      </div>
+      <div className="space-y-4">
         {showSuccess && (
-          <Alert className="bg-green-500/20 text-green-300 border-green-500/50">
+          <Alert className="border-signal-clean/40 bg-signal-clean-bg text-signal-clean">
             <CheckCircle className="h-4 w-4" />
-            <AlertDescription>Demo uploaded successfully! Check your history below.</AlertDescription>
+            <AlertDescription>Demo queued for analysis. History refreshes after ingestion.</AlertDescription>
           </Alert>
         )}
 
         <UploadForm onUploadSuccess={handleSuccess} />
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   )
 }

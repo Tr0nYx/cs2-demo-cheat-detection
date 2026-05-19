@@ -49,7 +49,7 @@ describe('SensitivityTuner', () => {
   it('shows an unavailable state when feature vectors are missing', () => {
     renderWithQueryClient(<SensitivityTuner demoId="demo-1" featureVectors={null} />)
 
-    expect(screen.getByText('Feature vectors are not available for this demo.')).toBeInTheDocument()
+    expect(screen.getAllByText('Feature vectors are not available for this demo.')[0]).toBeInTheDocument()
   })
 
   it('renders scores and feature threshold sliders', () => {

@@ -20,7 +20,7 @@ class SharecodeImport
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;
 
-    #[ORM\Column(type: 'string', length: 24, unique: true)]
+    #[ORM\Column(type: 'string', length: 34, unique: true)]
     private string $sharecode;
 
     #[ORM\Column(type: 'string', length: 32)]
@@ -55,7 +55,7 @@ class SharecodeImport
         ?\DateTimeImmutable $importedAt = null,
     ) {
         $this->id = $id ?? Uuid::v7();
-        $this->sharecode = strtoupper(trim($sharecode));
+        $this->sharecode = trim($sharecode);
         $this->platform = strtolower($platform);
         $this->userId = $userId;
         $this->status = 'pending';

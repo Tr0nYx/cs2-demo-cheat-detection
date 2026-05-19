@@ -16,8 +16,8 @@ final class Version20260517101100 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE demo ADD COLUMN map VARCHAR(64) NULL');
-        $this->addSql('CREATE INDEX idx_demo_map ON demo(map)');
+        $this->addSql('ALTER TABLE demo ADD COLUMN IF NOT EXISTS map VARCHAR(64) NULL');
+        $this->addSql('CREATE INDEX IF NOT EXISTS idx_demo_map ON demo(map)');
     }
 
     public function down(Schema $schema): void

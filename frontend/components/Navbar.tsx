@@ -3,6 +3,25 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { signIn, signOut, useSession } from 'next-auth/react'
+import {
+  BarChart3,
+  ChevronDown,
+  History,
+  LayoutDashboard,
+  Menu,
+  Trophy,
+  X,
+} from 'lucide-react'
+
+const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trace-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black'
+
+const authenticatedLinks = [
+  { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+  { href: '/analytics/trends', label: 'Analytics', Icon: BarChart3 },
+  { href: '/leaderboards', label: 'Leaderboards', Icon: Trophy },
+  { href: '/dashboard#history', label: 'History', Icon: History },
+]
 
 export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -17,115 +36,156 @@ export function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-gray-900 dark:bg-black border-b border-gray-800">
-      <div className="max-w-6xl mx-auto px-4 py-4">
+    <nav className="sticky top-0 z-50 w-full border-b border-border-subtle bg-gray-950 dark:bg-black">
+      <div className="mx-auto max-w-6xl px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo/Brand */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent group-hover:from-blue-400 group-hover:to-blue-500 transition-all">
+          <Link
+            href="/"
+            className={`group flex items-center gap-2 rounded-md ${focusRing}`}
+          >
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-2xl font-bold text-transparent transition-all group-hover:from-blue-400 group-hover:to-blue-500">
               CS2CD
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden items-center gap-8 md:flex">
             <a
               href="#features"
-              className="text-gray-400 hover:text-white transition-colors"
+              className={`rounded-md text-gray-400 transition-colors hover:text-white ${focusRing}`}
             >
               Features
             </a>
             <a
               href="#metrics"
-              className="text-gray-400 hover:text-white transition-colors"
+              className={`rounded-md text-gray-400 transition-colors hover:text-white ${focusRing}`}
             >
               Stats
             </a>
+            {session?.user &&
+              authenticatedLinks.map(({ href, label, Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`inline-flex items-center gap-1.5 rounded-md text-gray-300 transition-colors hover:text-white ${focusRing}`}
+                >
+                  <Icon aria-hidden className="size-4" />
+                  {label}
+                </Link>
+              ))}
           </div>
 
-          {/* User Menu / Login Button */}
           <div className="flex items-center gap-4">
             {status === 'loading' ? (
               <div className="px-4 py-2 text-gray-400">Loading...</div>
             ) : session?.user ? (
-              // Logged in: Show user dropdown
-              <div className="relative group">
-                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap">
+              <div className="group relative">
+                <button
+                  data-testid="user-dropdown"
+                  className={`flex items-center gap-2 whitespace-nowrap rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-blue-700 ${focusRing}`}
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                >
                   {session.user.image && (
                     <img
                       src={session.user.image}
                       alt={session.user.name || 'User'}
-                      className="w-6 h-6 rounded-full"
+                      className="h-6 w-6 rounded-full"
                     />
                   )}
-                  <span className="hidden sm:inline">{session.user.name || 'User'}</span>
-                  <span className="text-sm">▼</span>
+                  <span className="hidden sm:inline">
+                    {session.user.name || 'User'}
+                  </span>
+                  <ChevronDown aria-hidden className="size-4" />
                 </button>
 
-                {/* Dropdown menu */}
-                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                  <Link
-                    href="/dashboard"
-                    className="block px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-t-lg"
-                  >
-                    Dashboard
-                  </Link>
+                <div
+                  role="menu"
+                  className="invisible absolute right-0 mt-2 w-56 rounded-lg border border-border-subtle bg-gray-900 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                >
+                  {authenticatedLinks.map(({ href, label, Icon }, index) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      role="menuitem"
+                      className={`flex items-center gap-2 px-4 py-2 text-gray-200 hover:bg-gray-800 ${focusRing} ${
+                        index === 0 ? 'rounded-t-lg' : ''
+                      }`}
+                    >
+                      <Icon aria-hidden className="size-4" />
+                      {label}
+                    </Link>
+                  ))}
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-b-lg border-t border-gray-700"
+                    role="menuitem"
+                    className={`w-full rounded-b-lg border-t border-gray-700 px-4 py-2 text-left text-gray-200 hover:bg-gray-800 ${focusRing}`}
                   >
                     Logout
                   </button>
                 </div>
               </div>
             ) : (
-              // Not logged in: Show Steam login button
               <button
                 onClick={handleLogin}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors whitespace-nowrap"
+                className={`whitespace-nowrap rounded-md transition-all hover:opacity-90 active:scale-95 ${focusRing}`}
+                aria-label="Sign in through Steam"
               >
-                Login with Steam
+                <img
+                  src="https://community.cloudflare.steamstatic.com/public/images/signinthroughsteam/sits_02.png"
+                  alt="Sign in through Steam"
+                  className="block h-[35px] w-auto object-contain"
+                />
               </button>
             )}
 
-            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden flex flex-col gap-1 p-2"
+              className={`inline-flex size-10 items-center justify-center rounded-md text-white md:hidden ${focusRing}`}
+              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-navigation"
             >
-              <div className="w-6 h-0.5 bg-white rounded transition-all"></div>
-              <div className="w-6 h-0.5 bg-white rounded transition-all"></div>
-              <div className="w-6 h-0.5 bg-white rounded transition-all"></div>
+              {menuOpen ? (
+                <X aria-hidden className="size-5" />
+              ) : (
+                <Menu aria-hidden className="size-5" />
+              )}
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {menuOpen && (
-          <div className="md:hidden mt-4 flex flex-col gap-3 pb-4 border-t border-gray-800 pt-4">
+          <div
+            id="mobile-navigation"
+            className="mt-4 flex flex-col gap-3 border-t border-gray-800 pt-4 pb-4 md:hidden"
+          >
             <a
               href="#features"
-              className="text-gray-400 hover:text-white transition-colors block"
+              className={`block rounded-md text-gray-400 transition-colors hover:text-white ${focusRing}`}
             >
               Features
             </a>
             <a
               href="#metrics"
-              className="text-gray-400 hover:text-white transition-colors block"
+              className={`block rounded-md text-gray-400 transition-colors hover:text-white ${focusRing}`}
             >
               Stats
             </a>
             {session?.user && (
               <>
-                <Link
-                  href="/dashboard"
-                  className="text-gray-400 hover:text-white transition-colors block"
-                >
-                  Dashboard
-                </Link>
+                {authenticatedLinks.map(({ href, label, Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`flex items-center gap-2 rounded-md text-gray-300 transition-colors hover:text-white ${focusRing}`}
+                  >
+                    <Icon aria-hidden className="size-4" />
+                    {label}
+                  </Link>
+                ))}
                 <button
                   onClick={handleLogout}
-                  className="text-left text-gray-400 hover:text-white transition-colors block pt-2 border-t border-gray-700"
+                  className={`block border-t border-gray-700 pt-2 text-left text-gray-400 transition-colors hover:text-white ${focusRing}`}
                 >
                   Logout
                 </button>

@@ -3,7 +3,7 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query'
 import { TraceHistoryCollectionDto } from '@/lib/types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 
 /**
  * React Query hook for fetching TRACE history with percentile rankings.

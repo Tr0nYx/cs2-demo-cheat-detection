@@ -14,6 +14,7 @@ Also integrates TRACE rating system (Wave 2):
 from __future__ import annotations
 
 import json
+import math
 import sys
 from typing import Any, Optional, TYPE_CHECKING
 
@@ -24,6 +25,50 @@ if TYPE_CHECKING:
     from features.base import FeatureResult
     from python.scoring.trace_rating import TraceComponents
 
+
+import numpy as np
+
+def sanitize_for_json(obj: Any) -> Any:
+    """Recursively replace NaN/Inf float values with None for JSON safety.
+
+    PostgreSQL's JSON type rejects the literal token ``NaN``, so any floating-
+    point not-a-number or infinity value produced by NumPy operations (e.g.
+    division by zero in correlation matrices) must be mapped to JSON ``null``
+    before serialisation.
+    """
+    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return None
+    if isinstance(obj, np.floating):
+        v = float(obj)
+        return None if (math.isnan(v) or math.isinf(v)) else v
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.ndarray):
+        return [sanitize_for_json(x) for x in obj.tolist()]
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize_for_json(x) for x in obj]
+    return obj
+
+
+class NumpyEncoder(json.JSONEncoder):
+    """Custom JSON encoder to handle NumPy data types and NaN/Inf values."""
+
+    def default(self, obj: Any) -> Any:
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            v = float(obj)
+            return None if (math.isnan(v) or math.isinf(v)) else v
+        if isinstance(obj, np.ndarray):
+            return sanitize_for_json(obj.tolist())
+        return super().default(obj)
+
+    def encode(self, obj: Any) -> str:
+        # Pre-sanitize the whole structure so bare Python float('nan') values
+        # are also replaced before the standard encoder touches them.
+        return super().encode(sanitize_for_json(obj))
 
 class ResultWriter:
     """
@@ -101,6 +146,7 @@ class ResultWriter:
         player_id: Optional[str] = None,
         round_count: Optional[int] = None,
         raw_trace_values: Optional[dict[str, Any]] = None,
+        map_name: Optional[str] = None,
     ) -> None:
         """
         Record a successful analysis result with optional TRACE rating.
@@ -190,7 +236,7 @@ class ResultWriter:
 
             # Convert featureData to JSON string
             try:
-                feature_data_json = json.dumps(feature_data)
+                feature_data_json = json.dumps(feature_data, cls=NumpyEncoder)
             except (TypeError, ValueError) as e:
                 log_error = {
                     "event": "feature_data_serialization_error",
@@ -204,11 +250,36 @@ class ResultWriter:
                 )
                 raise
 
-            # Insert AnalysisResult record
+            import uuid
+
+            # Create a dummy player for demo-level results if player_id is missing
+            if not player_id:
+                player_id = "00000000-0000-0000-0000-000000000000"
+                cursor.execute("SELECT id FROM player WHERE id = %s", (player_id,))
+                if not cursor.fetchone():
+                    cursor.execute("INSERT INTO player (id, steam_id, display_name) VALUES (%s, %s, %s)", (player_id, "0", "Demo Level Result"))
+
+            result_id = str(uuid.uuid4())
+
+            # Upsert AnalysisResult record (handles re-processing without duplicate key errors)
             insert_query = """
                 INSERT INTO analysis_result
-                (demo_id, aimbot_score, trigger_bot_score, wallhack_score, recoil_score, bhop_score, session_score, overall_suspicion, suspicion_label, feature_data, model_version)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (id, demo_id, player_id, round_count, aimbot_score, triggerbot_score, wallhack_score, recoil_score, bhop_score, session_consistency_score, overall_suspicion, suspicion_label, feature_data, support_data, analyzed_at, model_version)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
+                ON CONFLICT (demo_id, player_id) DO UPDATE SET
+                    round_count = EXCLUDED.round_count,
+                    aimbot_score = EXCLUDED.aimbot_score,
+                    triggerbot_score = EXCLUDED.triggerbot_score,
+                    wallhack_score = EXCLUDED.wallhack_score,
+                    recoil_score = EXCLUDED.recoil_score,
+                    bhop_score = EXCLUDED.bhop_score,
+                    session_consistency_score = EXCLUDED.session_consistency_score,
+                    overall_suspicion = EXCLUDED.overall_suspicion,
+                    suspicion_label = EXCLUDED.suspicion_label,
+                    feature_data = EXCLUDED.feature_data,
+                    support_data = EXCLUDED.support_data,
+                    analyzed_at = NOW(),
+                    model_version = EXCLUDED.model_version
             """
 
             overall_score = (
@@ -222,30 +293,49 @@ class ResultWriter:
                 else "suspicious"
             )
 
+            def _safe_float(value: object) -> float:
+                """Convert a score to float, defaulting to 0.0 if None or invalid."""
+                try:
+                    return float(value)  # type: ignore[arg-type]
+                except (TypeError, ValueError):
+                    return 0.0
+
             cursor.execute(
                 insert_query,
                 (
+                    result_id,
                     demo_id,
-                    aimbot_score,
-                    trigger_score,
-                    wallhack_score,
-                    recoil_score,
-                    bhop_score,
-                    session_score,
-                    overall_score,
+                    player_id,
+                    round_count or 0,
+                    _safe_float(aimbot_score),
+                    _safe_float(trigger_score),
+                    _safe_float(wallhack_score),
+                    _safe_float(recoil_score),
+                    _safe_float(bhop_score),
+                    _safe_float(session_score),
+                    _safe_float(overall_score),
                     label,
                     feature_data_json,
+                    '{}',
                     model_version,
                 ),
             )
 
-            # Update Demo status to 'done'
-            update_demo_query = """
-                UPDATE demo
-                SET status = %s
-                WHERE id = %s
-            """
-            cursor.execute(update_demo_query, ("done", demo_id))
+            # Update Demo status to 'done' and save map name if parsed
+            if map_name:
+                update_demo_query = """
+                    UPDATE demo
+                    SET status = %s, map = %s
+                    WHERE id = %s
+                """
+                cursor.execute(update_demo_query, ("done", map_name, demo_id))
+            else:
+                update_demo_query = """
+                    UPDATE demo
+                    SET status = %s
+                    WHERE id = %s
+                """
+                cursor.execute(update_demo_query, ("done", demo_id))
 
             # Fetch the analysis_result_id for TRACE linking
             analysis_result_id_query = "SELECT id FROM analysis_result WHERE demo_id = %s ORDER BY id DESC LIMIT 1"

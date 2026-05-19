@@ -19,27 +19,26 @@ final class Version20260517101200 extends AbstractMigration
         // Create team table
         $this->addSql(<<<'SQL'
             CREATE TABLE IF NOT EXISTS team (
-                id BINARY(16) NOT NULL COMMENT '(DC2Type:uuid)',
+                id UUID NOT NULL,
                 name VARCHAR(255) NOT NULL,
-                display_name VARCHAR(255),
-                created_at DATETIME NOT NULL COMMENT '(DC2Type:datetime_immutable)',
-                updated_at DATETIME NOT NULL COMMENT '(DC2Type:datetime_immutable)',
-                PRIMARY KEY (id),
-                INDEX idx_team_name (name)
-            ) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB
+                display_name VARCHAR(255) DEFAULT NULL,
+                created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL,
+                updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL,
+                PRIMARY KEY (id)
+            )
         SQL
         );
+        $this->addSql('CREATE INDEX IF NOT EXISTS idx_team_name ON team (name)');
 
         // Create player_team junction table (many-to-many)
         $this->addSql(<<<'SQL'
             CREATE TABLE IF NOT EXISTS player_team (
-                player_id BINARY(16) NOT NULL COMMENT '(DC2Type:uuid)',
-                team_id BINARY(16) NOT NULL COMMENT '(DC2Type:uuid)',
-                PRIMARY KEY (player_id, team_id),
-                INDEX idx_player_team_team_id (team_id),
-                CONSTRAINT fk_player_team_player FOREIGN KEY (player_id) REFERENCES player (id) ON DELETE CASCADE,
-                CONSTRAINT fk_player_team_team FOREIGN KEY (team_id) REFERENCES team (id) ON DELETE CASCADE
-            ) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB
+                team_id UUID NOT NULL,
+                player_id UUID NOT NULL,
+                PRIMARY KEY (team_id, player_id),
+                CONSTRAINT fk_player_team_team FOREIGN KEY (team_id) REFERENCES team (id) ON DELETE CASCADE,
+                CONSTRAINT fk_player_team_player FOREIGN KEY (player_id) REFERENCES player (id) ON DELETE CASCADE
+            )
         SQL
         );
     }

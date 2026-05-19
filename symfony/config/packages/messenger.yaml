@@ -3,12 +3,28 @@ framework:
         failure_transport: failed
 
         transports:
-            analysis_dispatch: '%env(MESSENGER_TRANSPORT_DSN)%/%env(SYMFONY_ANALYSIS_QUEUE)%'
-            import_dispatch: '%env(MESSENGER_TRANSPORT_DSN)%/cs2.import'
+            analysis_dispatch:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    stream: '%env(SYMFONY_ANALYSIS_QUEUE)%'
+            import_dispatch:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    stream: cs2.import
+            steam_profile_refresh:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    stream: cs2.steam_profile
+            steam_match_history_tracking:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    stream: cs2.steam_match_history
             failed: '%env(MESSENGER_FAILED_TRANSPORT_DSN)%'
 
         routing:
             'App\Application\Command\ImportDemoMessage': import_dispatch
+            'App\Application\Steam\RefreshSteamProfileMessage': steam_profile_refresh
+            'App\Application\Steam\TrackSteamMatchHistoryMessage': steam_match_history_tracking
             # Plan 04 adds AnalyzeDemoMessage and routes it once the class exists.
 
 when@test:
@@ -16,4 +32,7 @@ when@test:
        messenger:
            transports:
                analysis_dispatch: 'sync://'
+               import_dispatch: 'sync://'
+               steam_profile_refresh: 'sync://'
+               steam_match_history_tracking: 'sync://'
                failed: 'in-memory://'

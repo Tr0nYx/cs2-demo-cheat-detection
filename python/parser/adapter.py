@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 from demoparser2 import DemoParser
 
@@ -75,9 +76,19 @@ class DemoParserAdapter:
         except Exception as e:
             raise DemoParseError(f"Failed to initialize parser: {e}") from e
 
-        # Parse ticks with requested properties
+        # Extract map name from header if possible
+        map_name = None
         try:
-            ticks_df = parser.parse_ticks(self.REQUIRED_TICK_COLS)
+            header = parser.parse_header()
+            if header and isinstance(header, dict):
+                map_name = header.get("map_name")
+        except Exception:
+            pass
+
+        # Parse ticks with requested properties (is_shooting is synthesized later)
+        try:
+            tick_cols = [col for col in self.REQUIRED_TICK_COLS if col != "is_shooting"]
+            ticks_df = parser.parse_ticks(tick_cols)
         except Exception as e:
             raise DemoParseError(f"Failed to parse ticks: {e}") from e
 
@@ -85,18 +96,18 @@ class DemoParserAdapter:
         if ticks_df is None or ticks_df.empty:
             raise DemoParseError("Parser returned empty ticks DataFrame")
 
-        # Validate all required columns are present
-        missing_cols = [col for col in self.REQUIRED_TICK_COLS
+        # Validate all required columns (excluding is_shooting) are present
+        tick_cols_to_check = [col for col in self.REQUIRED_TICK_COLS if col != "is_shooting"]
+        missing_cols = [col for col in tick_cols_to_check
                        if col not in ticks_df.columns]
         if missing_cols:
             raise DemoParseError(
                 f"Missing tick columns: {missing_cols}"
             )
 
-        # Validate tick ordering: all differences should be positive
-        # (ticks should increase monotonically by tick_number)
+        # Validate tick ordering: ticks must be non-decreasing (sorted)
         tick_diffs = ticks_df["tick"].diff().dropna()
-        if not (tick_diffs > 0).all():
+        if not (tick_diffs >= 0).all():
             raise DemoParseError("Ticks are not ordered by tick_number")
 
         # Parse events: iterate over required event types and collect
@@ -122,4 +133,50 @@ class DemoParserAdapter:
         # Concatenate all event DataFrames
         events_df = pd.concat(events_list, ignore_index=True)
 
-        return ParsedDemo(ticks_df=ticks_df, events_df=events_df)
+        # Synthesize is_shooting column in ticks_df using weapon_fire events
+        ticks_df["is_shooting"] = False
+        try:
+            fire_df = events_df[events_df["event_type"] == "weapon_fire"]
+            if not fire_df.empty:
+                max_tick = int(ticks_df["tick"].max()) if not ticks_df.empty else 0
+
+                # Convert user_steamid to int matching ticks_df['steamid']
+                fire_df = fire_df.copy()
+                fire_df["steamid_int"] = pd.to_numeric(
+                    fire_df["user_steamid"], errors="coerce"
+                ).fillna(0).astype("uint64")
+
+                for steamid, group in fire_df.groupby("steamid_int"):
+                    if steamid == 0:
+                        continue
+
+                    fire_ticks = group["tick"].values
+                    # Create binary mask for this player
+                    shooting_mask = np.zeros(max_tick + 100, dtype=bool)
+
+                    # Set intervals [t, t + 50] to True
+                    for t in fire_ticks:
+                        t_int = int(t)
+                        if t_int < len(shooting_mask):
+                            shooting_mask[t_int : min(t_int + 51, len(shooting_mask))] = True
+
+                    player_ticks_mask = (ticks_df["steamid"] == steamid)
+                    player_ticks = ticks_df.loc[player_ticks_mask, "tick"].values
+
+                    # Map ticks safely within bounds
+                    valid_ticks_mask = (player_ticks >= 0) & (player_ticks < len(shooting_mask))
+                    player_ticks_valid = player_ticks[valid_ticks_mask]
+
+                    mapped_mask = np.zeros(len(player_ticks), dtype=bool)
+                    mapped_mask[valid_ticks_mask] = shooting_mask[player_ticks_valid]
+
+                    ticks_df.loc[player_ticks_mask, "is_shooting"] = mapped_mask
+        except Exception:
+            # Fallback: keep is_shooting as False to prevent crashing
+            pass
+
+        # Final safety check: ensure the column is present
+        if "is_shooting" not in ticks_df.columns:
+            ticks_df["is_shooting"] = False
+
+        return ParsedDemo(ticks_df=ticks_df, events_df=events_df, map_name=map_name)

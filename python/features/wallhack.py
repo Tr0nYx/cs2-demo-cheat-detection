@@ -85,21 +85,24 @@ class WallhackExtractor(AbstractFeatureExtractor):
                 # For each large yaw transition, check if it occurs before a footstep
                 transition_indices = np.where(large_yaw_transitions)[0]
 
-                for transition_idx in transition_indices:
-                    transition_tick = ticks_df.iloc[transition_idx + 1]["tick"]
+                transition_indices = np.where(large_yaw_transitions)[0]
+                transition_ticks = ticks_df.iloc[transition_indices + 1]["tick"].values
 
-                    # Find footsteps after this transition
-                    footsteps_after = footstep_events[
-                        footstep_events["tick"] > transition_tick
-                    ]
+                footstep_ticks = footstep_events["tick"].sort_values().values
 
-                    if len(footsteps_after) > 0:
-                        next_footstep_tick = footsteps_after["tick"].min()
-                        ticks_until_footstep = next_footstep_tick - transition_tick
+                if len(footstep_ticks) > 0:
+                    # Vectorized search for the first footstep strictly after each transition
+                    idx = np.searchsorted(footstep_ticks, transition_ticks, side='right')
 
-                        # If large yaw change occurs >= 10 ticks before footstep, it's suspicious
-                        if ticks_until_footstep >= self.PRE_AIM_TICKS_BEFORE_FOOTSTEP:
-                            suspicious_preAim_count += 1
+                    # valid_mask keeps transitions where a subsequent footstep exists
+                    valid_mask = idx < len(footstep_ticks)
+
+                    if np.any(valid_mask):
+                        next_footstep_ticks = footstep_ticks[idx[valid_mask]]
+                        valid_transition_ticks = transition_ticks[valid_mask]
+
+                        ticks_until_footstep = next_footstep_ticks - valid_transition_ticks
+                        suspicious_preAim_count = int(np.sum(ticks_until_footstep >= self.PRE_AIM_TICKS_BEFORE_FOOTSTEP))
 
             # Calculate pre-aim ratio
             if total_aim_transitions > 0:

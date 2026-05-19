@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react'
 import { fetchPublicMetrics } from '@/lib/api'
 
 interface Metrics {
-  total_demos: number
-  average_suspicion: number
-  total_games_played: number
+  total_demos_analyzed: number
+  avg_suspicion_score: number
+  total_matches: number
 }
 
 export function PublicMetricsSection() {
@@ -62,7 +62,7 @@ export function PublicMetricsSection() {
             {/* Total Demos Card */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center shadow-sm hover:shadow-md transition-shadow">
               <div className="text-4xl sm:text-5xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                {formatNumber(metrics.total_demos)}
+                {formatNumber(metrics.total_demos_analyzed)}
               </div>
               <p className="text-lg text-gray-600 dark:text-gray-400 font-medium">
                 Demos Analyzed
@@ -72,7 +72,7 @@ export function PublicMetricsSection() {
             {/* Average Suspicion Card */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center shadow-sm hover:shadow-md transition-shadow">
               <div className="text-4xl sm:text-5xl font-bold text-amber-600 dark:text-amber-400 mb-2">
-                {(metrics.average_suspicion || 0).toFixed(1)}%
+                {((metrics.avg_suspicion_score || 0) * 100).toFixed(1)}%
               </div>
               <p className="text-lg text-gray-600 dark:text-gray-400 font-medium">
                 Average Suspicion Score
@@ -82,7 +82,7 @@ export function PublicMetricsSection() {
             {/* Games Played Card */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center shadow-sm hover:shadow-md transition-shadow">
               <div className="text-4xl sm:text-5xl font-bold text-green-600 dark:text-green-400 mb-2">
-                {formatNumber(metrics.total_games_played)}
+                {formatNumber(metrics.total_matches)}
               </div>
               <p className="text-lg text-gray-600 dark:text-gray-400 font-medium">
                 Games Played

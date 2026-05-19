@@ -5,25 +5,20 @@
 See: .planning/PROJECT.md (updated 2026-05-15)
 
 **Core value:** Users can upload or point to a CS2 demo and receive a reproducible, explainable, player-level cheat suspicion analysis based only on post-game demo data.
-**Current focus:** Phase 15: Advanced Analytics & User Scoping (Complete)
+**Current focus:** Phase 19: Frontend UI/UX Analysis Console Redesign (Planned)
 
 ## Current Position
 
-Phase: 15 (Advanced Analytics & User Scoping) - COMPLETE
-Status: Phase 15 implemented across 6 plans in 5 waves; backend/frontend targeted verification passed
-- Wave 1a: Backend filtered demo analytics complete
-- Wave 1b: Dashboard filter sidebar and filtered demo hook complete
-- Wave 2: Demo detail sensitivity tuner complete
-- Wave 3: Backend sensitivity comparison validation complete
-- Wave 4: Analytics trends and cache invalidation complete
-- Wave 5: Filtered leaderboard endpoint, page, and integration spec complete
-- Delivered: user-scoped demo filters, sensitivity preview/validation, trend charts, filtered TRACE leaderboards
-- Architecture: Symfony owns auth/API/persistence/rate limits/cache; Next.js owns filter UX and live previews; Python split preserved
-- Security/Ethics: Research-signal framing preserved; no live cheats, memory reading, client tampering, or ban automation
-- Testing: 15-05 targeted backend 8 tests/25 assertions, frontend 7 tests, Symfony container lint, Next build; prior wave summaries contain their targeted verification
-Last activity: 2026-05-17 - Phase 15 complete; 15-05-SUMMARY.md created; Playwright integration spec added but local command timed out before output
+Phase: 18 (Sharecode Import and Automatic Match History Tracking) - IMPLEMENTED
+Status: Phase 18 implemented across 4 waves: encrypted match-history connection state, strict seed parser, Valve next-code client, user-scoped API, bounded scheduler/handler, import dispatch, and dashboard setup/status UI.
+- Plans completed: 18-01 tracking foundation/secret storage/client, 18-02 connect/status/disconnect API, 18-03 bounded tracking/import dispatch, 18-04 dashboard UI and safety tests.
+- Verification: Symfony focused PHPUnit passed (21 tests, 42 assertions), frontend SteamMatchHistory Jest suite passed (2 suites, 7 tests), container lint passed, Doctrine mapping validation passed.
+- Remaining verification debt: `app:steam:track-match-history --dry-run --limit=10` needs a Docker PHP/PostgreSQL context; host shell lacked a usable PDO database driver/container DB.
+- Safety boundary: match-history metadata remains import provenance only and does not affect suspicion, TRACE, labels, confidence, or player trust.
+Last activity: 2026-05-18 - Phase 18 implemented and host-verified with Docker DB dry-run follow-up noted.
+Phase 19 planning status: ready to execute across 5 waves covering console foundations, dashboard workflow, results/TRACE explainability, viewer/heatmap UX, and analytics/table/accessibility verification.
 
-Progress: [##############] v2 Core Complete -> [##############] Phase 13 Complete -> [##############] Phase 14 Complete -> [##############] Phase 15 Complete
+Progress: [##############] v2 Core Complete -> [##############] Phase 13 Complete -> [##############] Phase 14 Complete -> [##############] Phase 15 Complete -> [##############] Phase 16 Complete -> [############] Phase 17 Implemented -> [ ] Phase 17 Verification
 
 ## Performance Metrics
 
@@ -95,6 +90,14 @@ None yet.
 - Phase 14 completed: 4 waves covering landing page, Steam auth, user persistence, dashboard
 - Phase 15 completed: 6 plans in 5 waves covering user scoping filters, sensitivity analysis, comparison validation, trend metrics/caching, and filtered leaderboards
 - Phase 16 added: hltv demo scrape
+- Phase 17 added: steamprofile usage
+- Phase 18 added: Sharecode Import and Automatic Match History Tracking
+- Phase 19 added: Frontend UI/UX Analysis Console Redesign from `tasks/frontend-ui-ux-review.md`, allowing a substantial refactor or scratch rebuild of the Next.js UI into a cohesive research-safe analysis console.
+- Phase 19 planned: 5 waves covering console tokens/primitives, dashboard workflow, results/TRACE explainability, demo viewer/heatmap UX, and analytics/table/form/accessibility verification.
+- Phase 18 context gathered: dashboard-only self-service setup, plain sharecode plus Steam launcher-link seed input, periodic bounded background tracking, immediate queueing into the existing import pipeline, encrypted `steamidkey` storage with env-provided secret material, per-connection status/backoff, minimal dashboard transparency, and disconnect that deletes the secret while preserving imported demos/analysis history.
+- Phase 18 planned: 4 waves covering tracking schema/secret cipher/Valve client, user-scoped connect/status/disconnect API, bounded scheduler/handler import dispatch, and dashboard tracking UI with secret-safety tests.
+- Phase 17 context gathered: tiered Steam profile/inventory checks for demo players, Market-price inventory valuation, research-maximum public snapshots, versioned snapshot audit history, automatic User/Player Steam ID linking, dashboard/player-page display, and research/shadow-mode gate before scoring use
+- Phase 17 implemented: 5 plans in 4 waves covering snapshot schema, Steam API clients, refresh pipeline, player UI/API enrichment, and research/shadow-mode gate; DB-backed Symfony verification remains pending
 
 ## Deferred Items
 
@@ -108,10 +111,10 @@ None yet.
 
 Last session: 2026-05-17
 Completed: Phase 16 executed
-Current status: Phase 16 shipped — PR #1
-Next work: Review PR and merge when CI passes
+Current status: Phase 17 implemented; migration-chain verification passing; older handler test harness cleanup remains optional
+Next work: Continue with Phase 17 human review or repair older handler test service access
 
-**PROJECT EXECUTION STATUS: PHASE 15 COMPLETE**
+**PROJECT EXECUTION STATUS: PHASE 16 COMPLETE; PHASE 17 IMPLEMENTED, PARTIALLY VERIFIED**
 - Phase 3: Python Analysis Pipeline complete (analysis engine complete)
 - Phase 6: Frontend Application Interface complete (web UI complete, production-ready)
 - Phase 7: Enhanced ML & Production complete (full execution, blockers fixed, observability stack complete)
@@ -124,6 +127,7 @@ Next work: Review PR and merge when CI passes
 - Phase 14: Landing Page + Steam Login complete (landing, auth, persistence, dashboard)
 - Phase 15: Advanced Analytics & User Scoping complete (filters, sensitivity tuner, trend metrics, filtered leaderboard)
 - Phase 16: HLTV Demo Scrape complete (playwright scraper, async symfony handler, cron command)
+- Phase 17: Steamprofile Usage planned, execution pending
 
 **PHASE 16 COMPLETE**
 - Node.js Playwright scraper bypassing Cloudflare for demo URLs and stats

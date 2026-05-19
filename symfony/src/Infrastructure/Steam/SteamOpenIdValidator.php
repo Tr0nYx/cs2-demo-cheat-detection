@@ -27,6 +27,14 @@ class SteamOpenIdValidator
      */
     public function validateOpenIdAssertion(array $queryParams): string
     {
+        // Normalize keys: convert dots (from next-auth JSON) to underscores
+        $normalizedParams = [];
+        foreach ($queryParams as $key => $value) {
+            $normalizedKey = str_replace('.', '_', $key);
+            $normalizedParams[$normalizedKey] = $value;
+        }
+        $queryParams = $normalizedParams;
+
         // Verify OpenID mode is id_res (positive assertion)
         if (($queryParams['openid_mode'] ?? null) !== 'id_res') {
             throw new \RuntimeException('Invalid OpenID mode');
@@ -45,10 +53,13 @@ class SteamOpenIdValidator
             throw new \RuntimeException('Invalid OpenID namespace');
         }
 
-        // Verify assertion signature with Steam servers
-        $verificationParams = array_merge($queryParams, [
-            'openid_mode' => 'check_auth',
-        ]);
+        // Verify assertion signature with Steam servers using standard dot-delimited keys
+        $verificationParams = [];
+        foreach ($queryParams as $key => $value) {
+            $dotKey = str_replace('_', '.', $key);
+            $verificationParams[$dotKey] = $value;
+        }
+        $verificationParams['openid.mode'] = 'check_authentication';
 
         try {
             // Use file_get_contents with stream context for POST request
@@ -97,6 +108,15 @@ class SteamOpenIdValidator
      */
     public function getUserProfile(string $steamId): array
     {
+        if (empty($this->steamApiKey)) {
+            return [
+                'steam_id' => $steamId,
+                'username' => 'SteamUser_' . substr($steamId, -6),
+                'avatar_url' => 'https://avatars.steamstatic.com/fef44917ad5e9061f1f2a1d3d37543e57aff62a3_full.jpg',
+                'profile_url' => 'https://steamcommunity.com/profiles/' . $steamId,
+            ];
+        }
+
         try {
             $url = self::STEAM_API_URL . '?' . http_build_query([
                 'key' => $this->steamApiKey,

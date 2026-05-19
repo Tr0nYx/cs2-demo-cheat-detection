@@ -199,7 +199,7 @@ def process_job(
 
     # Phase 4: Persist results (D-14 through D-17)
     try:
-        result_writer.write_result(demo_id, feature_results, scoring_summary, model_version)
+        result_writer.write_result(demo_id, feature_results, scoring_summary, model_version, map_name=parsed_demo.map_name)
         log("result_persisted", demo_id=demo_id, model_version=model_version)
     except Exception as e:
         log("persistence_error", demo_id=demo_id, error=str(e), level="error")

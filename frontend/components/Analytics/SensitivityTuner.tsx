@@ -4,6 +4,7 @@ import type { FeatureThresholds, FeatureVectorsDto } from '@/lib/types'
 import { DEFAULT_THRESHOLDS, COMPONENT_WEIGHTS, useSensitivityTuner } from '@/lib/hooks/useSensitivityTuner'
 import { Button } from '@/components/ui/button'
 import { Copy, Loader2, RotateCcw, SlidersHorizontal } from 'lucide-react'
+import { ConsolePanel } from '@/components/Console'
 
 const FEATURES: Array<{
   key: keyof FeatureThresholds
@@ -27,9 +28,9 @@ interface SensitivityTunerProps {
 }
 
 function scoreColor(score: number) {
-  if (score < 0.33) return 'text-green-400'
-  if (score < 0.66) return 'text-yellow-300'
-  return 'text-red-400'
+  if (score < 0.33) return 'text-signal-low'
+  if (score < 0.66) return 'text-signal-medium'
+  return 'text-signal-high'
 }
 
 export function SensitivityTuner({
@@ -41,10 +42,14 @@ export function SensitivityTuner({
 }: SensitivityTunerProps) {
   if (!featureVectors) {
     return (
-      <section className="rounded-lg border border-gray-800 bg-gray-950 p-4">
-        <h2 className="text-lg font-semibold text-white">Sensitivity Tuner</h2>
-        <p className="mt-2 text-sm text-gray-400">Feature vectors are not available for this demo.</p>
-      </section>
+      <ConsolePanel
+        title="Sensitivity Tuner"
+        description="Feature vectors are not available for this demo."
+      >
+        <p className="text-sm text-muted-foreground p-4 bg-surface-raised border border-border-subtle rounded-lg">
+          Feature vectors are not available for this demo.
+        </p>
+      </ConsolePanel>
     )
   }
 
@@ -92,142 +97,153 @@ function SensitivityTunerContent({
   }
 
   return (
-    <section className="rounded-lg border border-gray-800 bg-gray-950 p-4">
-      <div className="mb-4 flex items-start gap-3">
-        <SlidersHorizontal className="mt-1 h-5 w-5 text-blue-300" />
-        <div>
-          <h2 className="text-lg font-semibold text-white">Sensitivity Tuner</h2>
-          <p className="text-sm text-gray-400">Adjust thresholds to preview how suspicion scoring responds.</p>
+    <ConsolePanel
+      title="Sensitivity Tuner"
+      description="Adjust thresholds to preview how suspicion scoring responds."
+      action={
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs font-mono text-muted-foreground uppercase">Calibration Mode</span>
         </div>
-      </div>
-
-      <div className="mb-5 grid gap-3 rounded-md bg-gray-900 p-3 sm:grid-cols-3">
-        <div>
-          <div className="text-xs uppercase text-gray-500">Default</div>
-          <div className="text-lg text-gray-200">{baseline.toFixed(2)}</div>
-        </div>
-        <div>
-          <div className="text-xs uppercase text-gray-500">Estimated</div>
-          <div className={`text-lg font-semibold ${scoreColor(estimatedScore)}`}>{estimatedScore.toFixed(2)}</div>
-        </div>
-        <div>
-          <div className="text-xs uppercase text-gray-500">Difference</div>
-          <div className={difference >= 0 ? 'text-red-300' : 'text-green-300'}>
-            {difference >= 0 ? '+' : ''}{difference.toFixed(2)}
+      }
+    >
+      <div className="space-y-6">
+        {/* Tuner Metrics Summary */}
+        <div className="grid grid-cols-3 gap-4 p-4 bg-surface-raised border border-border-subtle rounded-lg">
+          <div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Default</div>
+            <div className="text-lg font-mono font-semibold text-foreground">{baseline.toFixed(2)}</div>
           </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {FEATURES.map((feature) => {
-          const vector = featureVectors[feature.scoreKey]
-          const threshold = thresholds[feature.key]
-          const triggered = vector > threshold / 100
-
-          return (
-            <label key={feature.key} className="rounded-md border border-gray-800 bg-gray-900 p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-gray-200" title={`Contributes ${COMPONENT_WEIGHTS[feature.key] * 100}% to suspicion`}>
-                  {feature.label}
-                </span>
-                <span className={triggered ? 'text-xs text-red-300' : 'text-xs text-green-300'}>
-                  {triggered ? 'Triggered' : 'Safe'}
-                </span>
-              </div>
-              <input
-                aria-label={`${feature.label} threshold`}
-                type="range"
-                min="0"
-                max="100"
-                value={threshold}
-                onChange={(event) => setThresholds({ [feature.key]: Number(event.target.value) } as Partial<FeatureThresholds>)}
-                className="w-full"
-              />
-              <div className="mt-2 flex justify-between text-xs text-gray-500">
-                <span>Threshold: {threshold}</span>
-                <span>Score: {vector.toFixed(2)}</span>
-              </div>
-            </label>
-          )
-        })}
-      </div>
-
-      <div className="mt-5 flex flex-wrap gap-2">
-        <Button type="button" variant="outline" onClick={() => setThresholds(DEFAULT_THRESHOLDS)}>
-          <RotateCcw className="h-4 w-4" />
-          Reset to Defaults
-        </Button>
-        <Button type="button" onClick={handleSave} disabled={!changed || saving}>
-          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-          Save Comparison
-        </Button>
-      </div>
-
-      {mutation.error && (
-        <div className="mt-4 rounded-md border border-red-800 bg-red-950/40 p-3 text-sm text-red-200">
-          Failed to save comparison: {mutation.error.message}
-        </div>
-      )}
-
-      {comparisonResult && (
-        <div className="mt-5 rounded-md border border-blue-900 bg-blue-950/30 p-4">
-          <h3 className="text-sm font-semibold text-blue-100">Validated Comparison</h3>
-          <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
-            <div>
-              <div className="text-xs uppercase text-blue-300/70">Baseline Suspicion</div>
-              <div className="text-lg text-white">{comparisonResult.baselineSuspicion.toFixed(2)}</div>
-            </div>
-            <div>
-              <div className="text-xs uppercase text-blue-300/70">Tuned Suspicion</div>
-              <div className={`text-lg font-semibold ${scoreColor(comparisonResult.tunedSuspicion)}`}>
-                {comparisonResult.tunedSuspicion.toFixed(2)}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs uppercase text-blue-300/70">Difference</div>
-              <div className={comparisonResult.tunedSuspicion >= comparisonResult.baselineSuspicion ? 'text-red-300' : 'text-green-300'}>
-                {(comparisonResult.tunedSuspicion - comparisonResult.baselineSuspicion) >= 0 ? '+' : ''}
-                {(comparisonResult.tunedSuspicion - comparisonResult.baselineSuspicion).toFixed(2)}
-              </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Estimated</div>
+            <div className={`text-lg font-mono font-bold ${scoreColor(estimatedScore)}`}>{estimatedScore.toFixed(2)}</div>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Difference</div>
+            <div className={`text-lg font-mono font-semibold ${difference >= 0 ? 'text-signal-high' : 'text-signal-low'}`}>
+              {difference >= 0 ? '+' : ''}{difference.toFixed(2)}
             </div>
           </div>
-
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-xs text-blue-100">
-              <thead className="text-blue-300/70">
-                <tr>
-                  <th className="py-2 pr-3 font-medium">Feature</th>
-                  <th className="py-2 pr-3 font-medium">Change</th>
-                </tr>
-              </thead>
-              <tbody>
-                {FEATURES.map((feature) => {
-                  const impact = comparisonResult.impactBreakdown[feature.key] ?? 0
-
-                  return (
-                    <tr key={feature.key} className="border-t border-blue-900/60">
-                      <td className="py-2 pr-3">{feature.label}</td>
-                      <td className={impact >= 0 ? 'py-2 pr-3 text-red-300' : 'py-2 pr-3 text-green-300'}>
-                        {impact >= 0 ? '+' : ''}{impact.toFixed(2)}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={handleCopy}>
-              <Copy className="h-4 w-4" />
-              Copy Comparison
-            </Button>
-            <Button type="button" variant="outline" onClick={clearComparison}>
-              Adjust More
-            </Button>
-          </div>
         </div>
-      )}
-    </section>
+
+        {/* Feature Tuners Grid */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {FEATURES.map((feature) => {
+            const vector = featureVectors[feature.scoreKey]
+            const threshold = thresholds[feature.key]
+            const triggered = vector > threshold / 100
+
+            return (
+              <div key={feature.key} className="rounded-lg border border-border-subtle bg-surface-panel p-4 flex flex-col justify-between">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-foreground" title={`Contributes ${COMPONENT_WEIGHTS[feature.key] * 100}% to suspicion`}>
+                    {feature.label}
+                  </span>
+                  <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${triggered ? 'bg-signal-high-bg border border-signal-high/35 text-signal-high' : 'bg-surface-raised border border-border-subtle text-muted-foreground'}`}>
+                    {triggered ? 'Triggered' : 'Below threshold'}
+                  </span>
+                </div>
+
+                <input
+                  aria-label={`${feature.label} threshold`}
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={threshold}
+                  onChange={(event) => setThresholds({ [feature.key]: Number(event.target.value) } as Partial<FeatureThresholds>)}
+                  className="w-full h-1.5 bg-border-subtle rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+
+                <div className="mt-3 flex justify-between text-xs text-muted-foreground font-mono">
+                  <span>Threshold: {threshold}</span>
+                  <span>Score: {vector.toFixed(2)}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-wrap gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={() => setThresholds(DEFAULT_THRESHOLDS)} className="border-border-subtle hover:bg-surface-raised text-foreground">
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reset to Defaults
+          </Button>
+          <Button type="button" onClick={handleSave} disabled={!changed || saving} className="bg-primary hover:bg-primary/95 text-primary-foreground">
+            {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            Save Comparison
+          </Button>
+        </div>
+
+        {/* Save Error */}
+        {mutation.error && (
+          <div className="rounded-md border border-signal-high/35 bg-signal-high-bg p-3 text-sm text-signal-high">
+            Failed to save comparison: {mutation.error.message}
+          </div>
+        )}
+
+        {/* Comparison Result / Active Comparison Details */}
+        {comparisonResult && (
+          <div className="rounded-lg border border-border-subtle bg-surface-raised p-5 space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">Validated Comparison</h3>
+
+            <div className="grid gap-4 grid-cols-3">
+              <div>
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Baseline Suspicion</div>
+                <div className="text-base font-mono font-semibold text-foreground">{comparisonResult.baselineSuspicion.toFixed(2)}</div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Tuned Suspicion</div>
+                <div className={`text-base font-mono font-bold ${scoreColor(comparisonResult.tunedSuspicion)}`}>
+                  {comparisonResult.tunedSuspicion.toFixed(2)}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Difference</div>
+                <div className={`text-base font-mono font-semibold ${(comparisonResult.tunedSuspicion - comparisonResult.baselineSuspicion) >= 0 ? 'text-signal-high' : 'text-signal-low'}`}>
+                  {(comparisonResult.tunedSuspicion - comparisonResult.baselineSuspicion) >= 0 ? '+' : ''}
+                  {(comparisonResult.tunedSuspicion - comparisonResult.baselineSuspicion).toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-hidden border border-border-subtle rounded-lg">
+              <table className="w-full border-collapse text-left text-xs font-mono">
+                <thead>
+                  <tr className="bg-surface-panel border-b border-border-subtle text-muted-foreground">
+                    <th className="p-3 font-semibold">Feature</th>
+                    <th className="p-3 font-semibold text-right">Change</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-subtle bg-surface-panel/50">
+                  {FEATURES.map((feature) => {
+                    const impact = comparisonResult.impactBreakdown[feature.key] ?? 0
+
+                    return (
+                      <tr key={feature.key} className="hover:bg-surface-panel transition-colors">
+                        <td className="p-3 font-medium text-foreground">{feature.label}</td>
+                        <td className={`p-3 text-right font-semibold ${impact >= 0 ? 'text-signal-high' : 'text-signal-low'}`}>
+                          {impact >= 0 ? '+' : ''}{impact.toFixed(2)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={handleCopy} className="border-border-subtle hover:bg-surface-raised text-foreground">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Comparison
+              </Button>
+              <Button type="button" variant="outline" onClick={clearComparison} className="border-border-subtle hover:bg-surface-raised text-foreground">
+                Adjust More
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </ConsolePanel>
   )
 }

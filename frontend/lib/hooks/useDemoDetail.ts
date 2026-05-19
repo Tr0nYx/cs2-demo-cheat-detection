@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 import type { DemoDetailDto } from '@/lib/types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 
 export function useDemoDetail(demoId: string) {
   const { data: session } = useSession()

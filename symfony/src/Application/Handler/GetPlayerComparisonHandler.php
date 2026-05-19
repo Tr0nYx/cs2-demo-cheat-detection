@@ -10,6 +10,7 @@ use App\Application\Leaderboard\MatchHistoryCardDto;
 use App\Application\Leaderboard\PlayerComparisonDto;
 use App\Application\Leaderboard\TrendCardDto;
 use App\Application\Query\GetPlayerComparisonQuery;
+use App\Application\Steam\SteamPlayerProfileProvider;
 use App\Application\Service\PercentileCalculator;
 use App\Domain\Player\PlayerNotFoundException;
 use App\Infrastructure\Persistence\AnalysisResultRepository;
@@ -39,6 +40,7 @@ final readonly class GetPlayerComparisonHandler
         private AnalysisResultRepository $analysisRepo,
         private PlayerRepository $playerRepo,
         private PercentileCalculator $percentiles,
+        private SteamPlayerProfileProvider $steamProfiles,
         private LoggerInterface $logger,
     ) {
     }
@@ -91,12 +93,14 @@ final readonly class GetPlayerComparisonHandler
                 playerATrend: $trendCardA,
                 playerAMaps: $mapAffinityCardA,
                 playerAHistory: $historyCardA,
+                playerASteamProfile: $this->steamProfiles->forSteamId($playerA->getSteamId()),
                 playerBId: $query->compareWithId,
                 playerBName: $playerBName,
                 playerBComponents: $componentCardB,
                 playerBTrend: $trendCardB,
                 playerBMaps: $mapAffinityCardB,
                 playerBHistory: $historyCardB,
+                playerBSteamProfile: $this->steamProfiles->forSteamId($playerB->getSteamId()),
             );
         } catch (PlayerNotFoundException $e) {
             // Domain exception: player resource not found

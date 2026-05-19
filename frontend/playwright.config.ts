@@ -36,5 +36,11 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    env: {
+      NEXT_PUBLIC_API_URL: "/api",
+      INTERNAL_API_URL: "http://localhost:3000/api",
+      NEXTAUTH_SECRET: "some-secure-random-secret-key-123456",
+      NEXTAUTH_URL: "http://localhost:3000",
+    },
   },
 });

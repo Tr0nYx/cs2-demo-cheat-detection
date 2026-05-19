@@ -16,11 +16,16 @@ jest.mock('recharts', () => ({
     YAxis: (props: any) => <div data-testid="y-axis" {...props} />,
     CartesianGrid: (props: any) => <div data-testid="cartesian-grid" {...props} />,
     Tooltip: (props: any) => <div data-testid="tooltip" {...props} />,
-    ResponsiveContainer: ({ children, ...props }: any) => (
-      <div data-testid="responsive-container" {...props}>
-        {children}
-      </div>
-    ),
+    ResponsiveContainer: ({ children, width, height, ...props }: any) => {
+      const style: any = {}
+      if (width) style.width = typeof width === 'number' ? `${width}px` : width
+      if (height) style.height = typeof height === 'number' ? `${height}px` : height
+      return (
+        <div data-testid="responsive-container" width={width} height={height} style={style} {...props}>
+          {children}
+        </div>
+      )
+    },
 }))
 
 const createHistoryEntry = (

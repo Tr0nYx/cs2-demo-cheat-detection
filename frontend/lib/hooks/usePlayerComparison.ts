@@ -32,6 +32,21 @@ export interface MatchHistoryData {
   sharedDemos: Array<{ demoId: string; date: string; mapId?: string }>
 }
 
+export interface SteamPlayerProfileData {
+  steamId?: string
+  steam_id?: string
+  personaName?: string | null
+  persona_name?: string | null
+  avatarUrl?: string | null
+  avatar_url?: string | null
+  profileUrl?: string | null
+  profile_url?: string | null
+  visibilityState?: string
+  visibility_state?: string
+  lastRefreshedAt?: string
+  last_refreshed_at?: string
+}
+
 /**
  * Full player comparison data aggregating all 4 metrics.
  */
@@ -42,15 +57,17 @@ export interface PlayerComparisonData {
   playerATrend: TrendData
   playerAMaps: MapAffinityData
   playerAHistory: MatchHistoryData
+  playerASteamProfile?: SteamPlayerProfileData | null
   playerBId: string
   playerBName: string
   playerBComponents: ComponentBreakdownData
   playerBTrend: TrendData
   playerBMaps: MapAffinityData
   playerBHistory: MatchHistoryData
+  playerBSteamProfile?: SteamPlayerProfileData | null
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 
 /**
  * React Query hook for fetching player comparison data.

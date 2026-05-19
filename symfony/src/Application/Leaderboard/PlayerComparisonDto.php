@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Leaderboard;
 
+use App\Application\Steam\SteamPlayerProfileDto;
+
 /**
  * PlayerComparisonDto - DTO for full player comparison response.
  *
@@ -35,12 +37,14 @@ final readonly class PlayerComparisonDto
         public TrendCardDto $playerATrend,
         public MapAffinityCardDto $playerAMaps,
         public MatchHistoryCardDto $playerAHistory,
+        public ?SteamPlayerProfileDto $playerASteamProfile,
         public string $playerBId,
         public string $playerBName,
         public ComponentBreakdownCardDto $playerBComponents,
         public TrendCardDto $playerBTrend,
         public MapAffinityCardDto $playerBMaps,
         public MatchHistoryCardDto $playerBHistory,
+        public ?SteamPlayerProfileDto $playerBSteamProfile,
     ) {
     }
 }

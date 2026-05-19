@@ -26,7 +26,7 @@ CREATE TABLE sharecode_imports (
     completed_at TIMESTAMP(0) WITHOUT TIME ZONE,
     error_message TEXT,
     demo_id UUID,
-    attempt_count INTEGER NOT NULL DEFAULT 0,
+    attempt_count INTEGER NOT NULL,
     PRIMARY KEY(id)
 );
 SQL);

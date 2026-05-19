@@ -42,6 +42,8 @@ export interface Demo {
   created_at?: string
   file_path?: string
   file_size?: number
+  original_filename?: string
+  map?: string
 }
 
 // TRACE component scores [0.3, 2.0] range

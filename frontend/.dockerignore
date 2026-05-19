@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+build/
+.swc/
+coverage/
+playwright-report/
+test-results/
+.env*.local
+.vercel

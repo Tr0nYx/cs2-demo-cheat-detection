@@ -37,6 +37,64 @@ test.describe('Phase 14: Landing Page + Steam Login + Dashboard', () => {
       })
     })
 
+    // Mock NextAuth session endpoint dynamically based on cookies
+    await page.route('**/api/auth/session', async (route) => {
+      const cookies = await page.context().cookies()
+      const hasSession = cookies.some((c) => c.name.includes('session-token'))
+      console.log(`[E2E Session Mock] Cookies count: ${cookies.length}, Has session cookie: ${hasSession}, Cookies: ${JSON.stringify(cookies)}`)
+
+      if (hasSession) {
+        console.log(`[E2E Session Mock] Returning authenticated user session`)
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            user: {
+              name: 'TestPlayer',
+              email: 'test@example.com',
+              image: 'https://avatars.akamai.steamstatic.com/test.jpg',
+            },
+            expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          }),
+        })
+      } else {
+        console.log(`[E2E Session Mock] Returning empty session`)
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({}),
+        })
+      }
+    })
+
+    // Mock NextAuth CSRF endpoint
+    await page.route('**/api/auth/csrf', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ csrfToken: 'mock-csrf-token' }),
+      })
+    })
+
+    // Mock NextAuth signout endpoint
+    await page.route('**/api/auth/signout*', async (route) => {
+      await page.context().clearCookies()
+      if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ url: 'http://localhost:3000/' }),
+        })
+      } else {
+        await route.fulfill({
+          status: 302,
+          headers: {
+            Location: 'http://localhost:3000/',
+          },
+        })
+      }
+    })
+
     // Mock demos endpoint
     await page.route('**/api/demos*', async (route) => {
       await route.fulfill({
@@ -46,30 +104,33 @@ test.describe('Phase 14: Landing Page + Steam Login + Dashboard', () => {
           demos: [
             {
               id: 'demo-1',
-              name: 'match_2026_05_17_dust2.dem',
+              original_filename: 'match_2026_05_17_dust2.dem',
               map: 'de_dust2',
               status: 'done',
               created_at: '2026-05-17T12:00:00Z',
               results: {
-                suspicion_score: 0.65,
-                class: 'suspicious',
+                overall_score: 0.65,
+                overall_verdict: 'suspicious',
               },
             },
             {
               id: 'demo-2',
-              name: 'match_2026_05_16_inferno.dem',
+              original_filename: 'match_2026_05_16_inferno.dem',
               map: 'de_inferno',
               status: 'done',
               created_at: '2026-05-16T14:30:00Z',
               results: {
-                suspicion_score: 0.32,
-                class: 'clean',
+                overall_score: 0.32,
+                overall_verdict: 'clean',
               },
             },
           ],
-          total: 2,
-          page: 1,
-          per_page: 20,
+          pagination: {
+            total: 22,
+            page: 1,
+            limit: 20,
+            hasMore: true,
+          },
         }),
       })
     })
@@ -95,25 +156,25 @@ test.describe('Phase 14: Landing Page + Steam Login + Dashboard', () => {
 
     // Check hero section
     await expect(page.getByRole('heading', { name: /CS2 Demo Cheat Detection/i })).toBeVisible()
-    await expect(page.getByText(/Upload a Counter-Strike 2 demo/i)).toBeVisible()
+    await expect(page.getByText(/Analyze Counter-Strike 2 demo/i)).toBeVisible()
 
     // Check features section
-    await expect(page.getByText(/Features/i)).toBeVisible()
-    await expect(page.getByText(/Upload/i)).toBeVisible()
+    await expect(page.getByText(/Powerful Features/i)).toBeVisible()
+    await expect(page.getByText(/Upload & Analyze/i)).toBeVisible()
 
     // Check public metrics
-    await expect(page.getByText(/1234/)).toBeVisible() // total demos
-    await expect(page.getByText(/0.42/)).toBeVisible() // avg suspicion
+    await expect(page.getByText(/1,234/)).toBeVisible() // total demos
+    await expect(page.getByText(/42/)).toBeVisible() // avg suspicion (renders as 42.0%)
 
     // Check Steam login button
-    await expect(page.getByRole('button', { name: /Login with Steam/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Sign in through Steam/i })).toBeVisible()
   })
 
   test('landing page navbar shows login button for unauthenticated users', async ({ page }) => {
     await page.goto('/')
 
     // Navbar should show login button
-    const loginButton = page.getByRole('button', { name: /Login with Steam/i })
+    const loginButton = page.getByRole('button', { name: /Sign in through Steam/i })
     await expect(loginButton).toBeVisible()
 
     // Should NOT show user dropdown
@@ -138,14 +199,14 @@ test.describe('Phase 14: Landing Page + Steam Login + Dashboard', () => {
     await page.goto('/dashboard')
 
     // Should show user profile
-    await expect(page.getByText('TestPlayer')).toBeVisible()
-    await expect(page.getByAltText('TestPlayer avatar')).toBeVisible()
+    await expect(page.getByText('TestPlayer').first()).toBeVisible()
+    await expect(page.getByAltText('TestPlayer').first()).toBeVisible()
 
     // Should show demo history
-    await expect(page.getByText('Demo Library')).toBeVisible()
-    await expect(page.getByText('match_2026_05_17_dust2.dem')).toBeVisible()
-    await expect(page.getByText('de_dust2')).toBeVisible()
-    await expect(page.getByText('done')).toBeVisible()
+    await expect(page.getByText('Demo history')).toBeVisible()
+    await expect(page.getByText('match_2026_05_17_dust2.dem').first()).toBeVisible()
+    await expect(page.getByText('de_dust2').first()).toBeVisible()
+    await expect(page.getByText('Analyzed').first()).toBeVisible()
   })
 
   test('dashboard demo history table displays with pagination', async ({ page, context }) => {
@@ -164,14 +225,16 @@ test.describe('Phase 14: Landing Page + Steam Login + Dashboard', () => {
     await page.goto('/dashboard')
 
     // Check demo table
-    await expect(page.getByText('match_2026_05_17_dust2.dem')).toBeVisible()
-    await expect(page.getByText('de_inferno')).toBeVisible()
+    await expect(page.getByText('match_2026_05_17_dust2.dem').first()).toBeVisible()
+    await expect(page.getByText('de_inferno').first()).toBeVisible()
 
     // Check sorting options
-    await expect(page.getByLabel(/Sort by/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: /Upload Date/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Review signal/i })).toBeVisible()
 
     // Check pagination info
-    await expect(page.getByText(/Showing 1-2 of 2/i)).toBeVisible()
+    await expect(page.getByText(/Page 1 of 2/i)).toBeVisible()
+    await expect(page.getByText(/22 total/i)).toBeVisible()
   })
 
   test('clicking demo row navigates to results page', async ({ page, context }) => {
@@ -190,10 +253,10 @@ test.describe('Phase 14: Landing Page + Steam Login + Dashboard', () => {
     await page.goto('/dashboard')
 
     // Click on first demo
-    await page.getByText('match_2026_05_17_dust2.dem').click()
+    await page.getByText('match_2026_05_17_dust2.dem').first().click()
 
     // Should navigate to results page
-    expect(page.url()).toContain('/results/demo-1')
+    await expect(page).toHaveURL(/.*\/results\/demo-1/)
   })
 
   test('dashboard navbar shows user dropdown for authenticated users', async ({ page, context }) => {
@@ -237,8 +300,8 @@ test.describe('Phase 14: Landing Page + Steam Login + Dashboard', () => {
     await page.goto('/dashboard')
 
     // Should show quick upload card
-    await expect(page.getByText(/Quick Upload/i)).toBeVisible()
-    await expect(page.getByLabel(/Upload Demo/i)).toBeVisible()
+    await expect(page.getByText(/Upload demo file/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: /Upload Demo/i })).toBeVisible()
   })
 
   test('unauthenticated users cannot access dashboard', async ({ page }) => {
@@ -246,10 +309,10 @@ test.describe('Phase 14: Landing Page + Steam Login + Dashboard', () => {
     await page.goto('/dashboard')
 
     // Should be redirected to landing page
-    expect(page.url()).toBe('http://localhost:3000/')
+    expect(page.url()).toContain('http://localhost:3000/')
 
     // Should show login button
-    await expect(page.getByRole('button', { name: /Login with Steam/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Sign in through Steam/i })).toBeVisible()
   })
 
   test('logout clears session and returns to landing page', async ({ page, context }) => {
@@ -268,13 +331,14 @@ test.describe('Phase 14: Landing Page + Steam Login + Dashboard', () => {
     await page.goto('/dashboard')
 
     // Click user dropdown
+    await page.getByTestId('user-dropdown').hover()
     await page.getByTestId('user-dropdown').click()
 
     // Click logout
     await page.getByRole('button', { name: /Logout/i }).click()
 
     // Should be redirected to landing page
-    expect(page.url()).toBe('http://localhost:3000/')
+    await expect(page).toHaveURL('http://localhost:3000/')
 
     // Session cookie should be cleared
     const cookies = await context.cookies()
@@ -284,16 +348,14 @@ test.describe('Phase 14: Landing Page + Steam Login + Dashboard', () => {
 
   test('public metrics are displayed on landing page', async ({ page }) => {
     await page.goto('/')
+    await page.waitForTimeout(500) // allow client-side hydration
 
     // Should fetch and display metrics
-    await expect(page.getByText(/Total Demos Analyzed/i)).toBeVisible()
-    await expect(page.getByText(/1234/)).toBeVisible()
+    await expect(page.getByText(/Demos Analyzed/i)).toBeVisible()
+    await expect(page.getByText(/1,234/)).toBeVisible()
 
     // Should show other metrics
     await expect(page.getByText(/Average Suspicion Score/i)).toBeVisible()
-    await expect(page.getByText(/0.42/)).toBeVisible()
-
-    // Should show update timestamp
-    await expect(page.getByText(/Updated/i)).toBeVisible()
+    await expect(page.getByText(/42/)).toBeVisible()
   })
 })

@@ -12,7 +12,7 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Uid\Uuid;
 
-final readonly class ImportSharecodeService
+readonly class ImportSharecodeService
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -169,6 +169,54 @@ final readonly class ImportSharecodeService
     public function getHistory(string $userId, int $limit = 50)
     {
         return $this->importRepository->findRecentByUser($userId, $limit);
+    }
+
+    /** @return array{queued: bool, duplicate: bool, import_id: string|null, demo_id: string|null} */
+    public function importDiscoveredSharecode(string $sharecode, string $userId): array
+    {
+        $normalized = SharecodeValidator::normalize($sharecode);
+        if (!SharecodeValidator::validate($normalized)) {
+            throw new \InvalidArgumentException('Discovered sharecode is malformed.');
+        }
+
+        $existing = $this->importRepository->findBySharecode($normalized);
+        if ($existing !== null) {
+            return [
+                'queued' => false,
+                'duplicate' => true,
+                'import_id' => $existing->getId()->toRfc4122(),
+                'demo_id' => $existing->getDemoId()?->toRfc4122(),
+            ];
+        }
+
+        $import = new SharecodeImport(
+            sharecode: $normalized,
+            platform: $this->detectPlatform($normalized),
+            userId: Uuid::fromString($userId),
+        );
+
+        $this->entityManager->persist($import);
+        $this->entityManager->flush();
+
+        $this->jobPublisher->publish(
+            sharecode: $normalized,
+            userId: $userId,
+            sharecodedImportId: $import->getId()->toRfc4122(),
+            platform: $import->getPlatform(),
+        );
+
+        $this->logger->info('Match-history sharecode queued for import', [
+            'sharecode' => $normalized,
+            'user_id' => $userId,
+            'import_id' => $import->getId()->toRfc4122(),
+        ]);
+
+        return [
+            'queued' => true,
+            'duplicate' => false,
+            'import_id' => $import->getId()->toRfc4122(),
+            'demo_id' => null,
+        ];
     }
 
     private function detectPlatform(string $sharecode): string

@@ -92,7 +92,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-05-17 after Phase 11 TRACE Advanced Visualizations completion*
+*Last updated: 2026-05-18 after Phase 18 Sharecode Match History Tracking implementation*
 
 ## Current Status
-**Phase 11: TRACE Advanced Visualizations** (Complete 2026-05-17) — Backend API for percentile calculations, frontend interactive charts (TraceChart, TraceSparkline, PercentileBadge), calibration context card, and end-to-end TRACE history visualization with peer comparison capability. All 13 must-haves verified.
+**Phase 18: Sharecode Import and Automatic Match History Tracking** (Implemented 2026-05-18) - Authenticated users can connect Valve match-history tracking with encrypted Steam game authentication code storage, strict sharecode/link seed parsing, bounded background discovery, existing sharecode import dispatch, and a dashboard setup/status UI. Tracking metadata remains import provenance only and does not influence suspicion, TRACE, labels, model confidence, or player trust.

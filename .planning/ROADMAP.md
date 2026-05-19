@@ -24,6 +24,12 @@ Build the core detection engine that consumes queued demos, parses CS2 data, com
 - [x] **Phase 14: Landing Page + Steam Login** - Public landing page, Steam OpenID 2.0 auth, user persistence, protected dashboard, demo history, public metrics caching (Complete 2026-05-17)
 - [x] **Phase 15: Advanced Analytics & User Scoping** - User-scoped demo filters, sensitivity tuner and validation, trend metrics, and filtered TRACE leaderboards (Complete 2026-05-17)
 - [x] **Phase 16: HLTV Demo Scrape** - Node.js Playwright scraper, Async Symfony handler, manual triggers, and Cron auto-ingestion (Complete 2026-05-17)
+- [x] **Phase 18: Sharecode Import and Automatic Match History Tracking** - User-authorized Valve match-history tracking with encrypted credentials, bounded discovery, import dispatch, and dashboard setup/status UI. (Complete 2026-05-18)
+
+### Upcoming Phases
+
+- [ ] **Phase 17: Steamprofile Usage** - Implemented and verified against Docker test DB; remaining debt is older handler test-harness access plus human review.
+- [ ] **Phase 19: Frontend UI/UX Analysis Console Redesign** - Rework the Next.js frontend into a cohesive analysis console using the UI/UX review in `tasks/frontend-ui-ux-review.md`, including design tokens, shared console layouts, dashboard workflow improvements, clearer TRACE/results explainability, demo viewer UX, responsive behavior, accessibility, and research-safe copy.
 
 ### Phase 8 Plans (All Complete)
 
@@ -66,6 +72,108 @@ Depends on: Phase 15
 - [x] 16-02-PLAN.md - Scraper Service (Node.js + Playwright Express microservice)
 - [x] 16-03-PLAN.md - Symfony Trigger & Background Cron (Messenger handler, Admin API, CLI cron)
 
+### Phase 17 Plans (Implemented - Docker Verified)
+
+Goal: Define and implement Steam profile usage so authenticated Steam identity can support player enrichment, demo ownership, scoped history, and research-safe analytics without treating external profile data as proof of cheating.
+
+Depends on: Phase 14 (Landing Page + Steam Login), Phase 15 (Advanced Analytics & User Scoping), Phase 16 (HLTV Demo Scrape)
+
+Wave 1:
+- [x] 17-01-PLAN.md - Steam snapshot data model, versioned profile/inventory storage, market price cache, migrations
+- [x] 17-02-PLAN.md - Steam profile/inventory/market clients and research-only inventory valuation
+
+Wave 2 *(blocked on Wave 1 completion)*:
+- [x] 17-03-PLAN.md - Tiered refresh queue, handler, planner, and scheduled command
+
+Wave 3 *(blocked on Wave 1 and Wave 2 data availability)*:
+- [x] 17-04-PLAN.md - Player API and frontend Steam identity enrichment
+
+Wave 4 *(blocked on snapshot and valuation data)*:
+- [x] 17-05-PLAN.md - Research report and shadow-mode gate for external Steam signals
+
+Cross-cutting constraints:
+- External Steam profile, inventory, account-age, and market-value data must not affect visible suspicion scores, TRACE scores, labels, or model confidence in Phase 17.
+- Steam metadata must be source-labeled, timestamped, privacy/visibility-aware, and auditable through versioned snapshots.
+- Inventory value is approximate, volatile, and research-only.
+
+### Phase 18 Plans (Implemented - Host Verified)
+
+Goal: Let authenticated users connect Valve match history by providing their Steam ID, game authentication code, and an initial match sharecode, then automatically discover newer sharecodes for post-game demo ingestion.
+
+Depends on: Phase 8 (Demo Download per Sharecode), Phase 14 (Landing Page + Steam Login), Phase 17 (Steamprofile Usage)
+
+Planning anchors:
+- Support `steam://rungame/730/76561202255233023/+csgo_download_match%20CSGO-...` links and plain `CSGO-...` sharecodes as seed inputs.
+- Use Valve's `ICSGOPlayers_730/GetNextMatchSharingCode/v1` flow with `steamid`, `steamidkey`, and `knowncode` for user-authorized match-history progression.
+- Treat HTTP 202 with `nextcode: n/a` as "caught up", HTTP 412 as an invalid or mismatched seed, and HTTP 403/429/503 as credential/rate-limit states requiring backoff and user-visible status.
+- Store Steam game authentication codes only as secrets, with revocation/error states and no use beyond match-history discovery.
+- Dispatch discovered sharecodes into the existing async import and analysis pipeline; do not alter suspicion, TRACE, or labels based on match-history metadata.
+
+Wave 1:
+- [x] 18-01-PLAN.md - Tracking foundation, strict seed parser, encrypted `steamidkey` storage, and Valve match-history client
+
+Wave 2 *(blocked on Wave 1 completion)*:
+- [x] 18-02-PLAN.md - Authenticated connect/status/disconnect API with same-user Steam ID enforcement
+
+Wave 3 *(blocked on Wave 1 and Wave 2 completion)*:
+- [x] 18-03-PLAN.md - Bounded scheduled tracking, cursor advancement, backoff, and import dispatch
+
+Wave 4 *(blocked on Wave 2 and Wave 3 API/data availability)*:
+- [x] 18-04-PLAN.md - Dashboard setup/status UI and secret-safety tests
+
+Cross-cutting constraints:
+- `steamidkey` must be encrypted at rest, never logged, never returned by API responses, and never rendered after submission.
+- Normal users may track only the Steam ID from their authenticated session/JWT.
+- Auto-discovered sharecodes must enter the existing import pipeline and must not create an alternate downloader.
+- Match-history metadata must not affect suspicion scores, TRACE scores, labels, model confidence, or player trust.
+- Valve `403`/`412` should stop normal retries until user action; `429`/`503` require backoff rather than disconnect.
+
+### Phase 19 Plans (Planned)
+
+Goal: Rebuild or substantially refactor the frontend UI/UX into a cohesive, data-dense analysis console that improves trust, orientation, review speed, accessibility, and explainability while preserving the research-only ethical boundary.
+
+Depends on: Phase 6 (Frontend Application Interface), Phase 10 (TRACE API & Frontend), Phase 11 (TRACE Advanced Visualizations), Phase 12 (TRACE Leaderboards), Phase 13 (2D Demo Viewer + Heatmap Module), Phase 14 (Landing Page + Steam Login), Phase 15 (Advanced Analytics & User Scoping), Phase 17 (Steamprofile Usage), Phase 18 (Sharecode Import and Automatic Match History Tracking)
+
+Review anchor:
+- `tasks/frontend-ui-ux-review.md` - UI/UX Pro Max review with prioritized findings, design-system direction, task backlog, affected files, and acceptance criteria.
+
+Planning anchors:
+- Treat the target product as a serious post-game research analysis console, not a marketing interface.
+- It is acceptable to rebuild frontend surfaces from scratch where that produces a cleaner design system and workflow, but preserve existing backend contracts and user-facing capabilities.
+- Prioritize a dark/OLED-friendly, data-dense dashboard style with semantic status colors, accessible contrast, stable focus states, and consistent table/chart behavior.
+- Keep all suspicion, TRACE, Steam profile, inventory, and match-history metadata framed as research signals or provenance, never proof of cheating.
+- Improve workflow hierarchy: ingestion/status dashboard, evidence-first results, clearer TRACE explanations, what-if sensitivity tuning, replay-like demo viewer, and accessible analytics/leaderboards.
+- Verify responsive behavior at 320px, 768px, 1024px, and 1440px, plus keyboard navigation for primary workflows.
+
+Expected waves:
+- Wave 1: Console design tokens, page shells, shared panels, status badges, research-signal notice, typography/data-value styling.
+- Wave 2: Dashboard workflow redesign for ingestion, tracking, filters, pipeline status, scoped demos, and history.
+- Wave 3: Results, TRACE, feature evidence, and sensitivity tuner redesign with clearer hierarchy and neutral research copy.
+- Wave 4: Demo viewer and heatmap UX pass with stable inspector, timeline controls, responsive layout, legends, and color semantics.
+- Wave 5: Analytics, leaderboards, tables, forms, error states, accessibility polish, and Playwright visual/responsive verification.
+
+Wave 1:
+- [ ] 19-01-PLAN.md - Console design system foundation
+
+Wave 2 *(blocked on Wave 1 completion)*:
+- [ ] 19-02-PLAN.md - Dashboard workflow console
+
+Wave 3 *(blocked on Wave 1 and Wave 2 completion)*:
+- [ ] 19-03-PLAN.md - Results and TRACE explainability console
+
+Wave 4 *(blocked on Wave 1 and Wave 3 completion)*:
+- [ ] 19-04-PLAN.md - Demo viewer and heatmap UX pass
+
+Wave 5 *(blocked on Waves 1-4 completion)*:
+- [ ] 19-05-PLAN.md - Analytics, tables, forms, and final UX verification
+
+Cross-cutting constraints:
+- Preserve all existing backend API contracts unless a plan explicitly coordinates a compatible change.
+- Keep suspicion, TRACE, Steam metadata, inventory, match-history metadata, and leaderboard ranks framed as research signals or provenance, never proof.
+- Do not alter scoring, labels, model confidence, player trust, or cheat-detection semantics as part of UI/UX work.
+- Use existing Next.js, React Query, Tailwind/shadcn/base-ui, Recharts, Jest, and Playwright patterns before adding new dependencies.
+- Verify keyboard focus, no color-only meaning, and responsive behavior at 320px, 768px, 1024px, and 1440px.
+
 ### Backlog
 
 - Trend forecasting beyond current consistency/arc/weapon analytics
@@ -83,4 +191,4 @@ Depends on: Phase 15
 
 ---
 
-*Last updated: 2026-05-17 after Phase 15 completion*
+*Last updated: 2026-05-18 after Phase 18 host verification*

@@ -1,0 +1,9 @@
+[submodule ".agent/skills"]
+	path = .agent/skills
+	url = git@github.com:luftbude/ai-collection.git
+[submodule ".claude/skills"]
+	path = .claude/skills
+	url = git@github.com:luftbude/ai-collection.git
+[submodule ".codex/skills"]
+	path = .codex/skills
+	url = git@github.com:luftbude/ai-collection.git

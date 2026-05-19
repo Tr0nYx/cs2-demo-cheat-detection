@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\UI\Api;
 
 use App\Application\Demo\DemoResponseFactory;
+use App\Application\Steam\SteamPlayerProfileProvider;
 use App\Infrastructure\Persistence\AnalysisResultRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,6 +17,7 @@ final class PlayerController extends AbstractController
     public function __construct(
         private readonly AnalysisResultRepository $results,
         private readonly DemoResponseFactory $responses,
+        private readonly SteamPlayerProfileProvider $steamProfiles,
     ) {
     }
 
@@ -30,6 +32,7 @@ final class PlayerController extends AbstractController
 
         return new JsonResponse([
             'steam_id' => $steamId,
+            'steam_profile' => $this->steamProfiles->forSteamId($steamId)?->toArray(),
             'limit' => $limit,
             'offset' => $offset,
             'results' => array_map(fn ($result): array => $this->responses->result($result), $results),

@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 import type { FeatureThresholds, FeatureVectorsDto, SensitivityComparisonDto } from '@/lib/types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 
 export const DEFAULT_THRESHOLDS: FeatureThresholds = {
   aimbot: 50,

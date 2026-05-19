@@ -1,13 +1,14 @@
 import axios from 'axios'
 import type {
   Demo,
+  AnalysisResult,
   DemoEventsResponseDto,
   DemoRoundsResponseDto,
   DemoTicksResponseDto,
   HeatmapType,
 } from './types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -67,9 +68,82 @@ api.interceptors.response.use(
   }
 )
 
+export function mapBackendDemoToFrontend(backendDemo: any): Demo {
+  if (!backendDemo) return backendDemo
+
+  const metadata = backendDemo.metadata || {}
+  const backendResults = backendDemo.results || []
+
+  // Extract overall score and verdict from results
+  let maxOverallScore = 0
+  let overallVerdict: 'clean' | 'suspicious' | 'likely_cheating' = 'clean'
+  let modelVersion: string | undefined = undefined
+
+  const players = backendResults.map((res: any) => {
+    const rawOverall = res.scores?.overall ?? 0
+    if (rawOverall > maxOverallScore) {
+      maxOverallScore = rawOverall
+      overallVerdict = res.label || 'clean'
+    }
+    if (res.model_version && !modelVersion) {
+      modelVersion = res.model_version
+    }
+
+    const features: any[] = []
+    if (res.scores) {
+      const getInterpretation = (score: number) => {
+        if (score > 75) return 'Highly suspicious activity detected'
+        if (score > 35) return 'Minor anomalies observed'
+        return 'Clean behavioral pattern'
+      }
+
+      features.push({ name: 'aimbot', score: res.scores.aimbot, interpretation: getInterpretation(res.scores.aimbot) })
+      features.push({ name: 'triggerbot', score: res.scores.triggerbot, interpretation: getInterpretation(res.scores.triggerbot) })
+      features.push({ name: 'wallhack', score: res.scores.wallhack, interpretation: getInterpretation(res.scores.wallhack) })
+      features.push({ name: 'recoil', score: res.scores.recoil, interpretation: getInterpretation(res.scores.recoil) })
+      features.push({ name: 'bhop', score: res.scores.bhop, interpretation: getInterpretation(res.scores.bhop) })
+      features.push({ name: 'session', score: res.scores.session_consistency, interpretation: getInterpretation(res.scores.session_consistency) })
+    }
+
+    return {
+      steamId: res.player?.steam_id || '',
+      name: res.player?.display_name || 'Unknown',
+      overallScore: rawOverall,
+      overallVerdict: res.label || 'clean',
+      features,
+      modelVersion: res.model_version,
+    }
+  })
+
+  if (backendResults.length > 0 && !overallVerdict) {
+    if (maxOverallScore > 70) overallVerdict = 'likely_cheating'
+    else if (maxOverallScore > 35) overallVerdict = 'suspicious'
+    else overallVerdict = 'clean'
+  }
+
+  const results: AnalysisResult = {
+    overall_score: maxOverallScore,
+    overall_verdict: overallVerdict,
+    players,
+    modelVersion,
+  }
+
+  return {
+    id: backendDemo.demo_id || backendDemo.id || '',
+    status: backendDemo.status || 'pending',
+    results,
+    error_message: metadata.error_message || backendDemo.error_message,
+    updated_at: metadata.processed_at || metadata.uploaded_at || backendDemo.updated_at,
+    created_at: metadata.uploaded_at || backendDemo.created_at,
+    file_path: metadata.file_path || backendDemo.file_path,
+    original_filename: metadata.original_filename || backendDemo.original_filename,
+    map: backendDemo.map || 'de_dust2',
+  }
+}
+
 // API endpoints for demos
 export const fetchDemoStatus = (id: string): Promise<Demo> =>
-  api.get(`/demos/${id}`).then((r) => r.data)
+  api.get(`/demos/${id}`).then((r) => mapBackendDemoToFrontend(r.data))
 
 export const uploadDemo = (
   file: File,
@@ -82,14 +156,17 @@ export const uploadDemo = (
     .post('/demos', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    .then((r) => r.data)
+    .then((r) => mapBackendDemoToFrontend(r.data))
 }
 
 export const fetchDemoList = (
   page = 1,
   limit = 20
 ): Promise<{ demos: Demo[]; total: number }> =>
-  api.get('/demos', { params: { page, limit } }).then((r) => r.data)
+  api.get('/demos', { params: { page, limit } }).then((r) => ({
+    demos: (r.data.demos || []).map(mapBackendDemoToFrontend),
+    total: r.data.total || 0,
+  }))
 
 export const deleteDemo = (id: string): Promise<void> =>
   api.delete(`/demos/${id}`).then(() => undefined)
@@ -198,7 +275,15 @@ export const fetchUserDemos = async (
         order: sortOrder,
       },
     })
-    return response.data
+    return {
+      demos: (response.data.demos || []).map(mapBackendDemoToFrontend),
+      pagination: response.data.pagination || {
+        total: response.data.total || 0,
+        page,
+        limit,
+        hasMore: response.data.hasMore || false,
+      },
+    }
   } catch (error) {
     console.error('Failed to fetch user demos:', error)
     throw error

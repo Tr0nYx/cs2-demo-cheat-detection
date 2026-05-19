@@ -4,7 +4,7 @@ import { useQueries, useQuery } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 import type { AnalyticsTrendResponse, ArcTrendDto, ConsistencyTrendDto, TrendMetric, WeaponStrengthDto } from '@/lib/types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 
 async function fetchTrend(metric: TrendMetric, accessToken?: string): Promise<AnalyticsTrendResponse> {
   const response = await fetch(`${API_BASE_URL}/analytics/trends/${metric}`, {

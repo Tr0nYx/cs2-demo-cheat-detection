@@ -125,7 +125,7 @@ export function TraceSparkline({
 
   return (
     <div className="w-full space-y-2">
-      <ResponsiveContainer width="100%" height={height}>
+      <ResponsiveContainer width={width} height={height}>
         <LineChart
           data={data}
           margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
@@ -173,7 +173,7 @@ export function TraceSparkline({
                   : 'text-gray-600 dark:text-gray-400'
             }`}
           >
-            {trendInfo.icon} {trendInfo.text}
+            <span>{trendInfo.icon}</span> <span>{trendInfo.text}</span>
           </span>
           <span className="text-xs text-gray-500 dark:text-gray-400">
             ({data.length} demos)

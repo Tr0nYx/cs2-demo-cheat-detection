@@ -21,6 +21,8 @@ final readonly class DemoResponseFactory
             'demo_id' => $demo->getIdString(),
             'status' => $demo->getStatus()->value,
             'status_url' => $this->router->generate('api_demos_show', ['id' => $demo->getIdString()]),
+            'map' => $demo->getMap(),
+            'outcome' => $demo->getOutcome(),
             'metadata' => [
                 'steam_match_id' => $demo->getSteamMatchId(),
                 'original_filename' => $demo->getOriginalFilename(),

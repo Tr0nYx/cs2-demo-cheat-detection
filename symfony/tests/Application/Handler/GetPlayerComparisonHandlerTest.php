@@ -7,6 +7,7 @@ namespace App\Tests\Application\Handler;
 use App\Application\Handler\GetPlayerComparisonHandler;
 use App\Application\Query\GetPlayerComparisonQuery;
 use App\Application\Service\PercentileCalculator;
+use App\Application\Steam\SteamPlayerProfileProvider;
 use App\Domain\Analysis\AnalysisResult;
 use App\Domain\Analysis\SuspicionLabel;
 use App\Domain\Demo\Demo;
@@ -42,6 +43,7 @@ final class GetPlayerComparisonHandlerTest extends KernelTestCase
         $analysisRepo = self::getContainer()->get(AnalysisResultRepository::class);
         $playerRepo = self::getContainer()->get(PlayerRepository::class);
         $percentiles = self::getContainer()->get(PercentileCalculator::class);
+        $steamProfiles = self::getContainer()->get(SteamPlayerProfileProvider::class);
         $logger = self::getContainer()->get(LoggerInterface::class);
 
         $this->handler = new GetPlayerComparisonHandler(
@@ -49,6 +51,7 @@ final class GetPlayerComparisonHandlerTest extends KernelTestCase
             $analysisRepo,
             $playerRepo,
             $percentiles,
+            $steamProfiles,
             $logger
         );
 

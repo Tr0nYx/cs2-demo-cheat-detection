@@ -12,7 +12,7 @@ import type {
   RatingBand,
 } from '@/lib/types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 const STORAGE_KEY = 'cs2cd_filter_history'
 const MAX_HISTORY = 5
 

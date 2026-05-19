@@ -19,7 +19,7 @@ final class SharecodeImportRepository extends ServiceEntityRepository
 
     public function findBySharecode(string $sharecode): ?SharecodeImport
     {
-        return $this->findOneBy(['sharecode' => strtoupper(trim($sharecode))]);
+        return $this->findOneBy(['sharecode' => trim($sharecode)]);
     }
 
     public function findPendingByUser(string $userId, int $limit = 50)
