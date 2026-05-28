@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { verdictColor, verdictLabel } from '@/lib/utils'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Feature } from '@/lib/types'
+import { explainFeatureScore } from '@/lib/result-dashboard'
 
 interface FeatureTableProps {
   features: Feature[]
@@ -68,6 +69,16 @@ export function FeatureTable({ features }: FeatureTableProps) {
                   <TableCell />
                   <TableCell colSpan={3} className="py-3">
                     <div className="space-y-2 text-sm text-muted-foreground">
+                      {(() => {
+                        const explanation = explainFeatureScore(feature)
+
+                        return (
+                          <div className="rounded border border-border-subtle bg-background px-3 py-2">
+                            <span className="font-semibold text-foreground">Why this score?</span>{' '}
+                            <span>{explanation.summary}</span>
+                          </div>
+                        )
+                      })()}
                       {feature.method && (
                         <div>
                           <span className="font-semibold text-foreground">Method:</span>{' '}

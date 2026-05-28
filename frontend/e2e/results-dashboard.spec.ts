@@ -129,14 +129,34 @@ test('desktop result dashboard page loads', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 950 })
   await page.goto(`/results/${demoId}`)
 
-  // Page renders with Analysis Results heading
   await expect(page.getByRole('heading', { name: 'Analysis Results', level: 1 })).toBeVisible()
+  await expect(page.getByText('Review Orientation')).toBeVisible()
+  await expect(page.getByText('Stored evidence coverage')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Review signals' })).toBeVisible()
+  await expect(page.getByText('Aim behavior').first()).toBeVisible()
+  await expect(page.getByText('What happened')).toBeVisible()
+  await expect(page.getByText('Why this score')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Capped/limited' }).click()
+  await expect(page.getByRole('button', { name: 'Capped/limited' })).toHaveAttribute('aria-pressed', 'true')
+
+  await page.getByRole('tab', { name: 'TRACE' }).click()
+  await expect(page.locator('#trace-panel')).toBeVisible()
+  await page.getByRole('tab', { name: 'Viewer' }).click()
+  await expect(page.locator('#viewer-panel')).toBeVisible()
+
+  await expect(page.getByText(/Trust Factor|Red flag|Exonerator|confirmed cheating/i)).toHaveCount(0)
 })
 
 test('mobile result dashboard page loads', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 })
   await page.goto(`/results/${demoId}`)
 
-  // Page renders with Analysis Results heading
   await expect(page.getByRole('heading', { name: 'Analysis Results', level: 1 })).toBeVisible()
+  await expect(page.getByText('Review Orientation')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'All', exact: true })).toBeVisible()
+  await expect(page.getByText('Evidence Player').first()).toBeVisible()
+  await expect(page.getByText('What limits confidence')).toBeVisible()
+  const hasHorizontalOverflow = await page.locator('body').evaluate((body) => body.scrollWidth > body.clientWidth)
+  expect(hasHorizontalOverflow).toBe(false)
 })

@@ -42,7 +42,18 @@ venv/
 .DS_Store
 Thumbs.db
 
+# Local assistant context mirrors
+**/CLAUDE.md
+
 # Frontend generated artifacts
 /frontend/playwright-report/
 /frontend/test-results/
+/test-results/
+/frontend/debug-page.js
+/frontend/debug-screenshot.png
+/frontend/test-*.png
+/frontend/playwright-results.txt
+/frontend/test-results.txt
+/frontend/e2e/debug-*.spec.ts
+/frontend/e2e/test-*.spec.ts
 /hltv-scraper/node_modules/

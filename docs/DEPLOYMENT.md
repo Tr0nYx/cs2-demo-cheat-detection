@@ -219,6 +219,68 @@ sleep 120
 docker-compose -f docker-compose.prod.yml ps
 ```
 
+### Step 7: Deploy Updates From GitHub
+
+After the first setup, use the repository deploy script from the VPS. It pulls the configured branch, updates Docker images, restarts the production stack, runs Doctrine migrations, checks `/api/health`, and prunes old images.
+
+```bash
+cd ~/cs2-detection
+bash ./scripts/deploy.sh --project-dir ~/cs2-detection --branch main
+```
+
+If the checkout does not exist yet, the same script can clone it first:
+
+```bash
+bash ./scripts/deploy.sh \
+  --project-dir ~/cs2-detection \
+  --repo-url https://github.com/YOUR_ORG/cs2-detection.git \
+  --branch main
+```
+
+Useful options:
+
+```bash
+# Skip the pre-deployment PostgreSQL dump
+bash ./scripts/deploy.sh --skip-backup
+
+# Use a custom health endpoint or allow more startup time
+bash ./scripts/deploy.sh --health-url http://localhost/api/health --wait 90
+
+# Emergency deploy despite local uncommitted server-side changes
+bash ./scripts/deploy.sh --force
+
+# Build php/python/frontend images on the VPS instead of pulling registry images
+bash ./scripts/deploy.sh --build-local --local-image-namespace local
+```
+
+The script expects `.env` to exist on the server and never writes secrets into Git.
+
+`docker-compose.prod.yml` normally expects prebuilt registry images named `${DOCKER_USERNAME}/cs2-php`, `${DOCKER_USERNAME}/cs2-python`, and `${DOCKER_USERNAME}/cs2-frontend`. If `DOCKER_USERNAME` is not set or the images are private/unavailable, use `--build-local` or set `DOCKER_USERNAME` in `.env` and run `docker login` before deploying.
+
+If `git fetch` fails with `Permission denied (publickey)`, the server user running the deploy does not have GitHub access for the SSH remote. Either run the script as the Linux user that owns the GitHub key, add a read-only GitHub deploy key for that user, or switch the repository remote to an HTTPS URL with an appropriate token.
+
+For a read-only deploy key:
+
+```bash
+ssh-keygen -t ed25519 -C "cs2-demo-cheat-detection-deploy" -f ~/.ssh/cs2-demo-cheat-detection-deploy -N ""
+cat ~/.ssh/cs2-demo-cheat-detection-deploy.pub
+```
+
+Add the printed public key in GitHub under `Repository -> Settings -> Deploy keys`, then configure SSH to use it:
+
+```bash
+cat >> ~/.ssh/config <<'EOF'
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/cs2-demo-cheat-detection-deploy
+  IdentitiesOnly yes
+EOF
+
+chmod 600 ~/.ssh/config ~/.ssh/cs2-demo-cheat-detection-deploy
+ssh -T git@github.com
+```
+
 ---
 
 ## Verify Deployment

@@ -16,7 +16,7 @@ services:
     networks:
       - cs2
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/api/demos"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -59,7 +59,7 @@ services:
         max-size: "100m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      test: ["CMD", "php", "bin/console", "about", "--env=prod", "--no-debug"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -186,7 +186,7 @@ services:
         max-size: "100m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/metrics"]
+      test: ["CMD", "python", "-c", "import os, redis; redis.from_url(os.environ['REDIS_URL']).ping()"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -292,7 +292,7 @@ services:
       retries: 3
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:2.9.8
     container_name: cs2-loki
     restart: unless-stopped
     ports:

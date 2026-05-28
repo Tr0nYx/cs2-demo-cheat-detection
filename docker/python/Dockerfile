@@ -25,6 +25,7 @@ WORKDIR /app
 
 COPY python/requirements.txt /tmp/requirements.txt
 RUN pip install --upgrade pip \
+    && pip install "torch>=2.3.0" --index-url https://download.pytorch.org/whl/cpu \
     && pip install -r /tmp/requirements.txt \
     && rm /tmp/requirements.txt
 

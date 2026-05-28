@@ -38,6 +38,8 @@ Build the core detection engine with feature engineering and advanced modeling, 
 - [ ] **Phase 22: Apply AntiCheatPT Best Practices to Python Pipeline** - Implement feature engineering patterns (derivatives, cumulative displacement, statistical summaries), data augmentation for class imbalance, transformer-based sequence patterns with positional encoding, and modular pipeline structure (extraction → conversion → augmentation → analysis).
 - [x] **Phase 23: Player Profile Detail** - Add comprehensive player profile views and analysis detail pages with main profile at `/players/{playerId}`, sub-routes for detailed demos/stats exploration, TRACE components, demo history, and optional Steam profile enrichment. (Complete 2026-05-19)
 - [x] **Phase 24: Match Detail Page** - Add a comprehensive match-level detail page for analyzed demos, including match summary, participants, round/event navigation, TRACE and suspicion research signals, heatmap/viewer entry points, and links into player profiles. (Complete 2026-05-19)
+- [ ] **Phase 25: Better Result UI** - Improve the analysis result experience with clearer evidence hierarchy, player-level suspicion explanations, TRACE context, empty/error states, responsive layout, and research-safe language.
+- [x] **Phase 26: Umsetzung der Mercurial-Referenzideen fuer Result Dashboard** - Implemented Mercurial-inspired result-dashboard refinements from Phase 25 input ideas, including compact review headers, dense feature bands, selected-player narratives, context reducers, and evidence-sample affordances. (Complete 2026-05-28)
 
 ### Phase 24 Plans (Complete)
 
@@ -72,6 +74,84 @@ Cross-cutting constraints:
 Context: `.planning/phases/24-match-detail-page/24-CONTEXT.md`
 Research: `.planning/phases/24-match-detail-page/24-RESEARCH.md`
 Plan verification: `.planning/phases/24-match-detail-page/24-PLAN-VERIFICATION.md`
+
+### Phase 25 Plans (Planned)
+
+Goal: Improve the existing result UI so users can review player-level suspicion signals, TRACE context, feature evidence, and analysis status faster and with less ambiguity, while preserving the research-only framing and existing scoring semantics.
+
+Depends on: Phase 6 (Frontend Application Interface), Phase 10 (TRACE API & Frontend), Phase 11 (TRACE Advanced Visualizations), Phase 15 (Advanced Analytics & User Scoping), Phase 19 (Frontend UI/UX Analysis Console Redesign if executed first), Phase 20 (calibration guardrails if executed first), Phase 24 (Match Detail Page).
+
+Planning anchors:
+- Treat the result page as an evidence review surface for post-game research, not proof or enforcement.
+- Preserve existing backend and Python scoring contracts unless a plan explicitly coordinates a compatible API change.
+- Improve hierarchy for player cards/tables, feature explanations, TRACE relationships, confidence/unavailable states, and navigation to match/player/viewer surfaces.
+- Keep all labels and copy framed as research signals, review signals, or confidence indicators; avoid proof, ban, conviction, or cheater language.
+- Verify desktop/mobile layout, keyboard navigation, accessible contrast, and no text overlap in the final UI pass.
+
+Wave 1:
+- [ ] 25-01-PLAN.md - Result dashboard data foundation and plain-language feature explanation helpers
+
+Wave 2 *(blocked on Wave 1 completion)*:
+- [ ] 25-02-PLAN.md - Ranked player evidence dashboard components and explanation-first feature detail
+
+Wave 3 *(blocked on Wave 2 completion)*:
+- [ ] 25-03-PLAN.md - `/results/{demoId}` route assembly with Players, TRACE, Sensitivity, and Viewer tabs
+
+Wave 4 *(blocked on Wave 3 completion)*:
+- [ ] 25-04-PLAN.md - Research-language guard, desktop/mobile Playwright smoke, and verification report
+
+Cross-cutting constraints:
+- Treat the result page as a post-game evidence review surface, not proof or enforcement.
+- Preserve existing backend, Python scoring, TRACE, sensitivity, and viewer contracts.
+- Keep feature explanations grounded in persisted feature metadata; show unavailable/limited states rather than inventing evidence.
+- Separate demo-level aggregate placeholder results such as Steam ID `0` from real player attribution.
+- Reuse existing `TraceCard`, `SensitivityTuner`, and `DemoViewer` modules rather than duplicating their logic.
+- Keep all labels and copy framed as research signals, review signals, confidence, evidence, or unavailable states.
+
+Context: `.planning/phases/25-better-result-ui/25-CONTEXT.md`
+Research: `.planning/phases/25-better-result-ui/25-RESEARCH.md`
+Plan verification: `.planning/phases/25-better-result-ui/25-PLAN-VERIFICATION.md`
+
+### Phase 26 Plans (Complete)
+
+Goal: Turn the Mercurial reference analysis in `.planning/phases/25-better-result-ui/25-INPUT-IDEAS.md` into concrete result-dashboard refinements after Phase 25, without copying Mercurial's product language, visual style, trust-factor claims, or changing backend/Python scoring semantics.
+
+Depends on: Phase 25 (Better Result UI), Phase 23 (Player Profile Detail), Phase 24 (Match Detail Page), existing Steam/profile enrichment only as provenance when already available.
+
+Planning anchors:
+- Treat Phase 26 as a focused implementation pass for the Mercurial-inspired ideas that are too specific or expansive for the already-planned Phase 25 baseline.
+- Add compact selected-player orientation: identity, profile eligibility, match/viewer navigation, available provenance, and explicit coverage counts.
+- Refine ranked players into a dense scan surface with feature-family bands, confidence/limitation markers, top measurements, and simple review filters.
+- Add selected-player narrative sections such as `What happened`, `Why this score`, `What limits confidence`, and `Next review links`.
+- Introduce neutral `Review signal` and `Context reducer` patterns for strong evidence, weak evidence, clean history, capped scores, low sample counts, parser gaps, and unavailable data.
+- Prepare UI affordances for future concrete evidence samples by round, target, weapon, feature family, and evidence strength only when persisted payload data exists.
+
+Plans:
+- [x] 26-01-PLAN.md - Result dashboard view-model helpers for coverage counts, feature-family bands, review filters, context reducers, and evidence samples
+
+Wave 2 *(blocked on Wave 1 completion)*:
+- [x] 26-02-PLAN.md - Compact overview and dense ranked player scan table with local filters and feature bands
+
+Wave 3 *(blocked on Waves 1-2 completion)*:
+- [x] 26-03-PLAN.md - Selected-player narrative detail with context reducers and optional evidence samples
+
+Wave 4 *(blocked on Waves 1-3 completion)*:
+- [x] 26-04-PLAN.md - `/results/{demoId}` route assembly, research-language guard, desktop/mobile smoke, and final verification summary
+
+Cross-cutting constraints:
+- Preserve existing backend, Python scoring, TRACE, sensitivity, viewer, match, and player-profile contracts unless a later plan explicitly coordinates a compatible API change.
+- Do not use external rank, profile, history, inventory, or lobby-quality context as suspicion evidence.
+- Do not adopt Valve-confusing `Trust Factor` naming; any later lobby-quality display must be labeled as estimated matchmaking context.
+- Keep all labels and copy framed as research signals, review signals, context, confidence, limitations, or unavailable states.
+- Do not copy Mercurial visual styling, proprietary phrasing, or product claims.
+- Evidence sample UI must render only persisted payload data and explicitly mark unavailable round, target, weapon, rank, ELO, history, or lobby facets.
+- Filters are local review controls only; they must not alter persisted results, thresholds, confidence, TRACE, or labels.
+
+Input ideas: `.planning/phases/25-better-result-ui/25-INPUT-IDEAS.md`
+Context: `.planning/phases/26-umsetzung-der-mercurial-referenzideen-fuer-result-dashboard/26-CONTEXT.md`
+Research: `.planning/phases/26-umsetzung-der-mercurial-referenzideen-fuer-result-dashboard/26-RESEARCH.md`
+Plan verification: `.planning/phases/26-umsetzung-der-mercurial-referenzideen-fuer-result-dashboard/26-PLAN-VERIFICATION.md`
+Validation: `.planning/phases/26-umsetzung-der-mercurial-referenzideen-fuer-result-dashboard/26-VALIDATION.md`
 
 ### Phase 8 Plans (All Complete)
 
@@ -269,4 +349,4 @@ Cross-cutting constraints:
 
 ---
 
-*Last updated: 2026-05-18 after Phase 18 host verification*
+*Last updated: 2026-05-28 after Phase 26 execution*

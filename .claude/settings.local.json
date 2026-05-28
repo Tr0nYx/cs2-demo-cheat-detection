@@ -42,7 +42,14 @@
       "Bash(git push *)",
       "PowerShell(gsd-sdk query init.execute-phase 22)",
       "Bash(python -m py_compile tests/test_derivative_computation.py)",
-      "Bash(REDIS_URL=\"redis://redis:6379\" DATABASE_URL=\"postgresql://cs2_app:cs2_app_password@postgres:5432/cs2_detection\" php bin/console app:demo:requeue -a)"
+      "Bash(REDIS_URL=\"redis://redis:6379\" DATABASE_URL=\"postgresql://cs2_app:cs2_app_password@postgres:5432/cs2_detection\" php bin/console app:demo:requeue -a)",
+      "PowerShell(New-Item -ItemType Directory -Path \"i:\\\\github\\\\cs2-demo-cheat-detection\\\\.planning\\\\codebase\" -Force)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(tee playwright-results.txt)",
+      "Bash(cd /i/github/cs2-demo-cheat-detection && ls -la frontend/ | head -20)",
+      "Read(//i/i/github/cs2-demo-cheat-detection/**)",
+      "Bash(npx playwright *)",
+      "Bash(curl -s http://localhost:3000/results/33333333-3333-7333-8333-333333333333)"
     ]
   }
 }

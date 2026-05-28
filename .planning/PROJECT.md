@@ -19,6 +19,7 @@ Users can upload or point to a CS2 demo and receive a reproducible, explainable,
 - [x] Symfony dispatches demo analysis work to Redis without waiting for long-running Python analysis. Validated in Phase 2: Symfony API and Domain.
 - [x] Backend persists Demo, Player, and AnalysisResult records and ingests player-level results or errors. Validated in Phase 2: Symfony API and Domain.
 - [x] Frontend exposes a research-safe match report at `/matches/{demoId}` with metadata, participants, rounds/events, existing viewer/heatmap access, and player/result navigation. Validated in Phase 24: Match Detail Page.
+- [x] Result dashboard exposes compact review orientation, dense feature-family bands, local review filters, selected-player narratives, context reducers, and stored evidence-sample affordances. Validated in Phase 26: Umsetzung der Mercurial-Referenzideen fuer Result Dashboard.
 
 ### Active
 
@@ -93,7 +94,7 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-05-19 after Phase 24 Match Detail Page execution*
+*Last updated: 2026-05-28 after Phase 26 Result Dashboard refinement execution*
 
 ## Current Status
-**Phase 24: Match Detail Page** (Complete 2026-05-19) - Delivered `/matches/{demoId}` as a match report page with metadata, participants, rounds/events, viewer/heatmap access, player-profile links, result/history navigation, and research-safe copy. All outputs remain post-game research signals, not proof or enforcement.
+**Phase 26: Result Dashboard Refinements** (Complete 2026-05-28) - Delivered Mercurial-inspired result-dashboard refinements with compact coverage/provenance orientation, dense player scan filters, selected-player narrative sections, context reducers, optional stored evidence samples, and research-safe responsive verification. All outputs remain post-game research signals, not proof or enforcement.

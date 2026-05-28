@@ -1,3 +1,18 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
+last_updated: "2026-05-28T08:25:00.000Z"
+last_activity: 2026-05-28 -- Phase 26 execution complete
+progress:
+  total_phases: 22
+  completed_phases: 19
+  total_plans: 76
+  completed_plans: 74
+  percent: 86
+---
+
 # Project State
 
 ## Project Reference
@@ -5,21 +20,24 @@
 See: .planning/PROJECT.md (updated 2026-05-15)
 
 **Core value:** Users can upload or point to a CS2 demo and receive a reproducible, explainable, player-level cheat suspicion analysis based only on post-game demo data.
-**Current focus:** Phase 24: Match Detail Page (Complete)
+**Current focus:** Phase 26: Umsetzung der Mercurial-Referenzideen fuer Result Dashboard (Complete)
 
 ## Current Position
 
-Phase: 24 (Match Detail Page) - COMPLETE
-Status: Phase 24 completed in 4 executable plans across 3 waves. Delivered `/matches/{demoId}` with a normalized match-detail view model, reusable report components, rounds/events/viewer sections, result/history navigation, Jest coverage, research-language guard, and Playwright smoke coverage.
-Last activity: 2026-05-19 - Phase 24 execution completed and verified. Targeted Jest, lint, Next build, and Playwright smoke checks passed; standalone `npx tsc --noEmit --pretty false` remains blocked by pre-existing e2e type issues outside Phase 24.
+Phase: 26 (Umsetzung der Mercurial-Referenzideen fuer Result Dashboard) - COMPLETE
+Status: Phase complete
+Last activity: 2026-05-28 -- Phase 26 execution complete
 Phase 23 status: complete.
 Phase 24 status: complete.
+Phase 25 status: implemented with 4 plan summaries present.
+Phase 26 status: complete with 4 executable plans verified.
 
 Progress: [##############] v2 Core Complete -> [##############] Phase 13 Complete -> [##############] Phase 14 Complete -> [##############] Phase 15 Complete -> [##############] Phase 16 Complete -> [############] Phase 17 Implemented -> [ ] Phase 17 Verification
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 27 (Phase 15 added 6 plans)
 - Average duration: 12 minutes
 - Total execution time: 5.4 hours (v2 core features + authentication/dashboard + advanced analytics)
@@ -45,6 +63,7 @@ Progress: [##############] v2 Core Complete -> [##############] Phase 13 Complet
 | Phase 15: Advanced Analytics & User Scoping | 6 | 73 min | 12 min |
 
 **Recent Trend:**
+
 - Last 5 plans: 15-01b dashboard filters, 15-02 sensitivity tuner, 15-03 comparison validation, 15-04 trends/caching, 15-05 leaderboard filtering
 - Trend: Phase 15 expanded analytics depth while preserving the Symfony/Python split and research-only ethical boundary.
 
@@ -106,6 +125,10 @@ None yet.
 - Phase 24 added: Match Detail Page
 - Phase 24 context gathered: csstats-inspired match report route at `/matches/{demoId}`, existing API reuse first, overview/scoreboard/rounds/events/viewer sections, player profile links, graceful missing-data states, and research-signal framing.
 - Phase 24 completed: 4 plans across 3 waves delivered frontend data normalization, match report components, `/matches/{demoId}` route assembly, viewer/heatmap integration, navigation from existing result/history surfaces, and research-safe verification.
+- Phase 25 added: Better Result UI
+- Phase 25 planned: 4 waves covering result dashboard data/explanation helpers, ranked player evidence components, tabbed `/results/{demoId}` route assembly, and research-language/responsive verification.
+- Phase 26 added: Umsetzung der Mercurial-Referenzideen fuer Result Dashboard from `.planning/phases/25-better-result-ui/25-INPUT-IDEAS.md`, focused on compact review headers, dense feature bands, selected-player narratives, context reducers, and evidence-sample affordances after Phase 25.
+- Phase 26 planned: 4 waves covering view-model helpers, compact overview and dense scan table, selected-player narrative detail, evidence samples, language guard, and desktop/mobile smoke verification.
 
 ## Deferred Items
 
@@ -117,12 +140,36 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-19
+Last session: 2026-05-28T05:51:07.124Z
 Completed: Phase 24 executed and verified
-Current status: Phase 24 complete; match detail page is available at `/matches/{demoId}`
-Next work: Choose the next roadmap phase to execute or close remaining verification debt.
+Current status: Phase 26 is planned and ready to execute after Phase 25 baseline work.
+Next work: Execute Phase 26 Mercurial-inspired result-dashboard refinements when ready.
+
+**Phase 25 context gathered:** 2026-05-19
+
+- Context: `.planning/phases/25-better-result-ui/25-CONTEXT.md`
+- Decisions: `/results/{demoId}` becomes an evidence dashboard with ranked player table first, separate Players/TRACE/Sensitivity/Viewer-style analysis tabs, and calm but visible research-signal severity display.
+- Follow-up decision: Feature rows must include plain-language "why this score?" explanations for signals such as aimbot and triggerbot; raw method names and measurements are secondary detail only.
+
+**Phase 25 planned:** 2026-05-19
+
+- Research: `.planning/phases/25-better-result-ui/25-RESEARCH.md`
+- Plans: `25-01-PLAN.md`, `25-02-PLAN.md`, `25-03-PLAN.md`, `25-04-PLAN.md`
+- Verification: `.planning/phases/25-better-result-ui/25-PLAN-VERIFICATION.md`
+
+**Phase 26 added:** 2026-05-28
+
+- Directory: `.planning/phases/26-umsetzung-der-mercurial-referenzideen-fuer-result-dashboard/`
+- Input: `.planning/phases/25-better-result-ui/25-INPUT-IDEAS.md`
+- Goal: Implement the Mercurial-inspired result-dashboard ideas after the Phase 25 baseline, while preserving research-only language, existing contracts, and score semantics.
+- Research: `.planning/phases/26-umsetzung-der-mercurial-referenzideen-fuer-result-dashboard/26-RESEARCH.md`
+- Plans: `26-01-PLAN.md`, `26-02-PLAN.md`, `26-03-PLAN.md`, `26-04-PLAN.md`
+- Verification: `.planning/phases/26-umsetzung-der-mercurial-referenzideen-fuer-result-dashboard/26-PLAN-VERIFICATION.md`
+- Validation: `.planning/phases/26-umsetzung-der-mercurial-referenzideen-fuer-result-dashboard/26-VALIDATION.md`
+- Next command: `$gsd-execute-phase 26`
 
 **PROJECT EXECUTION STATUS: PHASE 16 COMPLETE; PHASE 17 IMPLEMENTED, PARTIALLY VERIFIED**
+
 - Phase 3: Python Analysis Pipeline complete (analysis engine complete)
 - Phase 6: Frontend Application Interface complete (web UI complete, production-ready)
 - Phase 7: Enhanced ML & Production complete (full execution, blockers fixed, observability stack complete)
@@ -138,12 +185,14 @@ Next work: Choose the next roadmap phase to execute or close remaining verificat
 - Phase 17: Steamprofile Usage planned, execution pending
 
 **PHASE 16 COMPLETE**
+
 - Node.js Playwright scraper bypassing Cloudflare for demo URLs and stats
 - `hltv-scraper` container integrated in docker-compose.yml
 - Asynchronous symfony handler dispatching to standard demo import pipeline
 - Admin API for manual triggers and CLI command for Cron tier-1 auto-ingestion
 
 **PHASE 15 COMPLETE**
+
 - User Analysis Scoping: Real-time multi-filter query (map, rating, outcome, timeframe)
 - Sensitivity Analysis: Individual feature thresholds with live preview + backend validation
 - Player Profiling Trends: Consistency, improvement arc, weapon strengths

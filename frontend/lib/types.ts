@@ -407,3 +407,127 @@ export interface FilteredLeaderboardResponse {
   total: number
   hasMore: boolean
 }
+
+export type ResultPlayerKind = 'player' | 'demo_aggregate'
+
+export type ResultEvidenceState = 'available' | 'limited' | 'unavailable'
+
+export type ResultReviewFilter = 'all' | 'review' | 'limited' | 'aggregate'
+
+export type ResultContextReducerSeverity = 'info' | 'warning' | 'critical'
+
+export interface ResultFeatureFamilyBand {
+  name: Feature['name']
+  label: string
+  score: number
+  bandLabel: string
+  evidenceState: ResultEvidenceState
+  marker: 'capped' | 'limited' | 'unavailable' | null
+  topDriver: string | null
+  sampleCount: number
+}
+
+export interface ResultContextReducer {
+  kind:
+    | 'limited_evidence'
+    | 'unavailable'
+    | 'capped'
+    | 'parser_gap'
+    | 'low_confidence'
+    | 'weak_evidence'
+    | 'aggregate_only'
+  label: string
+  description: string
+  severity: ResultContextReducerSeverity
+  sourceFeature?: Feature['name']
+}
+
+export interface ResultEvidenceSample {
+  featureFamily: Feature['name']
+  label: string
+  text: string
+  evidenceStrength: Feature['evidenceStrength'] | 'unavailable'
+  confidence: Feature['confidence'] | 'unavailable'
+  sourceFeature: Feature['name']
+  round?: number
+  target?: string
+  weapon?: string
+}
+
+export interface ResultCoverageCounts {
+  realPlayers: number
+  aggregateEntries: number
+  reviewSignals: number
+  limitedFeatures: number
+  unavailableEvidence: number
+  evidenceSamples: number
+}
+
+export interface ResultFeatureExplanation {
+  summary: string
+  drivers: string[]
+  limitations: string[]
+  technicalDetails: string[]
+  evidenceState: ResultEvidenceState
+}
+
+export interface ResultFeatureViewModel {
+  feature: Feature
+  label: string
+  score: number
+  bandLabel: string
+  explanation: ResultFeatureExplanation
+}
+
+export interface ResultFeatureBadge {
+  name: Feature['name']
+  label: string
+  score: number
+  bandLabel: string
+}
+
+export interface ResultPlayerRowViewModel {
+  steamId: string
+  name: string
+  kind: ResultPlayerKind
+  score: number
+  verdict: Player['overallVerdict']
+  scoreLabel: string
+  statusLabel: string
+  confidenceLabel: string
+  evidenceState: ResultEvidenceState
+  evidenceStrengthLabel: string
+  topFeatureBadges: ResultFeatureBadge[]
+  featureFamilyBands: ResultFeatureFamilyBand[]
+  features: ResultFeatureViewModel[]
+  contextReducers: ResultContextReducer[]
+  evidenceSamples: ResultEvidenceSample[]
+  profileHref: string | null
+  modelVersion?: string
+  hasWarnings: boolean
+  orientation: {
+    identityLabel: string
+    profileEligible: boolean
+    profileHref: string | null
+    coverageSummary: string
+  }
+}
+
+export interface ResultDashboardViewModel {
+  demoId: string
+  status: DemoStatus | 'unknown'
+  statusLabel: string
+  overallScore: number | null
+  overallVerdict: AnalysisResult['overall_verdict'] | null
+  overallStatusLabel: string
+  modelVersion: string | null
+  playerRows: ResultPlayerRowViewModel[]
+  aggregateRows: ResultPlayerRowViewModel[]
+  topReviewSignals: ResultPlayerRowViewModel[]
+  coverageCounts: ResultCoverageCounts
+  hasPlayers: boolean
+  hasOnlyAggregate: boolean
+  hasResults: boolean
+  emptyState: 'pending' | 'error' | 'no_results' | 'no_players' | 'aggregate_only' | 'unknown' | null
+  message: string
+}

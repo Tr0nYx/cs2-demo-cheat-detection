@@ -1,18 +1,26 @@
 'use client'
 
 import { useParams } from 'next/navigation'
+import { useMemo, useState } from 'react'
 import { useDemoFetch } from '@/lib/hooks/useDemoFetch'
 import { useDemoDetail } from '@/lib/hooks/useDemoDetail'
-import { ResultsCard } from '@/components/ResultsCard'
 import { SensitivityTuner } from '@/components/Analytics/SensitivityTuner'
 import { TraceCard } from '@/components/DemoDetail/TraceCard'
 import { DemoViewer } from '@/components/DemoViewer/DemoViewer'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { AlertCircle, ArrowLeft, FileSearch, Loader2 } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { ConsoleHeader, ConsolePage, ResearchSignalNotice, StatusBadge } from '@/components/Console'
+import { ConsoleHeader, ConsolePage, ConsolePanel, ResearchSignalNotice, StatusBadge } from '@/components/Console'
+import { buildResultDashboardViewModel } from '@/lib/result-dashboard'
+import {
+  PlayerEvidenceDetail,
+  PlayerEvidenceTable,
+  ResultDashboardTabs,
+  ResultEmptyState,
+  ResultOverviewPanel,
+} from '@/components/ResultsDashboard'
 
 export default function ResultsPage() {
   const params = useParams()
@@ -20,6 +28,8 @@ export default function ResultsPage() {
 
   const { demo, isLoading, error, isTimeout, failureCount } = useDemoFetch(demoId)
   const { data: demoDetail } = useDemoDetail(demoId)
+  const dashboard = useMemo(() => demo ? buildResultDashboardViewModel(demo) : null, [demo])
+  const [selectedSteamId, setSelectedSteamId] = useState<string | null>(null)
 
   // Not found state
   if (demo === null) {
@@ -103,6 +113,12 @@ export default function ResultsPage() {
 
   // Ready state - show results
   if (demo) {
+    const selectedRow =
+      dashboard?.playerRows.find((row) => row.steamId === selectedSteamId) ??
+      dashboard?.playerRows[0] ??
+      dashboard?.aggregateRows[0] ??
+      null
+
     return (
       <ConsolePage width="wide">
         <Link href="/history" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-trace-primary rounded w-fit">
@@ -134,33 +150,70 @@ export default function ResultsPage() {
         />
 
         <div className="space-y-6 mt-4">
-          <div className="flex justify-end">
-            <Link href={`/matches/${demoId}`}>
-              <Button variant="outline" size="sm">
-                <FileSearch className="mr-2 size-4" aria-hidden />
-                Open match report
-              </Button>
-            </Link>
-          </div>
+          {dashboard && <ResultOverviewPanel demo={demo} model={dashboard} />}
 
-          <ResultsCard demo={demo} />
+          {dashboard && dashboard.topReviewSignals.length > 0 && (
+            <ConsolePanel
+              title="Top Player Review Signals"
+              description="Highest player-level research signals from this result payload."
+            >
+              <div className="grid gap-3 md:grid-cols-3">
+                {dashboard.topReviewSignals.map((row) => (
+                  <button
+                    key={row.steamId}
+                    type="button"
+                    onClick={() => setSelectedSteamId(row.steamId)}
+                    className="rounded-lg border border-border-subtle bg-surface-raised p-3 text-left transition-colors hover:border-trace-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trace-primary"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium text-foreground">{row.name}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">{row.confidenceLabel}</div>
+                      </div>
+                      <span className="font-data text-sm font-semibold">{row.scoreLabel}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </ConsolePanel>
+          )}
 
-          <div className="mt-6 grid w-full gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
-            <TraceCard demoId={demoId} />
-            <SensitivityTuner
-              demoId={demoId}
-              featureVectors={demoDetail?.featureVectors ?? null}
-              baselineSuspicion={demoDetail?.baselineSuspicion ?? null}
+          {dashboard && (
+            <ResultDashboardTabs
+              players={
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
+                  <div className="space-y-4">
+                    <PlayerEvidenceTable
+                      rows={dashboard.playerRows}
+                      aggregateRows={dashboard.aggregateRows}
+                      selectedSteamId={selectedRow?.steamId ?? null}
+                      onSelect={(row) => setSelectedSteamId(row.steamId)}
+                    />
+                    <ResultEmptyState model={dashboard} />
+                    {dashboard.aggregateRows.length > 0 && (
+                      <PlayerEvidenceDetail row={dashboard.aggregateRows[0]} demoId={demoId} />
+                    )}
+                  </div>
+                  <PlayerEvidenceDetail row={selectedRow} demoId={demoId} />
+                </div>
+              }
+              trace={<TraceCard demoId={demoId} playerId={selectedRow?.profileHref ? selectedRow.steamId : undefined} />}
+              sensitivity={
+                <SensitivityTuner
+                  demoId={demoId}
+                  featureVectors={demoDetail?.featureVectors ?? null}
+                  baselineSuspicion={demoDetail?.baselineSuspicion ?? null}
+                />
+              }
+              viewer={
+                <DemoViewer
+                  demoId={demoId}
+                  mapName={demoDetail?.metadata?.map ?? demo.map ?? 'de_dust2'}
+                  analyzed={demo.status === 'done'}
+                />
+              }
             />
-          </div>
-
-          <div className="w-full">
-            <DemoViewer
-              demoId={demoId}
-              mapName={demoDetail?.metadata?.map ?? demo.map ?? 'de_dust2'}
-              analyzed={demo.status === 'done'}
-            />
-          </div>
+          )}
         </div>
       </ConsolePage>
     )

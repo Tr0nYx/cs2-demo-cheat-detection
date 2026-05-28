@@ -103,6 +103,24 @@
 - **PHASE-24-05**: Match page displays prominent research-only framing and avoids enforcement/proof language such as cheater, proof, ban, or conviction.
 - **PHASE-24-06**: Match detail implementation has automated coverage for data normalization, component rendering, research-safe language, and desktop/mobile browser smoke behavior.
 
+### Phase 25: Better Result UI
+
+- **PHASE-25-01**: `/results/{demoId}` is reorganized into an evidence dashboard with first-viewport status/provenance, overall research signal, top player review signals, and navigation to match/player/viewer surfaces.
+- **PHASE-25-02**: Player-level results are shown in a ranked responsive table with score bands, confidence/evidence states, top feature badges, valid player-profile links, and separate handling for demo-level aggregate placeholder results such as Steam ID `0`.
+- **PHASE-25-03**: Result analysis modes are separated into focused Players, TRACE, Sensitivity, and Viewer tabs while reusing existing TRACE, sensitivity tuner, and demo viewer modules.
+- **PHASE-25-04**: Feature evidence for aimbot, triggerbot, wallhack, recoil, bhop, and session includes plain-language "why this score?" explanations, with raw method names and measurements kept as secondary technical detail.
+- **PHASE-25-05**: Capped scores, weak evidence, low sample count, parser gaps, missing feature data, and unavailable confidence states are visible as limitations or warnings rather than hidden or treated as high-confidence output.
+- **PHASE-25-06**: Result dashboard implementation has automated coverage for view-model shaping, component rendering, route integration, research-safe language, and desktop/mobile browser smoke behavior.
+
+### Phase 26: Umsetzung der Mercurial-Referenzideen fuer Result Dashboard
+
+- **PHASE-26-01**: Result dashboard selected-player orientation includes compact identity, profile-link eligibility, match/viewer navigation, available provenance, and coverage counts without using external profile context as suspicion evidence.
+- **PHASE-26-02**: Ranked player review rows support dense feature-family bands for aimbot, triggerbot, wallhack, recoil, bhop, session, and available TRACE context, including confidence, capped/unavailable markers, and top contributing measurements.
+- **PHASE-26-03**: Result review supports simple scan filters such as all players, review signals, capped/limited evidence, and aggregate/demo-level entries while preserving separate handling for Steam ID `0` and other non-player placeholders.
+- **PHASE-26-04**: Selected-player detail includes structured narrative sections for what happened, why the score appears, what limits confidence, and next review links, using neutral research-signal language.
+- **PHASE-26-05**: UI supports neutral context-reducer patterns for weak evidence, clean history when already available, low sample count, capped score, parser gap, unavailable data, and other confidence-limiting states.
+- **PHASE-26-06**: Concrete evidence-sample affordances are displayed only when persisted payload data exists, with no fabricated round, target, weapon, lobby-quality, rank, ELO, or history context; implementation includes research-language and responsive smoke coverage.
+
 ## Out of Scope
 
 | Feature | Reason |
@@ -172,15 +190,29 @@
 | PHASE-24-04 | Phase 24 | Complete |
 | PHASE-24-05 | Phase 24 | Complete |
 | PHASE-24-06 | Phase 24 | Complete |
+| PHASE-25-01 | Phase 25 | Pending |
+| PHASE-25-02 | Phase 25 | Pending |
+| PHASE-25-03 | Phase 25 | Pending |
+| PHASE-25-04 | Phase 25 | Pending |
+| PHASE-25-05 | Phase 25 | Pending |
+| PHASE-25-06 | Phase 25 | Pending |
+| PHASE-26-01 | Phase 26 | Complete |
+| PHASE-26-02 | Phase 26 | Complete |
+| PHASE-26-03 | Phase 26 | Complete |
+| PHASE-26-04 | Phase 26 | Complete |
+| PHASE-26-05 | Phase 26 | Complete |
+| PHASE-26-06 | Phase 26 | Complete |
 
 **Coverage:**
 - v1 requirements: 37 total
 - Mapped to phases: 37
 - Phase 22 requirements: 6 total
 - Phase 24 requirements: 6 total
-- Total mapped: 49
+- Phase 25 requirements: 6 total
+- Phase 26 requirements: 6 total
+- Total mapped: 61
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-15*
-*Last updated: 2026-05-19 after Phase 24 execution*
+*Last updated: 2026-05-28 after Phase 26 execution*
